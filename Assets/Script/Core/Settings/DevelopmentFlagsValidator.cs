@@ -8,6 +8,7 @@ using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 
+[InitializeOnLoad]
 public class DevelopmentFlagsValidator : IPreprocessBuildWithReport
 {
     public int callbackOrder => 0;
@@ -96,7 +97,7 @@ public class DevelopmentFlagsValidator : IPreprocessBuildWithReport
                 }
             }
 
-            List<Question> allQuestions = database.GetQuestions();
+            List<Question> allQuestions = QuestionFilterService.FilterQuestions(database);
             var devQuestions = allQuestions.Where(q => q.questionInDevelopment).ToList();
 
             if (devQuestions.Any())
@@ -112,19 +113,14 @@ public class DevelopmentFlagsValidator : IPreprocessBuildWithReport
         }
     }
 }
-#endif
 
-[InitializeOnLoad]
 public class DevelopmentFlagsRuntimeValidator
 {
     static DevelopmentFlagsRuntimeValidator()
     {
-        #if UNITY_EDITOR
         EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
-        #endif
     }
 
-    #if UNITY_EDITOR
     private static void OnPlayModeStateChanged(PlayModeStateChange state)
     {
         if (state == PlayModeStateChange.EnteredPlayMode)
@@ -154,7 +150,7 @@ public class DevelopmentFlagsRuntimeValidator
                 Debug.LogWarning($"=================================================");
             }
 
-            List<Question> allQuestions = database.GetQuestions();
+            List<Question> allQuestions = QuestionFilterService.FilterQuestions(database);
             var devQuestions = allQuestions.Where(q => q.questionInDevelopment).ToList();
 
             if (devQuestions.Any())
@@ -168,5 +164,5 @@ public class DevelopmentFlagsRuntimeValidator
             Debug.LogWarning($"[DevelopmentFlagsValidator] Aplicação rodando com flags de desenvolvimento ativas");
         }
     }
-    #endif
 }
+#endif

@@ -85,7 +85,6 @@ public class DatabaseStatisticsManager : MonoBehaviour
 
     private async Task LoadAllDatabaseStatistics()
     {
-        // Lista de todos os bancos de dados possíveis
         string[] allDatabases = new string[]
         {
             "AcidBaseBufferQuestionDatabase",
@@ -102,16 +101,13 @@ public class DatabaseStatisticsManager : MonoBehaviour
 
         Dictionary<string, int> questionCounts = new Dictionary<string, int>();
 
-        // Crie instâncias de cada banco de dados e conte as questões
         foreach (string databankName in allDatabases)
         {
             try
             {
-                // Encontra o tipo do banco de dados
                 Type databaseType = Type.GetType(databankName);
                 if (databaseType == null)
                 {
-                    // Procurar em todos os assemblies
                     foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
                     {
                         databaseType = assembly.GetType(databankName);
@@ -121,29 +117,25 @@ public class DatabaseStatisticsManager : MonoBehaviour
 
                 if (databaseType != null)
                 {
-                    // Cria uma instância temporária do banco
                     GameObject tempGO = new GameObject($"Temp_{databankName}");
                     var database = tempGO.AddComponent(databaseType) as IQuestionDatabase;
 
                     if (database != null)
                     {
-                        var questions = database.GetQuestions();
+                        var questions = QuestionFilterService.FilterQuestions(database);
                         int count = questions != null ? questions.Count : 0;
 
-                        // Registra a contagem de questões
                         QuestionBankStatistics.SetTotalQuestions(databankName, count);
                         questionCounts[databankName] = count;
 
                         Debug.Log($"Carregado banco {databankName}: {count} questões");
                     }
 
-                    // Limpa o GameObject temporário
                     Destroy(tempGO);
                 }
                 else
                 {
                     Debug.LogWarning($"Não foi possível encontrar o tipo para {databankName}");
-                    // Define um valor padrão
                     QuestionBankStatistics.SetTotalQuestions(databankName, 50);
                     questionCounts[databankName] = 50;
                 }
@@ -151,13 +143,11 @@ public class DatabaseStatisticsManager : MonoBehaviour
             catch (Exception e)
             {
                 Debug.LogError($"Erro ao carregar estatísticas para {databankName}: {e.Message}");
-                // Define um valor padrão em caso de erro
                 QuestionBankStatistics.SetTotalQuestions(databankName, 50);
                 questionCounts[databankName] = 50;
             }
         }
 
-        // Aguarda um pouco para garantir que as estatísticas sejam salvas
         await Task.Delay(100);
 
         int totalQuestions = 0;

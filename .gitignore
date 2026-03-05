@@ -36,6 +36,12 @@ Assets/ExternalDependencyManager/Editor/IOSResolverDependencies.xml
 Assets/ExternalDependencyManager/Editor/GoogleVersionHandlerVersion.txt
 
 # ===========================
+# Android Firebase auto-generated
+# ===========================
+Assets/Plugins/Android/FirebaseApp.androidlib/
+Assets/Plugins/Android/FirebaseApp.androidlib.meta
+
+# ===========================
 # External Dependency Manager (EDM4U)
 # ===========================
 Assets/ExternalDependencyManager/**

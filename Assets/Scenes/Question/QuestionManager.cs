@@ -116,7 +116,7 @@ public class QuestionManager : MonoBehaviour
             string currentDatabaseName = database.GetDatabankName();
             loadManager.databankName = currentDatabaseName;
 
-            allDatabaseQuestions = database.GetQuestions();
+            allDatabaseQuestions = QuestionFilterService.FilterQuestions(database);
             maxLevelInDatabase = LevelCalculator.GetMaxLevel(allDatabaseQuestions);
             Debug.Log($"📚 Banco {currentDatabaseName} possui {maxLevelInDatabase} níveis");
 
