@@ -31,20 +31,20 @@ public class LipidsQuestionDatabase : MonoBehaviour, IQuestionDatabase
         new Question
         {
             questionDatabankName = "LipidsQuestionDatabase",
-            questionText = "Os lipídeos são moléculas que apresentam uma grande variedade de estruturas, mas com uma propriedade física comum",
+            questionText = "",
             answers = new string[] {
                 "São totalmente apolares",
                 "São totalmente polares",
-                "São hidrofílicas",
-                "São anfipáticas"
+                "São hidrofílicos",
+                "São anfipáticos"
             },
             correctIndex = 3,
             questionNumber = 2,
             isImageAnswer = false,
-            isImageQuestion = false,
-            questionImagePath = "",
+            isImageQuestion = true,
+            questionImagePath = "QuestionImages/LipidDB/LipidsDB_ImageQuestionContainer2",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = true
         },
         new Question
         {
