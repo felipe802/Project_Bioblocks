@@ -79,7 +79,6 @@ public class RegisterManager : MonoBehaviour
             await AuthenticationRepository.Instance.RegisterUserAsync(nameInput.text, nickNameInput.text, emailInput.text, passwordInput.text);
             await Task.Delay(300);
 
-            // Recarrega os dados do usuário recém-criado
             var user = AuthenticationRepository.Instance.Auth.CurrentUser;
             if (user != null)
             {

@@ -17,9 +17,7 @@ public class BioBlocksSettings : MonoBehaviour
                 _instance = FindFirstObjectByType<BioBlocksSettings>();
                 if (_instance == null)
                 {
-                    GameObject go = new GameObject("ProjectSettings");
-                    _instance = go.AddComponent<BioBlocksSettings>();
-                    DontDestroyOnLoad(go);
+                    Debug.LogError("[BioBlocksSettings] Não existe BioBlocksSettings na cena inicial. Adicione um GameObject com este componente na primeira cena (Boot/Menu).");
                 }
             }
             return _instance;

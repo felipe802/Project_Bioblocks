@@ -152,7 +152,7 @@ public class AminoacidQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "QuestionImages/AminoacidsDB/aminoacidDB_ImageQuestionContainer8",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -170,7 +170,7 @@ public class AminoacidQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AminoacidsDB/aminoacidDB_ImageQuestionContainer9",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -188,7 +188,7 @@ public class AminoacidQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AminoacidsDB/aminoacidDB_ImageQuestionContainer10",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
          new Question
         {
@@ -206,7 +206,7 @@ public class AminoacidQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AminoacidsDB/aminoacidDB_ImageQuestionContainer11",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -224,7 +224,7 @@ public class AminoacidQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AminoacidsDB/aminoacidDB_ImageQuestionContainer12",
             questionLevel = 3,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -242,7 +242,7 @@ public class AminoacidQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AminoacidsDB/aminoacidDB_ImageQuestionContainer13",
             questionLevel = 3,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -350,7 +350,7 @@ public class AminoacidQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 3,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -512,7 +512,7 @@ public class AminoacidQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AminoacidsDB/aminoacidDB_ImageQuestionContainer28",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
        new Question
         {
@@ -566,7 +566,7 @@ public class AminoacidQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AminoacidsDB/aminoacidDB_ImageQuestionContainer31",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -584,7 +584,7 @@ public class AminoacidQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AminoacidsDB/aminoacidDB_ImageQuestionContainer32",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -746,7 +746,7 @@ public class AminoacidQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AminoacidsDB/aminoacidDB_ImageQuestionContainer41",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -764,7 +764,7 @@ public class AminoacidQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AminoacidsDB/aminoacidDB_ImageQuestionContainer42",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -782,7 +782,7 @@ public class AminoacidQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AminoacidsDB/aminoacidDB_ImageQuestionContainer43",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -800,7 +800,7 @@ public class AminoacidQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AminoacidsDB/aminoacidDB_ImageQuestionContainer44",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -854,7 +854,7 @@ public class AminoacidQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AminoacidsDB/aminoacidDB_ImageQuestionContainer47",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -872,7 +872,7 @@ public class AminoacidQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AminoacidsDB/aminoacidDB_ImageQuestionContainer48",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -944,7 +944,7 @@ public class AminoacidQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {

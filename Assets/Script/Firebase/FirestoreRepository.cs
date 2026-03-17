@@ -10,8 +10,6 @@ public class FirestoreRepository : MonoBehaviour
     private static FirestoreRepository _instance;
     private FirebaseFirestore db;
     private bool isInitialized;
-
-    // Propriedade pública somente leitura para verificar o estado de inicialização
     public bool IsInitialized => isInitialized;
 
     public static FirestoreRepository Instance
@@ -60,8 +58,7 @@ public class FirestoreRepository : MonoBehaviour
                 Dictionary<string, object> userData = snapshot.ToDictionary();
                 Debug.Log($"Dados brutos do Firestore: {string.Join(", ", userData.Select(kv => $"{kv.Key}: {kv.Value}"))}");
 
-                // Tratamento correto do Timestamp
-                Timestamp createdTime = Timestamp.FromDateTime(DateTime.UtcNow); // valor padrão
+                Timestamp createdTime = Timestamp.FromDateTime(DateTime.UtcNow);
                 if (userData["CreatedTime"] is Timestamp timestamp)
                 {
                     createdTime = timestamp;
@@ -662,8 +659,7 @@ public class FirestoreRepository : MonoBehaviour
             QuerySnapshot querySnapshot = await db.Collection("Users").GetSnapshotAsync();
 
             // Verificar se há documentos
-            // Corrigindo a linha problemática
-            if (querySnapshot.Documents.Count() == 0)  // Use Count() como método, não Count como propriedade
+            if (querySnapshot.Documents.Count() == 0)
             {
                 Debug.Log("Nenhum usuário encontrado para resetar scores semanais");
                 return;

@@ -147,7 +147,7 @@ public class BiochemistryIntroductionQuestionDatabase : MonoBehaviour, IQuestion
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question {
             questionDatabankName = "BiochemistryIntroductionQuestionDatabase",
@@ -164,7 +164,7 @@ public class BiochemistryIntroductionQuestionDatabase : MonoBehaviour, IQuestion
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question {
             questionDatabankName = "BiochemistryIntroductionQuestionDatabase",
@@ -181,7 +181,7 @@ public class BiochemistryIntroductionQuestionDatabase : MonoBehaviour, IQuestion
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question {
             questionDatabankName = "BiochemistryIntroductionQuestionDatabase",
@@ -249,7 +249,7 @@ public class BiochemistryIntroductionQuestionDatabase : MonoBehaviour, IQuestion
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -267,7 +267,7 @@ public class BiochemistryIntroductionQuestionDatabase : MonoBehaviour, IQuestion
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -285,7 +285,7 @@ public class BiochemistryIntroductionQuestionDatabase : MonoBehaviour, IQuestion
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -303,7 +303,7 @@ public class BiochemistryIntroductionQuestionDatabase : MonoBehaviour, IQuestion
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -321,7 +321,7 @@ public class BiochemistryIntroductionQuestionDatabase : MonoBehaviour, IQuestion
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -339,7 +339,7 @@ public class BiochemistryIntroductionQuestionDatabase : MonoBehaviour, IQuestion
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question {
             questionDatabankName = "BiochemistryIntroductionQuestionDatabase",
@@ -356,7 +356,7 @@ public class BiochemistryIntroductionQuestionDatabase : MonoBehaviour, IQuestion
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -392,7 +392,7 @@ public class BiochemistryIntroductionQuestionDatabase : MonoBehaviour, IQuestion
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -854,7 +854,7 @@ public class BiochemistryIntroductionQuestionDatabase : MonoBehaviour, IQuestion
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question {
             questionDatabankName = "BiochemistryIntroductionQuestionDatabase",
@@ -871,7 +871,7 @@ public class BiochemistryIntroductionQuestionDatabase : MonoBehaviour, IQuestion
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question {
             questionDatabankName = "BiochemistryIntroductionQuestionDatabase",

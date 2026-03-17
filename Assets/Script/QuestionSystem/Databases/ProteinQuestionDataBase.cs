@@ -26,7 +26,7 @@ public class ProteinQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "AnswerImages/ProteinDB/proteinQuestion_1",
             questionLevel = 3,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -116,7 +116,7 @@ public class ProteinQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "AnswerImages/ProteinDB/proteinQuestion_6",
             questionLevel = 3,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -152,7 +152,7 @@ public class ProteinQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "AnswerImages/ProteinDB/proteinQuestion_8",
             questionLevel = 3,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -170,7 +170,7 @@ public class ProteinQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "AnswerImages/ProteinDB/proteinQuestion_9",
             questionLevel = 3,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -224,7 +224,7 @@ public class ProteinQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 3,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -242,7 +242,7 @@ public class ProteinQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "AnswerImages/ProteinDB/proteinQuestion_13",
             questionLevel = 3,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -260,7 +260,7 @@ public class ProteinQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "AnswerImages/ProteinDB/proteinQuestion_14",
             questionLevel = 3,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -278,7 +278,7 @@ public class ProteinQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 3,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -296,7 +296,7 @@ public class ProteinQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 3,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -314,7 +314,7 @@ public class ProteinQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 3,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
          new Question
         {
@@ -350,7 +350,7 @@ public class ProteinQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "AnswerImages/ProteinDB/proteinQuestion_20",
             questionLevel = 3,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -386,7 +386,7 @@ public class ProteinQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "AnswerImages/ProteinDB/methodsQuestions21",
             questionLevel = 3,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -530,7 +530,7 @@ public class ProteinQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "AnswerImages/ProteinDB/function_and_structure29",
             questionLevel = 3,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -566,7 +566,7 @@ public class ProteinQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "AnswerImages/ProteinDB/function_and_structure31",
             questionLevel = 3,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {
@@ -584,7 +584,7 @@ public class ProteinQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "AnswerImages/ProteinDB/function_and_structure32",
             questionLevel = 3,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question
         {

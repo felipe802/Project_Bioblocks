@@ -113,7 +113,7 @@ public class NucleicAcidsQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question {
             questionDatabankName = "NucleicAcidsQuestionDatabase",

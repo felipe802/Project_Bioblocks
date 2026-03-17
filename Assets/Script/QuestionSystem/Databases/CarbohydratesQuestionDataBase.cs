@@ -663,7 +663,7 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "AnswerImages/SugarDB/sugar_question_43",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -680,7 +680,7 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "AnswerImages/SugarDB/sugar_question_44",
             questionLevel = 2,
-            questionInDevelopment = true
+            questionInDevelopment = false
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
