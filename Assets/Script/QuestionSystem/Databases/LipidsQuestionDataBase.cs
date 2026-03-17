@@ -1082,7 +1082,7 @@ public class LipidsQuestionDatabase : MonoBehaviour, IQuestionDatabase
                 "São hormônios sexuais",
                 "Fornecem energia imediata"
             },
-            correctIndex = 2,
+            correctIndex = 1,
             questionNumber = 60,
             isImageAnswer = false,
             isImageQuestion = false,
