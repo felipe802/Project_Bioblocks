@@ -2,6 +2,13 @@ fileFormatVersion: 2
 guid: 44907853a9e64be4a31076a763ae13b3
 labels:
 - gvh
+<<<<<<< HEAD
+DefaultImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+=======
 - gvh_version-13.4.0
 - gvhp_exportpath-Firebase/Plugins/Firebase.App.pdb
 timeCreated: 1480838400
@@ -79,3 +86,4 @@ PluginImporter:
   userData:
   assetBundleName:
   assetBundleVariant:
+>>>>>>> 867b0e9a124cbf951572cc01d7cdd65c0bb45980
