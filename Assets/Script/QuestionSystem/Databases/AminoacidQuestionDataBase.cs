@@ -560,7 +560,7 @@ public class AminoacidQuestionDatabase : MonoBehaviour, IQuestionDatabase
                 "4 aminoácidos",
                 "5 aminoácidos"
             },
-            correctIndex = 3,
+            correctIndex = 2,
             questionNumber = 31,
             isImageAnswer = false,
             isImageQuestion = true,
