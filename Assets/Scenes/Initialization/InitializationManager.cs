@@ -64,6 +64,7 @@ public class InitializationManager : MonoBehaviour
                 DontDestroyOnLoad(spinnerObject);
                 globalSpinner = spinnerObject.GetComponent<LoadingSpinnerComponent>();
             }
+            globalSpinner?.ShowSpinner();
         }
         catch (Exception e)
         {

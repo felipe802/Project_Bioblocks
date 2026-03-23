@@ -5,7 +5,6 @@ using System.Collections.Generic;
 
 public class NavigationBottomBarManager : BarsManager
 {
-    protected INavigationService _navigation;
     [System.Serializable]
     public class NavButton
     {

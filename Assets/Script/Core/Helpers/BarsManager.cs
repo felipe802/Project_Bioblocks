@@ -50,9 +50,8 @@ public abstract class BarsManager : MonoBehaviour
         _navigation = AppContext.Navigation;
         RegisterWithNavigationManager();
 
-        string activeScene = SceneManager.GetActiveScene().name;
-        if (!string.IsNullOrEmpty(activeScene))
-            currentScene = activeScene;
+        currentScene = SceneManager.GetActiveScene().name;
+        Debug.Log($"[{BarName}] InitializeNavigation — cena atual: {currentScene}");
 
         UpdateBarState(currentScene);
         OnStart();
@@ -80,6 +79,7 @@ public abstract class BarsManager : MonoBehaviour
          if (_navigation != null)
          {
              _navigation.OnSceneChanged -= OnSceneChanged;
+             _navigation.OnSceneChanged += OnSceneChanged;
          }
         else
         {
