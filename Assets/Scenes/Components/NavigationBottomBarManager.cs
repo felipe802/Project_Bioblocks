@@ -171,6 +171,12 @@ public class NavigationBottomBarManager : BarsManager
 
         if (shouldShow)
         {
+            if (!gameObject.activeSelf)
+            {
+                Debug.Log($"[BottomBar] Ativando GameObject inativo para cena: {sceneName}");
+                gameObject.SetActive(true);
+            }
+
             Debug.Log($"[BottomBar] Cena {sceneName} deve mostrar a barra. Atualizando...");
             if (sceneName == "PathwayScene")
             {
@@ -183,7 +189,7 @@ public class NavigationBottomBarManager : BarsManager
                 UpdateButtonDisplay(sceneName);
             }
         }
-        else
+        else                                      
         {
             Debug.Log($"[BottomBar] Cena {sceneName} não deve mostrar a barra.");
         }

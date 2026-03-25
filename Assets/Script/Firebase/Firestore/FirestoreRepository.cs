@@ -116,12 +116,12 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
     private UserData ConvertFromFirestore(Dictionary<string, object> data)
     {
         UserData userData = new UserData();
-        userData.UserId = (string)data["UserId"];
-        userData.NickName = (string)data["NickName"];
-        userData.Name = (string)data["Name"];
-        userData.Email = (string)data["Email"];
-        userData.ProfileImageUrl = (string)data["ProfileImageUrl"];
-        userData.Score = Convert.ToInt32(data["Score"]);
+        userData.UserId = data.ContainsKey("UserId") ? (string)data["UserId"] : "";
+        userData.NickName = data.ContainsKey("NickName") ? (string)data["NickName"] : "";
+        userData.Name = data.ContainsKey("Name") ? (string)data["Name"] : "";
+        userData.Email = data.ContainsKey("Email") ? (string)data["Email"] : "";
+        userData.ProfileImageUrl = data.ContainsKey("ProfileImageUrl") ? (string)data["ProfileImageUrl"] ?? "" : "";
+        userData.Score = data.ContainsKey("Score") ? Convert.ToInt32(data["Score"]) : 0;
         userData.WeekScore = data.ContainsKey("WeekScore") ? Convert.ToInt32(data["WeekScore"]) : 0;
         userData.QuestionTypeProgress = data.ContainsKey("QuestionTypeProgress")
             ? Convert.ToInt32(data["QuestionTypeProgress"])
@@ -129,21 +129,16 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
         userData.PlayerLevel = data.ContainsKey("PlayerLevel") ? Convert.ToInt32(data["PlayerLevel"]) : 1;
         userData.TotalValidQuestionsAnswered = data.ContainsKey("TotalValidQuestionsAnswered") ? Convert.ToInt32(data["TotalValidQuestionsAnswered"]) : 0;
         userData.TotalQuestionsInAllDatabanks = data.ContainsKey("TotalQuestionsInAllDatabanks") ? Convert.ToInt32(data["TotalQuestionsInAllDatabanks"]) : 0;
+        userData.IsUserRegistered = data.ContainsKey("IsUserRegistered") ? Convert.ToBoolean(data["IsUserRegistered"]) : false;
+
+        if (data.ContainsKey("CreatedTime") && data["CreatedTime"] is Timestamp timestamp)
+            userData.CreatedTime = timestamp;
 
         if (data.ContainsKey("ResetDatabankFlags") && data["ResetDatabankFlags"] is Dictionary<string, object> resetFlagsData)
         {
             userData.ResetDatabankFlags = new Dictionary<string, bool>();
             foreach (var kvp in resetFlagsData)
-            {
                 userData.ResetDatabankFlags[kvp.Key] = Convert.ToBoolean(kvp.Value);
-            }
-        }
-
-        userData.IsUserRegistered = Convert.ToBoolean(data["IsUserRegistered"]);
-
-        if (data["CreatedTime"] is Timestamp timestamp)
-        {
-            userData.CreatedTime = timestamp;
         }
 
         userData.AnsweredQuestions = new Dictionary<string, List<int>>();
@@ -151,11 +146,8 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
         {
             foreach (var kvp in answeredQuestionsData)
             {
-                string databankName = kvp.Key;
                 if (kvp.Value is List<object> questionsList)
-                {
-                    userData.AnsweredQuestions[databankName] = questionsList.Select(x => Convert.ToInt32(x)).ToList();
-                }
+                    userData.AnsweredQuestions[kvp.Key] = questionsList.Select(x => Convert.ToInt32(x)).ToList();
             }
         }
 
@@ -180,7 +172,9 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
                 { "WeekScore", userData.WeekScore },
                 { "QuestionTypeProgress", userData.QuestionTypeProgress },
                 { "IsUserRegistered", userData.IsUserRegistered },
-                { "CreatedTime", userData.CreatedTime }
+                { "CreatedTime", userData.CreatedTime },
+                { "ProfileImageUrl", userData.ProfileImageUrl },
+                { "AnsweredQuestions", new Dictionary<string, object>() }
             };
 
             DocumentReference docRef = db.Collection("Users").Document(userData.UserId);
