@@ -47,18 +47,22 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
 
                 UserData user = new UserData
                 {
-                    UserId = userData["UserId"].ToString(),
-                    NickName = userData["NickName"].ToString(),
-                    Name = userData["Name"].ToString(),
-                    Email = userData["Email"].ToString(),
-                    Score = Convert.ToInt32(userData["Score"]),
+                    UserId = userData.ContainsKey("UserId") ? userData["UserId"].ToString() : "",
+                    NickName = userData.ContainsKey("NickName") ? userData["NickName"].ToString() : "",
+                    Name = userData.ContainsKey("Name") ? userData["Name"].ToString() : "",
+                    Email = userData.ContainsKey("Email") ? userData["Email"].ToString() : "",
+                    Score = userData.ContainsKey("Score") ? Convert.ToInt32(userData["Score"]) : 0,
                     WeekScore = userData.ContainsKey("WeekScore") ? Convert.ToInt32(userData["WeekScore"]) : 0,
                     QuestionTypeProgress = userData.ContainsKey("QuestionTypeProgress")
                         ? Convert.ToInt32(userData["QuestionTypeProgress"])
                         : (userData.ContainsKey("Progress") ? Convert.ToInt32(userData["Progress"]) : 0),
-                    ProfileImageUrl = userData["ProfileImageUrl"]?.ToString() ?? "",
+                    ProfileImageUrl = userData.ContainsKey("ProfileImageUrl") 
+                        ? userData["ProfileImageUrl"]?.ToString() ?? "" 
+                        : "",
                     CreatedTime = createdTime,
-                    IsUserRegistered = Convert.ToBoolean(userData["IsUserRegistered"]),
+                    IsUserRegistered = userData.ContainsKey("IsUserRegistered") 
+                        ? Convert.ToBoolean(userData["IsUserRegistered"]) 
+                        : false,
                     PlayerLevel = userData.ContainsKey("PlayerLevel") ? Convert.ToInt32(userData["PlayerLevel"]) : 1,
                     TotalValidQuestionsAnswered = userData.ContainsKey("TotalValidQuestionsAnswered") ? Convert.ToInt32(userData["TotalValidQuestionsAnswered"]) : 0,
                     TotalQuestionsInAllDatabanks = userData.ContainsKey("TotalQuestionsInAllDatabanks") ? Convert.ToInt32(userData["TotalQuestionsInAllDatabanks"]) : 0
@@ -181,6 +185,11 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
 
             DocumentReference docRef = db.Collection("Users").Document(userData.UserId);
             await docRef.SetAsync(requiredFields);
+            
+            await db.Collection("Nicknames")
+                .Document(userData.NickName.ToLower())
+                .SetAsync(new Dictionary<string, object> { { "userId", userData.UserId } });
+
             Debug.Log($"Documento do usuário criado com sucesso: {userData.UserId}");
         }
         catch (Exception e)
@@ -425,8 +434,10 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
 
     public async Task<bool> AreNicknameTaken(string nickName)
     {
-        QuerySnapshot snapshotNickname = await db.Collection("Users").WhereEqualTo("NickName", nickName).GetSnapshotAsync();
-        return snapshotNickname.Documents.Any();
+        DocumentSnapshot snapshot = await db.Collection("Nicknames")
+            .Document(nickName.ToLower())
+            .GetSnapshotAsync();
+        return snapshot.Exists;
     }
 
     public async Task UpdateUserProfileImageUrl(string userId, string imageUrl)

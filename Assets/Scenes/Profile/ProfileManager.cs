@@ -28,7 +28,7 @@ public class ProfileManager : MonoBehaviour
     [SerializeField] private ReAuthenticationUI reAuthUI;
 
     [Header("Navegação e UI Global")]
-    [SerializeField] private NavigationManager navigationManager;
+    private INavigationService _navigation;
     [SerializeField] private LoadingSpinnerComponent loadingSpinner;
 
     // -------------------------------------------------------
@@ -53,6 +53,7 @@ public class ProfileManager : MonoBehaviour
         _storage    = AppContext.Storage;
         _auth       = AppContext.Auth;
         _statistics = AppContext.Statistics;
+        _navigation = AppContext.Navigation;
 
         if (deleteAccountPanel == null)
             Debug.LogError("DeleteAccountPanel não está atribuído no ProfileManager!");
@@ -242,14 +243,17 @@ public class ProfileManager : MonoBehaviour
     // -------------------------------------------------------
     // Navegação
     // -------------------------------------------------------
-
+    
     public void Navigate(string sceneName)
     {
-        Debug.Log($"Navigating to {sceneName}");
-        if (navigationManager != null)
-            navigationManager.NavigateTo(sceneName);
+        
+        if (_navigation != null)
+            _navigation.NavigateTo(sceneName);
         else
-            Debug.LogError("[ProfileManager] NavigationManager não configurado no Inspector.");
+        {
+            Debug.LogWarning("[ProfileManager] NavigationService não disponível, usando SceneManager diretamente.");
+            SceneManager.LoadScene(sceneName);
+        }
     }
 
     // -------------------------------------------------------
@@ -265,6 +269,11 @@ public class ProfileManager : MonoBehaviour
     {
         try
         {
+            // Desinscreve os eventos ANTES de limpar os dados
+            UserDataStore.OnUserDataChanged -= OnUserDataChanged;
+            AnsweredQuestionsManager.OnAnsweredQuestionsUpdated -= HandleAnsweredQuestionsUpdated;
+
+
             string currentUserId = UserDataStore.CurrentUserData?.UserId;
             UserDataStore.CurrentUserData = null;
 
