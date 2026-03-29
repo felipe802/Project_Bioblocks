@@ -109,26 +109,25 @@ public class ResetTargetDatabaseScene : MonoBehaviour
             if (resetButtonText != null) resetButtonText.text = "Resetando...";
 
             string userId = currentUserData.UserId;
-            Debug.Log($"Resetando questões respondidas - UserId: {userId}, databankName: {databankName}");
-
             await _firestore.ResetAnsweredQuestions(userId, databankName);
-            Debug.Log("Questões resetadas com sucesso");
             await _firestore.UpdateUserField(userId, $"ResetDatabankFlags.{databankName}", true);
             UserDataStore.MarkDatabankAsReset(databankName, true);
-            
-            if (PlayerLevelManager.Instance != null)
-            {
-                await PlayerLevelManager.Instance.RecalculateTotalAnswered();
-            }
-
-            Debug.Log($"[ResetDatabase] Banco {databankName} marcado como resetado. Level recalculado.");
+            AnsweredQuestionsListStore.UpdateAnsweredQuestionsCount(userId, databankName, 0);
 
             if (resetButtonText != null) resetButtonText.text = "Sucesso!";
-
-            AnsweredQuestionsListStore.UpdateAnsweredQuestionsCount(userId, databankName, 0);
             UpdateUIAfterReset(databankName);
-            await Task.Delay(500);
 
+            try
+            {
+                if (PlayerLevelManager.Instance != null)
+                    await PlayerLevelManager.Instance.RecalculateTotalAnswered();
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[ResetDatabase] Erro ao recalcular level (não crítico): {e.Message}");
+            }
+
+            await Task.Delay(500);
             NavigateToPathway();
         }
         catch (Exception e)

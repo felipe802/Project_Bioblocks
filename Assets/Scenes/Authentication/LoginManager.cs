@@ -16,12 +16,7 @@ public class LoginManager : MonoBehaviour
     [SerializeField] private Button registerButton;
     [SerializeField] private FeedbackManager feedbackManager;
     [SerializeField] private LoadingSpinnerComponent loadingSpinner;
-
-    // -------------------------------------------------------
-    // Dependências — obtidas do AppContext no Start()
-    // -------------------------------------------------------
     private IAuthRepository _auth;
-
     private Dictionary<string, LoginAttempt> loginAttempts = new Dictionary<string, LoginAttempt>();
     private const int MAX_ATTEMPTS = 5;
     private const int LOCKOUT_MINUTES = 15;
