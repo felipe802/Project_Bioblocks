@@ -35,77 +35,15 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
         {
             DocumentSnapshot snapshot = await db.Collection("Users").Document(userId).GetSnapshotAsync();
 
-            if (snapshot.Exists)
-            {
-                Dictionary<string, object> userData = snapshot.ToDictionary();
-                Debug.Log($"Dados brutos do Firestore: {string.Join(", ", userData.Select(kv => $"{kv.Key}: {kv.Value}"))}");
-
-                Timestamp createdTime = Timestamp.FromDateTime(DateTime.UtcNow);
-                if (userData["CreatedTime"] is Timestamp timestamp)
-                {
-                    createdTime = timestamp;
-                }
-
-                UserData user = new UserData
-                {
-                    UserId = userData.ContainsKey("UserId") ? userData["UserId"].ToString() : "",
-                    NickName = userData.ContainsKey("NickName") ? userData["NickName"].ToString() : "",
-                    Name = userData.ContainsKey("Name") ? userData["Name"].ToString() : "",
-                    Email = userData.ContainsKey("Email") ? userData["Email"].ToString() : "",
-                    Score = userData.ContainsKey("Score") ? Convert.ToInt32(userData["Score"]) : 0,
-                    WeekScore = userData.ContainsKey("WeekScore") ? Convert.ToInt32(userData["WeekScore"]) : 0,
-                    QuestionTypeProgress = userData.ContainsKey("QuestionTypeProgress")
-                        ? Convert.ToInt32(userData["QuestionTypeProgress"])
-                        : (userData.ContainsKey("Progress") ? Convert.ToInt32(userData["Progress"]) : 0),
-                    ProfileImageUrl = userData.ContainsKey("ProfileImageUrl") 
-                        ? userData["ProfileImageUrl"]?.ToString() ?? "" 
-                        : "",
-                    CreatedTime = createdTime,
-                    IsUserRegistered = userData.ContainsKey("IsUserRegistered") 
-                        ? Convert.ToBoolean(userData["IsUserRegistered"]) 
-                        : false,
-                    PlayerLevel = userData.ContainsKey("PlayerLevel") ? Convert.ToInt32(userData["PlayerLevel"]) : 1,
-                    TotalValidQuestionsAnswered = userData.ContainsKey("TotalValidQuestionsAnswered") ? Convert.ToInt32(userData["TotalValidQuestionsAnswered"]) : 0,
-                    TotalQuestionsInAllDatabanks = userData.ContainsKey("TotalQuestionsInAllDatabanks") ? Convert.ToInt32(userData["TotalQuestionsInAllDatabanks"]) : 0
-                };
-
-                if (userData.ContainsKey("AnsweredQuestions"))
-                {
-                    user.AnsweredQuestions = new Dictionary<string, List<int>>();
-                    var answeredQuestions = userData["AnsweredQuestions"] as Dictionary<string, object>;
-                    if (answeredQuestions != null)
-                    {
-                        foreach (var kvp in answeredQuestions)
-                        {
-                            if (kvp.Value is IEnumerable<object> list)
-                            {
-                                user.AnsweredQuestions[kvp.Key] = list.Select(x => Convert.ToInt32(x)).ToList();
-                            }
-                        }
-                    }
-                }
-
-                if (userData.ContainsKey("ResetDatabankFlags"))
-                {
-                    user.ResetDatabankFlags = new Dictionary<string, bool>();
-                    var resetFlags = userData["ResetDatabankFlags"] as Dictionary<string, object>;
-                    if (resetFlags != null)
-                    {
-                        foreach (var kvp in resetFlags)
-                        {
-                            user.ResetDatabankFlags[kvp.Key] = Convert.ToBoolean(kvp.Value);
-                        }
-                    }
-                }
-
-                Debug.Log($"UserData carregado - NickName: {user.NickName}, Email: {user.Email}, Score: {user.Score}, WeekScore: {user.WeekScore}");
-                return user;
-            }
-            else
+            if (!snapshot.Exists)
             {
                 Debug.LogError($"Documento do usuário {userId} não encontrado");
                 return null;
             }
+
+            UserData user = ConvertFromFirestore(snapshot.ToDictionary());
+            Debug.Log($"[FirestoreRepository] UserData carregado - NickName: {user.NickName}, Score: {user.Score}");
+            return user;
         }
         catch (Exception ex)
         {
@@ -117,23 +55,31 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
     private UserData ConvertFromFirestore(Dictionary<string, object> data)
     {
         UserData userData = new UserData();
-        userData.UserId = data.ContainsKey("UserId") ? (string)data["UserId"] : "";
-        userData.NickName = data.ContainsKey("NickName") ? (string)data["NickName"] : "";
-        userData.Name = data.ContainsKey("Name") ? (string)data["Name"] : "";
-        userData.Email = data.ContainsKey("Email") ? (string)data["Email"] : "";
-        userData.ProfileImageUrl = data.ContainsKey("ProfileImageUrl") ? (string)data["ProfileImageUrl"] ?? "" : "";
-        userData.Score = data.ContainsKey("Score") ? Convert.ToInt32(data["Score"]) : 0;
+
+        userData.UserId      = data.ContainsKey("UserId")   ? (string)data["UserId"]   : "";
+        userData.NickName    = data.ContainsKey("NickName")  ? (string)data["NickName"] : "";
+        userData.Name        = data.ContainsKey("Name")      ? (string)data["Name"]     : "";
+        userData.Email       = data.ContainsKey("Email")     ? (string)data["Email"]    : "";
+        userData.ProfileImageUrl = data.ContainsKey("ProfileImageUrl")
+            ? (string)data["ProfileImageUrl"] ?? ""
+            : "";
+        userData.Score     = data.ContainsKey("Score")     ? Convert.ToInt32(data["Score"])     : 0;
         userData.WeekScore = data.ContainsKey("WeekScore") ? Convert.ToInt32(data["WeekScore"]) : 0;
         userData.QuestionTypeProgress = data.ContainsKey("QuestionTypeProgress")
             ? Convert.ToInt32(data["QuestionTypeProgress"])
             : (data.ContainsKey("Progress") ? Convert.ToInt32(data["Progress"]) : 0);
         userData.PlayerLevel = data.ContainsKey("PlayerLevel") ? Convert.ToInt32(data["PlayerLevel"]) : 1;
-        userData.TotalValidQuestionsAnswered = data.ContainsKey("TotalValidQuestionsAnswered") ? Convert.ToInt32(data["TotalValidQuestionsAnswered"]) : 0;
-        userData.TotalQuestionsInAllDatabanks = data.ContainsKey("TotalQuestionsInAllDatabanks") ? Convert.ToInt32(data["TotalQuestionsInAllDatabanks"]) : 0;
-        userData.IsUserRegistered = data.ContainsKey("IsUserRegistered") ? Convert.ToBoolean(data["IsUserRegistered"]) : false;
+        userData.TotalValidQuestionsAnswered   = data.ContainsKey("TotalValidQuestionsAnswered")
+            ? Convert.ToInt32(data["TotalValidQuestionsAnswered"]) : 0;
+        userData.TotalQuestionsInAllDatabanks  = data.ContainsKey("TotalQuestionsInAllDatabanks")
+            ? Convert.ToInt32(data["TotalQuestionsInAllDatabanks"]) : 0;
+        userData.IsUserRegistered = data.ContainsKey("IsUserRegistered")
+            ? Convert.ToBoolean(data["IsUserRegistered"]) : false;
 
         if (data.ContainsKey("CreatedTime") && data["CreatedTime"] is Timestamp timestamp)
             userData.CreatedTime = timestamp;
+        else
+            userData.CreatedTime = Timestamp.FromDateTime(DateTime.UtcNow);
 
         if (data.ContainsKey("ResetDatabankFlags") && data["ResetDatabankFlags"] is Dictionary<string, object> resetFlagsData)
         {
@@ -147,8 +93,8 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
         {
             foreach (var kvp in answeredQuestionsData)
             {
-                if (kvp.Value is List<object> questionsList)
-                    userData.AnsweredQuestions[kvp.Key] = questionsList.Select(x => Convert.ToInt32(x)).ToList();
+                if (kvp.Value is IEnumerable<object> list)
+                    userData.AnsweredQuestions[kvp.Key] = list.Select(x => Convert.ToInt32(x)).ToList();
             }
         }
 
