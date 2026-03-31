@@ -473,6 +473,8 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
         }
     }
 
+   // FirestoreRepository.cs
+
     public async Task UpdateUserScores(string userId, int additionalScore, int questionNumber, string databankName, bool isCorrect)
     {
         try
@@ -480,32 +482,48 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
             if (!isInitialized) throw new Exception("Firestore não inicializado");
 
             DocumentReference docRef = db.Collection("Users").Document(userId);
-            DocumentSnapshot snapshot = await docRef.GetSnapshotAsync();
 
-            if (snapshot.Exists)
+            await db.RunTransactionAsync(async transaction =>
             {
-                int currentScore = Convert.ToInt32(snapshot.GetValue<object>("Score"));
+                DocumentSnapshot snapshot = await transaction.GetSnapshotAsync(docRef);
+
+                if (!snapshot.Exists)
+                {
+                    Debug.LogError("[FirestoreRepository] Usuário não encontrado na transação de score.");
+                    return;
+                }
+
+                int currentScore = snapshot.ContainsField("Score")
+                    ? Convert.ToInt32(snapshot.GetValue<object>("Score")) : 0;
                 int currentWeekScore = snapshot.ContainsField("WeekScore")
-                    ? Convert.ToInt32(snapshot.GetValue<object>("WeekScore"))
-                    : 0;
+                    ? Convert.ToInt32(snapshot.GetValue<object>("WeekScore")) : 0;
 
                 int newScore = currentScore + additionalScore;
                 int newWeekScore = currentWeekScore + additionalScore;
 
+                // Score nunca fica negativo
+                if (newScore < 0) newScore = 0;
+                if (newWeekScore < 0) newWeekScore = 0;
+
                 Dictionary<string, object> updates = new Dictionary<string, object>
                 {
-                    { "Score", newScore },
+                    { "Score",     newScore },
                     { "WeekScore", newWeekScore }
                 };
 
+                // Adiciona questão respondida corretamente
                 if (isCorrect && !string.IsNullOrEmpty(databankName) && questionNumber > 0)
                 {
-                    Dictionary<string, List<int>> answeredQuestions = snapshot.GetValue<Dictionary<string, List<int>>>("AnsweredQuestions")
-                        ?? new Dictionary<string, List<int>>();
+                    var answeredQuestions = snapshot.ContainsField("AnsweredQuestions")
+                        ? snapshot.GetValue<Dictionary<string, List<int>>>("AnsweredQuestions")
+                        : new Dictionary<string, List<int>>();
+
+                    answeredQuestions ??= new Dictionary<string, List<int>>();
 
                     if (!answeredQuestions.ContainsKey(databankName))
                         answeredQuestions[databankName] = new List<int>();
 
+                    // Evita duplicatas
                     if (!answeredQuestions[databankName].Contains(questionNumber))
                     {
                         answeredQuestions[databankName].Add(questionNumber);
@@ -513,25 +531,25 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
                     }
                 }
 
-                await docRef.UpdateAsync(updates);
+                transaction.Update(docRef, updates);
 
-                if (UserDataStore.CurrentUserData != null && UserDataStore.CurrentUserData.UserId == userId)
+                if (UserDataStore.CurrentUserData != null)
                 {
                     UserDataStore.CurrentUserData.Score = newScore;
                     UserDataStore.CurrentUserData.WeekScore = newWeekScore;
-                    UserDataStore.UpdateScore(newScore);
                 }
+            });
 
-                Debug.Log($"Scores atualizados - Score: {newScore}, WeekScore: {newWeekScore}");
-            }
-            else
+            if (UserDataStore.CurrentUserData != null)
             {
-                Debug.LogError("Usuário não encontrado para atualização de score!");
+                UserDataStore.UpdateScore(UserDataStore.CurrentUserData.Score);
             }
+
+            Debug.Log($"[FirestoreRepository] UpdateUserScores concluído via transação. Score: {UserDataStore.CurrentUserData?.Score}");
         }
         catch (Exception e)
         {
-            Debug.LogError($"Erro ao atualizar scores: {e.Message}");
+            Debug.LogError($"[FirestoreRepository] Erro em UpdateUserScores: {e.Message}");
             throw;
         }
     }
