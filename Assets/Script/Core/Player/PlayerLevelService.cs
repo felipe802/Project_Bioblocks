@@ -13,6 +13,7 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
     private IStatisticsProvider _statistics;
     private UserData _currentUserData;
     private bool _isInitialized = false;
+    private bool _isMigrating = false;
 
     // -------------------------------------------------------
     // Ciclo de vida Unity
@@ -65,13 +66,10 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
 
     private void OnUserDataChanged(UserData userData)
     {
-        Debug.Log($"[PlayerLevelService] OnUserDataChanged. UserId: {userData?.UserId}, Level: {userData?.PlayerLevel}");
-
-        bool wasNull = _currentUserData == null;
         _currentUserData = userData;
         _cachedTotalQuestions = 0;
 
-        if (wasNull && _currentUserData != null && _isInitialized)
+        if (_currentUserData != null && !string.IsNullOrEmpty(_currentUserData.UserId) && _isInitialized && !_isMigrating)
         {
             Debug.Log("[PlayerLevelService] Dados carregados pela primeira vez. Verificando migração...");
             PerformMigrationIfNeeded();
@@ -81,11 +79,17 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
     // -------------------------------------------------------
     // Migração de dados legados
     // -------------------------------------------------------
-
+    // -------------------------------------------------------
+// Migração de dados legados
+// -------------------------------------------------------
     private async void PerformMigrationIfNeeded()
     {
         if (_currentUserData == null) return;
-        int realTotal = CalculateValidAnsweredQuestionsFromData(_currentUserData);
+        if (string.IsNullOrEmpty(_currentUserData.UserId)) return;
+        if (_firestore == null) return;
+        if (_isMigrating) return;
+
+        int realTotal  = CalculateValidAnsweredQuestionsFromData(_currentUserData);
         int savedTotal = _currentUserData.TotalValidQuestionsAnswered;
 
         if (realTotal == savedTotal)
@@ -96,6 +100,7 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
 
         Debug.Log($"[PlayerLevelService] Inconsistência: salvo={savedTotal}, real={realTotal}. Corrigindo...");
 
+        _isMigrating = true;
         try
         {
             int totalQuestions = GetTotalQuestionsCount();
@@ -113,6 +118,10 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
         catch (Exception e)
         {
             Debug.LogError($"[PlayerLevelService] Erro na migração: {e.Message}");
+        }
+        finally
+        {
+            _isMigrating = false;
         }
     }
 
