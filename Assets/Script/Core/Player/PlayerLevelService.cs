@@ -69,6 +69,7 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
 
         bool wasNull = _currentUserData == null;
         _currentUserData = userData;
+        _cachedTotalQuestions = 0;
 
         if (wasNull && _currentUserData != null && _isInitialized)
         {
@@ -241,10 +242,20 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
         return Mathf.Max(0, remaining);
     }
 
+    public int GetQuestionsAtLevelStart()
+    {
+        if (_currentUserData == null) return 0;
+
+        int totalQuestions   = GetTotalQuestionsCount();
+        int currentLevel     = _currentUserData.PlayerLevel;
+        var currentThreshold = PlayerLevelConfig.GetThresholdForLevel(currentLevel);
+
+        return currentThreshold.GetMinRequiredQuestions(totalQuestions);
+    }
+
     // -------------------------------------------------------
     // Helpers privados
     // -------------------------------------------------------
-
     private async Task GrantLevelUpBonus(int bonusPoints)
     {
         _currentUserData.Score     += bonusPoints;
@@ -260,8 +271,10 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
         Debug.Log($"[PlayerLevelService] Bônus concedido: {bonusPoints} pontos");
     }
 
+    private int _cachedTotalQuestions = 0;
     private int GetTotalQuestionsCount()
     {
+        if (_cachedTotalQuestions > 0) return _cachedTotalQuestions;
         int total = _currentUserData?.TotalQuestionsInAllDatabanks ?? 0;
 
         if (total <= 0 && _statistics != null)
@@ -273,9 +286,10 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
         if (total <= 0)
         {
             Debug.LogError("[PlayerLevelService] Não foi possível obter total de questões. Usando fallback 100.");
-            total = 100;
+            total = 0;
         }
 
+        _cachedTotalQuestions = total;
         return total;
     }
 
