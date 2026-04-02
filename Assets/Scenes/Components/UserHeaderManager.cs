@@ -811,8 +811,8 @@ public class UserHeaderManager : BarsManager
     {
         if (AppContext.PlayerLevel == null) return;
 
-        int currentLevel       = AppContext.PlayerLevel.GetCurrentLevel();
-        int questionsAnswered  = AppContext.PlayerLevel.GetTotalValidAnswered();
+        int currentLevel = AppContext.PlayerLevel.GetCurrentLevel();
+        int questionsAnswered = AppContext.PlayerLevel.GetTotalValidAnswered();
         int questionsUntilNext = AppContext.PlayerLevel.GetQuestionsUntilNextLevel();
 
         if (playerLevelText != null)
@@ -838,7 +838,7 @@ public class UserHeaderManager : BarsManager
         else
         {
             int nextLevelTotal = questionsAnswered + questionsUntilNext;
-            int nextLevel      = currentLevel + 1;
+            int nextLevel = currentLevel + 1;
 
             if (playerLevelProgressBarManager != null)
             {
@@ -852,8 +852,20 @@ public class UserHeaderManager : BarsManager
 
             if (playerLevelProgressText != null)
             {
-                float percentageToNext  = (questionsUntilNext / (float)nextLevelTotal) * 100f;
-                int   roundedPercentage = Mathf.RoundToInt(percentageToNext);
+                float percentageDone = (questionsAnswered / (float)nextLevelTotal) * 100f;
+                float percentageLeft = 100f - percentageDone;
+                int roundedPercentage = Mathf.RoundToInt(percentageLeft);
+
+                Debug.Log($"[UserHeaderManager] questionsAnswered={questionsAnswered}, " +
+                        $"nextLevelTotal={nextLevelTotal}, " +
+                        $"percentageDone={percentageDone:F1}%, " +
+                        $"percentageLeft={percentageLeft:F1}%");
+                
+                Debug.Log($"[UserHeaderManager] currentLevel={currentLevel}, " +
+                        $"questionsAnswered={questionsAnswered}, " +
+                        $"questionsUntilNext={questionsUntilNext}, " +
+                        $"nextLevelTotal={nextLevelTotal}");
+
                 playerLevelProgressText.text = $"{roundedPercentage}% para o Level {nextLevel}";
             }
         }
