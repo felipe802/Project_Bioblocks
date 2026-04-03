@@ -188,21 +188,9 @@ public class RankingSyncManager : MonoBehaviour
                 return false;
             }
 
-            var currentUser = await _remoteRepo.GetCurrentUserDataAsync();
-            
-            var entities = new List<RankingEntity>();
-            for (int i = 0; i < remoteRankings.Count; i++)
-            {
-                var r = remoteRankings[i];
-                var userId = i.ToString();
-                
-                if (currentUser != null && r.userName == currentUser.NickName)
-                {
-                    userId = currentUser.UserId;
-                }
-                
-                entities.Add(RankingDTO.ToEntity(r, userId));
-            }
+            var entities = remoteRankings
+                .Select(r => RankingDTO.ToEntity(r, r.UserId))
+                .ToList();
 
             _localRepo.SaveRankings(entities);
             _syncMetadataRepo.UpdateSyncMetadata(RANKINGS_ENTITY_TYPE, true);
