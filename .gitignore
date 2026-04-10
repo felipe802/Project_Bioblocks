@@ -12,17 +12,6 @@ Assets/StreamingAssets/google-services-desktop
 Assets/StreamingAssets/google-services-desktop.json
 Assets/StreamingAssets/google-services-desktop.json.meta
 
-# TextMesh Pro (pacote padrão)
-# Ignora tudo dentro da pasta padrão...
-Assets/TextMesh Pro/*
-
-# ...mas mantém as fontes personalizadas
-!Assets/TextMesh Pro/Fonts/
-!Assets/TextMesh Pro/Fonts/**
-
-# ...porém, ignora a fonte padrão do TMP
-Assets/TextMesh Pro/Fonts/LiberationSans*
-
 # Firebase generated repos / cache
 Assets/GeneratedLocalRepo/
 Assets/ExternalDependencyManager/Editor/AndroidResolverDependencies.xml
@@ -50,7 +39,6 @@ Assets/ExternalDependencyManager/**
 # ===========================
 **/*\ 2.*
 **/*\ 2.meta
-**/ShaderGraphSettings*.asset
 
 # ===========================
 # IDE / System files
