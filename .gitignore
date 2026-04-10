@@ -114,6 +114,7 @@ ExportedObj/
 *.mdb
 *.opendb
 *.VC.db
+*.pdb.meta
 sysinfo.txt
 crashlytics-build.properties
 ~UnityDirMonSyncFile~*
