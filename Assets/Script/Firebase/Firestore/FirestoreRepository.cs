@@ -77,9 +77,9 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
             ? Convert.ToBoolean(data["IsUserRegistered"]) : false;
 
         if (data.ContainsKey("CreatedTime") && data["CreatedTime"] is Timestamp timestamp)
-            userData.CreatedTime = timestamp;
+            userData.CreatedTime = timestamp.ToDateTime();
         else
-            userData.CreatedTime = Timestamp.FromDateTime(DateTime.UtcNow);
+            userData.CreatedTime = DateTime.UtcNow;
 
         if (data.ContainsKey("ResetDatabankFlags") && data["ResetDatabankFlags"] is Dictionary<string, object> resetFlagsData)
         {
@@ -101,6 +101,30 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
         return userData;
     }
 
+    // Adicione este método privado no FirestoreRepository:
+    private Dictionary<string, object> ConvertToFirestore(UserData userData)
+    {
+        return new Dictionary<string, object>
+        {
+            { "UserId",                      userData.UserId },
+            { "NickName",                    userData.NickName },
+            { "Name",                        userData.Name },
+            { "Email",                       userData.Email },
+            { "ProfileImageUrl",             userData.ProfileImageUrl ?? "" },
+            { "Score",                       userData.Score },
+            { "WeekScore",                   userData.WeekScore },
+            { "QuestionTypeProgress",        userData.QuestionTypeProgress },
+            { "IsUserRegistered",            userData.IsUserRegistered },
+            { "PlayerLevel",                 userData.PlayerLevel },
+            { "TotalValidQuestionsAnswered", userData.TotalValidQuestionsAnswered },
+            { "TotalQuestionsInAllDatabanks",userData.TotalQuestionsInAllDatabanks },
+            { "AnsweredQuestions",           userData.AnsweredQuestions ?? new Dictionary<string, List<int>>() },
+            { "ResetDatabankFlags",          userData.ResetDatabankFlags ?? new Dictionary<string, bool>() },
+            { "CreatedTime",                 Timestamp.FromDateTime(
+                DateTime.SpecifyKind(userData.CreatedTime, DateTimeKind.Utc)) }
+        };
+    }
+
     public async Task CreateUserDocument(UserData userData)
     {
         try
@@ -119,7 +143,8 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
                 { "WeekScore", userData.WeekScore },
                 { "QuestionTypeProgress", userData.QuestionTypeProgress },
                 { "IsUserRegistered", userData.IsUserRegistered },
-                { "CreatedTime", userData.CreatedTime },
+                { "CreatedTime", Timestamp.FromDateTime(
+                    DateTime.SpecifyKind(userData.CreatedTime, DateTimeKind.Utc)) },
                 { "ProfileImageUrl", userData.ProfileImageUrl },
                 { "AnsweredQuestions", new Dictionary<string, object>() }
             };
@@ -198,8 +223,7 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
                 throw new ArgumentException("UserId não pode ser vazio");
 
             DocumentReference docRef = db.Collection("Users").Document(userData.UserId);
-            Dictionary<string, object> userDataDict = userData.ToDictionary();
-            await docRef.UpdateAsync(userDataDict);
+            await docRef.UpdateAsync(ConvertToFirestore(userData));
             Debug.Log($"Dados do usuário {userData.UserId} atualizados com sucesso");
         }
         catch (Exception e)

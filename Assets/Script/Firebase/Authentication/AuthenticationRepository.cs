@@ -3,34 +3,18 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Firebase.Auth;
-using Firebase.Firestore;
 
-/// <summary>
-/// Implementação real do IAuthRepository usando Firebase Authentication.
-/// </summary>
 public class AuthenticationRepository : MonoBehaviour, IAuthRepository
 {
     private FirebaseAuth _auth;
     private IFirestoreRepository _firestore;
     private bool isInitialized;
-
     public bool IsInitialized => isInitialized;
-
-    /// <summary>
-    /// UserId do usuário logado, ou null se não houver sessão ativa.
-    /// Não expõe FirebaseUser — apenas a string que o resto do app precisa.
-    /// </summary>
     public string CurrentUserId => _auth?.CurrentUser?.UserId;
 
     // -------------------------------------------------------
     // Inicialização
     // -------------------------------------------------------
-
-    /// <summary>
-    /// Chamado pelo AppContext depois que o Firebase já está disponível.
-    /// O IFirestoreRepository é passado aqui para evitar dependência circular
-    /// (Auth precisa do Firestore para buscar UserData após login).
-    /// </summary>
     public void InjectDependencies(IFirestoreRepository firestore)
     {
         _firestore = firestore;
@@ -63,11 +47,15 @@ public class AuthenticationRepository : MonoBehaviour, IAuthRepository
     // -------------------------------------------------------
     // IAuthRepository
     // -------------------------------------------------------
-
     public bool IsUserLoggedIn()
     {
         var user = _auth?.CurrentUser;
         return user != null && !user.IsAnonymous;
+    }
+
+    public bool HasLocalSession()
+    {
+        return _auth?.CurrentUser != null;
     }
 
     public async Task<UserData> SignInWithEmailAsync(string email, string password)
@@ -116,7 +104,7 @@ public class AuthenticationRepository : MonoBehaviour, IAuthRepository
                 ProfileImageUrl = "",
                 Score = 0,
                 QuestionTypeProgress = 0,
-                CreatedTime = Timestamp.FromDateTime(DateTime.UtcNow),
+                CreatedTime = DateTime.UtcNow,
                 IsUserRegistered = true,
                 AnsweredQuestions = new Dictionary<string, List<int>>()
             };

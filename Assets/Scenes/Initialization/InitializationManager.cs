@@ -170,17 +170,22 @@ public class InitializationManager : MonoBehaviour
     // -------------------------------------------------------
     private async Task<bool> CheckAuthentication()
     {
-        if (!_auth.IsUserLoggedIn()) return false;
+        // Sem sessão local: nunca logou neste dispositivo
+        if (!_auth.HasLocalSession()) return false;
 
+       // Tem sessão local: tenta validar online, mas não bloqueia
         try
         {
             await _auth.ReloadCurrentUserAsync();
+            Debug.Log("[Init] Sessão validada com o servidor.");
             return true;
         }
-        catch (Exception)
+        catch (Exception e)
         {
-            return false;
-        }
+            // Sem internet ou token expirado: entra em modo offline
+            Debug.LogWarning($"[Init] Validação online falhou, entrando offline: {e.Message}");
+            return _auth.HasLocalSession(); // ainda retorna true se tem token local
+        }                                                                
     }
 
     private async Task<bool> LoadUserData()

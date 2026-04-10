@@ -84,6 +84,8 @@ public class AppContext : MonoBehaviour
     private async Task InitializeServices()
     {
         IsReady = false;
+        // Injeta o logger do Unity no UserDataStore — único ponto de acoplamento
+        UserDataStore.Logger = msg => Debug.Log(msg);
 
         try
         {
