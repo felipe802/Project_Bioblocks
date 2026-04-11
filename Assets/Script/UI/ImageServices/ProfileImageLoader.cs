@@ -20,7 +20,6 @@ public class ProfileImageLoader : MonoBehaviour
     private void Awake()
     {
         Initialize();
-        _imageCache = AppContext.ImageCache;
     }
 
     public void Initialize()
@@ -46,6 +45,14 @@ public class ProfileImageLoader : MonoBehaviour
 
         isInitialized = true;
     }
+
+    private void Start()
+    {
+        _imageCache = AppContext.ImageCache;
+    }
+
+    private IImageCacheService GetCache()
+    => _imageCache ??= AppContext.ImageCache;
 
     public void SetImageContent(RawImage rawImage)
     {
@@ -181,12 +188,12 @@ public class ProfileImageLoader : MonoBehaviour
 
     private IEnumerator LoadImageFromUrl(string url)
     {
-        string cachedPath = _imageCache?.GetCachedImagePath(url);
-        
+        string cachedPath = GetCache()?.GetCachedImagePath(url);
+
         if (!string.IsNullOrEmpty(cachedPath))
         {
-            Texture2D cachedTexture = _imageCache?.LoadImageFromCache(cachedPath);
-            
+            Texture2D cachedTexture = GetCache()?.LoadImageFromCache(cachedPath);
+
             if (cachedTexture != null)
             {
                 SetTexture(cachedTexture);
@@ -202,11 +209,11 @@ public class ProfileImageLoader : MonoBehaviour
             {
                 Texture2D texture = ((DownloadHandlerTexture)www.downloadHandler).texture;
                 SetTexture(texture);
-                _imageCache?.SaveImageToCache(url, texture);
+                GetCache()?.SaveImageToCache(url, texture); // ← era _imageCache
             }
             else
             {
-                Debug.LogWarning($"[ProfileImageLoader] Erro ao carregar imagem: {www.error}. Usando imagem padrão.");
+                Debug.LogWarning($"[ProfileImageLoader] Erro ao carregar imagem: {www.error}.");
                 LoadStandardProfileImage();
             }
         }

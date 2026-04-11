@@ -1,13 +1,10 @@
+using System;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using System;
-using System.Threading.Tasks;
 using UnityEngine.SceneManagement;
 
-/// <summary>
-/// Gerencia o fluxo de inicialização do app.
-///
 public class InitializationManager : MonoBehaviour
 {
     [Header("UI References")]
@@ -22,11 +19,10 @@ public class InitializationManager : MonoBehaviour
     [Header("Global Loading Spinner")]
     [SerializeField] private GameObject globalSpinnerPrefab;
 
-    // -------------------------------------------------------
-    // Dependências — obtidas do AppContext, nunca via .Instance
-    // -------------------------------------------------------
     private IFirestoreRepository _firestore;
     private IAuthRepository _auth;
+    private IUserDataSyncService _userDataSync;
+    private IUserDataLocalRepository _userDataLocal;
 
     private LoadingSpinnerComponent globalSpinner;
 
@@ -37,15 +33,10 @@ public class InitializationManager : MonoBehaviour
 
     private void Start()
     {
-        // Obtém os serviços do AppContext uma única vez
-        // O AppContext já garantiu que estão inicializados no seu próprio Awake              
         SetupUI();
         StartInitialization();
     }
 
-    // -------------------------------------------------------
-    // Spinner
-    // -------------------------------------------------------
     private void InitializeGlobalSpinner()
     {
         try
@@ -67,13 +58,10 @@ public class InitializationManager : MonoBehaviour
         }
         catch (Exception e)
         {
-            Debug.LogError($"Error initializing spinner: {e.Message}");
+            Debug.LogError($"[InitializationManager] Erro ao inicializar spinner: {e.Message}");
         }
     }
 
-    // -------------------------------------------------------
-    // Fluxo principal
-    // -------------------------------------------------------
     private void SetupUI()
     {
         if (retryPanel != null) retryPanel.SetActive(false);
@@ -83,22 +71,25 @@ public class InitializationManager : MonoBehaviour
     private async void StartInitialization()
     {
         float startTime = Time.time;
+
         try
         {
             if (!AppContext.IsReady)
             {
-            UpdateStatus("Inicializando Firebase...");
-            await WaitForAppContext();
+                UpdateStatus("Inicializando Firebase...");
+                await WaitForAppContext();
             }
 
-            // Só busca as dependências DEPOIS que o AppContext está pronto
-            _firestore = AppContext.Firestore;
-            _auth      = AppContext.Auth;
+            _firestore     = AppContext.Firestore;
+            _auth          = AppContext.Auth;
+            _userDataSync  = AppContext.UserDataSync;
+            _userDataLocal = AppContext.UserDataLocal;
 
             UpdateProgress(0.3f);
             UpdateStatus("Verificando autenticação...");
             bool isAuthenticated = await CheckAuthentication();
             UpdateProgress(0.5f);
+
             bool userDataLoaded = false;
 
             if (isAuthenticated)
@@ -119,7 +110,6 @@ public class InitializationManager : MonoBehaviour
                 }
             }
 
-            // Garante tempo mínimo de loading
             float elapsed = Time.time - startTime;
             if (elapsed < minimumLoadingTime)
                 await Task.Delay(Mathf.RoundToInt((minimumLoadingTime - elapsed) * 1000));
@@ -128,22 +118,16 @@ public class InitializationManager : MonoBehaviour
         }
         catch (Exception ex)
         {
-            Debug.LogError($"[InitializationManager] INITIALIZATION FAILED: {ex.GetType().Name}: {ex.Message}");
+            Debug.LogError($"[InitializationManager] Falha: {ex.GetType().Name}: {ex.Message}");
             Debug.LogError($"[InitializationManager] StackTrace: {ex.StackTrace}");
             if (ex.InnerException != null)
                 Debug.LogError($"[InitializationManager] InnerException: {ex.InnerException.Message}");
 
             try { globalSpinner?.HideSpinner(); } catch { }
-
             ShowError($"Falha na inicialização: {ex.Message}");
         }
     }
 
-    /// <summary>
-    /// Aguarda o AppContext terminar a inicialização assíncrona.
-    /// Em condições normais isso já estará pronto quando o Start() rodar,
-    /// mas esta guarda evita race conditions caso o Firebase demore mais que o esperado.
-    /// </summary>
     private async Task WaitForAppContext()
     {
         float timeout = 15f;
@@ -154,9 +138,8 @@ public class InitializationManager : MonoBehaviour
             await Task.Delay(100);
             elapsed += 0.1f;
 
-            // Loga a cada 3 segundos para acompanhar o progresso
             if (Mathf.RoundToInt(elapsed * 10) % 30 == 0)
-            Debug.Log($"[InitializationManager] Aguardando AppContext... {elapsed:F1}s");
+                Debug.Log($"[InitializationManager] Aguardando AppContext... {elapsed:F1}s");
         }
 
         if (!AppContext.IsReady)
@@ -165,57 +148,77 @@ public class InitializationManager : MonoBehaviour
         Debug.Log("[InitializationManager] AppContext pronto.");
     }
 
-    // -------------------------------------------------------
-    // Autenticação e dados
-    // -------------------------------------------------------
     private async Task<bool> CheckAuthentication()
     {
-        // Sem sessão local: nunca logou neste dispositivo
         if (!_auth.HasLocalSession()) return false;
 
-       // Tem sessão local: tenta validar online, mas não bloqueia
         try
         {
             await _auth.ReloadCurrentUserAsync();
-            Debug.Log("[Init] Sessão validada com o servidor.");
+            Debug.Log("[InitializationManager] Sessão validada com o servidor.");
             return true;
         }
         catch (Exception e)
         {
-            // Sem internet ou token expirado: entra em modo offline
-            Debug.LogWarning($"[Init] Validação online falhou, entrando offline: {e.Message}");
-            return _auth.HasLocalSession(); // ainda retorna true se tem token local
-        }                                                                
+            Debug.LogWarning($"[InitializationManager] Validação online falhou, entrando offline: {e.Message}");
+            return _auth.HasLocalSession();
+        }
     }
 
     private async Task<bool> LoadUserData()
     {
         try
         {
-            if (!_auth.IsUserLoggedIn()) return false;
+            if (!_auth.HasLocalSession()) return false;
+
             string userId = _auth.CurrentUserId;
-            var userData  = await _firestore.GetUserData(userId);
-            if (userData == null) return false;
-            UserDataStore.CurrentUserData = userData;
-            Debug.Log($"[InitializationManager] UserData carregado. UserId: {userData.UserId}, Level: {userData.PlayerLevel}");
+            if (string.IsNullOrEmpty(userId)) return false;
+
+            // TrySyncPendingData já resolve todos os cenários:
+            //   - sem cache local    → busca Firestore → salva LiteDB
+            //   - cache dirty        → envia ao Firestore → marca synced
+            //   - cache stale        → busca Firestore → atualiza LiteDB
+            //   - cache válido       → carrega LiteDB direto
+            //   - Firestore offline  → usa LiteDB como fallback
+            await _userDataSync.TrySyncPendingData(userId);
+
+            if (UserDataStore.CurrentUserData == null)
+            {
+                Debug.LogError("[InitializationManager] UserData nulo após sync.");
+                return false;
+            }
+
+            Debug.Log($"[InitializationManager] UserData pronto. " +
+                      $"UserId: {UserDataStore.CurrentUserData.UserId}, " +
+                      $"Level: {UserDataStore.CurrentUserData.PlayerLevel}");
             return true;
         }
         catch (Exception e)
         {
-            Debug.LogError($"Erro ao carregar dados: {e.Message}");
-            throw;
+            Debug.LogError($"[InitializationManager] Erro ao carregar dados: {e.Message}");
+
+            // Último recurso: tenta carregar direto do LiteDB
+            string userId = _auth.CurrentUserId;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var cached = _userDataLocal.GetUser(userId);
+                if (cached != null)
+                {
+                    UserDataStore.CurrentUserData = cached;
+                    Debug.LogWarning("[InitializationManager] UserData carregado do cache de emergência.");
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 
-    // -------------------------------------------------------
-    // Navegação
-    // -------------------------------------------------------
     private void NavigateAfterInit(bool authenticated)
     {
         try
         {
             string targetScene = authenticated ? "PathwayScene" : "LoginView";
-
             globalSpinner?.ShowSpinnerUntilSceneLoaded(targetScene);
             SceneManager.LoadScene(targetScene);
         }
@@ -226,9 +229,6 @@ public class InitializationManager : MonoBehaviour
         }
     }
 
-    // -------------------------------------------------------
-    // PlayerLevelManager (ainda singleton — será refatorado)
-    // -------------------------------------------------------
     private void InitializePlayerLevelService()
     {
         if (AppContext.PlayerLevel == null)
@@ -236,13 +236,9 @@ public class InitializationManager : MonoBehaviour
             Debug.LogError("[InitializationManager] PlayerLevelService não encontrado no AppContext.");
             return;
         }
-
-        Debug.Log("[InitializationManager] PlayerLevelService pronto.");    
+        Debug.Log("[InitializationManager] PlayerLevelService pronto.");
     }
 
-    // -------------------------------------------------------
-    // UI helpers
-    // -------------------------------------------------------
     private void UpdateStatus(string message)
     {
         if (statusText != null) statusText.text = message;
