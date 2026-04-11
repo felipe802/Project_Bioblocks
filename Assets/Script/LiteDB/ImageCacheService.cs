@@ -46,6 +46,7 @@ public class ImageCacheService : MonoBehaviour, IImageCacheService
     public string GetCachedImagePath(string imageUrl)
     {
         if (string.IsNullOrEmpty(imageUrl) || !IsInitialized) return null;
+        if (_dbManager == null || !_dbManager.IsInitialized) return null;
 
         try
         {
@@ -72,6 +73,7 @@ public class ImageCacheService : MonoBehaviour, IImageCacheService
     public void SaveImageToCache(string imageUrl, Texture2D texture)
     {
         if (string.IsNullOrEmpty(imageUrl) || texture == null || !IsInitialized) return;
+        if (_dbManager == null || !_dbManager.IsInitialized) return;
 
         try
         {

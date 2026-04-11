@@ -57,11 +57,12 @@ public class RegisterManager : MonoBehaviour
                 string.IsNullOrEmpty(emailInput.text)    ||
                 string.IsNullOrEmpty(passwordInput.text))
             {
-                throw new Exception("Todos os campos são obrigatórios.");
+                throw new Exception("Todos os campossão obrigatórios.");
             }
 
-            // Verifica nickname usando o repositório — sem acesso direto ao Firestore
-            bool nicknameExists = await _firestore.AreNicknameTaken(nickNameInput.text);
+            bool nicknameExists = await _firestore.AreNicknameTaken(nickNameInput.text).ConfigureAwait(false);
+            await Task.Yield();
+
             if (nicknameExists)
                 throw new Exception("Este nickname já está em uso. Por favor, escolha outro.");
 
@@ -78,22 +79,24 @@ public class RegisterManager : MonoBehaviour
                 nickNameInput.text,
                 emailInput.text,
                 passwordInput.text
-            );
-
+            ).ConfigureAwait(false);
+            await Task.Yield();
             await Task.Delay(300);
 
-            // Busca os dados do usuário recém-criado usando o userId do Auth
             string userId = _auth.CurrentUserId;
             if (string.IsNullOrEmpty(userId))
                 throw new Exception("Erro: usuário criado mas ID não encontrado.");
 
-            var userData = await _firestore.GetUserData(userId);
+            var userData = await _firestore.GetUserData(userId).ConfigureAwait(false);
+            await Task.Yield();
+
             if (userData == null)
                 throw new Exception("Erro ao carregar dados do usuário recém-criado.");
 
             UserDataStore.CurrentUserData = userData;
             await Task.Delay(300);
-            await AppContext.AnsweredQuestions?.ForceUpdate();
+            await AppContext.AnsweredQuestions.ForceUpdate().ConfigureAwait(false);
+            await Task.Yield();
             loadingSpinner?.ShowSpinnerUntilSceneLoaded("PathwayScene");
             SceneManager.LoadScene("PathwayScene");
         }

@@ -20,9 +20,8 @@ public static class UserDataStore
         set
         {
             _currentUserData = value;
-            OnUserDataChanged?.Invoke(_currentUserData);
-            Logger($"[UserDataStore] Atualizado → UserId: {_currentUserData?.UserId}, " +
-                   $"Score: {_currentUserData?.Score}, WeekScore: {_currentUserData?.WeekScore}");
+            var data = value;
+            MainThreadDispatcher.Enqueue(() => OnUserDataChanged?.Invoke(data));
         }
     }
 
@@ -33,7 +32,7 @@ public static class UserDataStore
     {
         if (_currentUserData == null) return;
         _currentUserData.Score = newScore;
-        OnUserDataChanged?.Invoke(_currentUserData);
+        MainThreadDispatcher.Enqueue(() => OnUserDataChanged?.Invoke(_currentUserData));
         Logger($"[UserDataStore] Score atualizado para: {newScore}");
     }
 
@@ -41,7 +40,7 @@ public static class UserDataStore
     {
         if (_currentUserData == null) return;
         _currentUserData.WeekScore = newWeekScore;
-        OnUserDataChanged?.Invoke(_currentUserData);
+        MainThreadDispatcher.Enqueue(() => OnUserDataChanged?.Invoke(_currentUserData));
         Logger($"[UserDataStore] WeekScore atualizado para: {newWeekScore}");
     }
 
@@ -50,7 +49,7 @@ public static class UserDataStore
         if (_currentUserData == null) return;
         _currentUserData.Score     += additionalScore;
         _currentUserData.WeekScore += additionalScore;
-        OnUserDataChanged?.Invoke(_currentUserData);
+        MainThreadDispatcher.Enqueue(() => OnUserDataChanged?.Invoke(_currentUserData));
         Logger($"[UserDataStore] Score incrementado em {additionalScore}. " +
                $"Score: {_currentUserData.Score}, WeekScore: {_currentUserData.WeekScore}");
     }
@@ -59,7 +58,7 @@ public static class UserDataStore
     {
         if (userData == null) return;
         _currentUserData = userData;
-        OnUserDataChanged?.Invoke(_currentUserData);
+        MainThreadDispatcher.Enqueue(() => OnUserDataChanged?.Invoke(_currentUserData));
         Logger($"[UserDataStore] UserData substituído → UserId: {_currentUserData?.UserId}");
     }
 
@@ -67,7 +66,7 @@ public static class UserDataStore
     {
         if (_currentUserData == null) return;
         _currentUserData.PlayerLevel = newLevel;
-        OnUserDataChanged?.Invoke(_currentUserData);
+        MainThreadDispatcher.Enqueue(() => OnUserDataChanged?.Invoke(_currentUserData));
         Logger($"[UserDataStore] PlayerLevel atualizado para: {newLevel}");
     }
 
@@ -75,7 +74,7 @@ public static class UserDataStore
     {
         if (_currentUserData == null) return;
         _currentUserData.TotalValidQuestionsAnswered = newTotal;
-        OnUserDataChanged?.Invoke(_currentUserData);
+        MainThreadDispatcher.Enqueue(() => OnUserDataChanged?.Invoke(_currentUserData));
         Logger($"[UserDataStore] TotalValidQuestionsAnswered atualizado para: {newTotal}");
     }
 
@@ -83,7 +82,7 @@ public static class UserDataStore
     {
         if (_currentUserData == null) return;
         _currentUserData.TotalQuestionsInAllDatabanks = newTotal;
-        OnUserDataChanged?.Invoke(_currentUserData);
+        MainThreadDispatcher.Enqueue(() => OnUserDataChanged?.Invoke(_currentUserData));
         Logger($"[UserDataStore] TotalQuestionsInAllDatabanks atualizado para: {newTotal}");
     }
 
@@ -92,7 +91,7 @@ public static class UserDataStore
         if (_currentUserData == null) return;
         _currentUserData.ResetDatabankFlags ??= new Dictionary<string, bool>();
         _currentUserData.ResetDatabankFlags[databankName] = isReset;
-        OnUserDataChanged?.Invoke(_currentUserData);
+        MainThreadDispatcher.Enqueue(() => OnUserDataChanged?.Invoke(_currentUserData));
         Logger($"[UserDataStore] Databank '{databankName}' marcado como resetado: {isReset}");
     }
 
@@ -108,6 +107,6 @@ public static class UserDataStore
     public static void Clear()
     {
         _currentUserData = null;
-        OnUserDataChanged?.Invoke(null);
+        MainThreadDispatcher.Enqueue(() => OnUserDataChanged?.Invoke(null));
     }
 }

@@ -71,13 +71,20 @@ public class InitializationManager : MonoBehaviour
     private async void StartInitialization()
     {
         float startTime = Time.time;
+        Debug.Log("[InitManager] StartInitialization começou");
 
         try
         {
             if (!AppContext.IsReady)
             {
+                Debug.Log("[InitManager] Aguardando AppContext...");
                 UpdateStatus("Inicializando Firebase...");
                 await WaitForAppContext();
+                Debug.Log("[InitManager] AppContext pronto");
+            }
+            else
+            {
+                Debug.Log("[InitManager] AppContext já estava pronto");
             }
 
             _firestore     = AppContext.Firestore;
@@ -87,7 +94,9 @@ public class InitializationManager : MonoBehaviour
 
             UpdateProgress(0.3f);
             UpdateStatus("Verificando autenticação...");
+            Debug.Log("[InitManager] Verificando autenticação...");
             bool isAuthenticated = await CheckAuthentication();
+            Debug.Log($"[InitManager] isAuthenticated={isAuthenticated}");
             UpdateProgress(0.5f);
 
             bool userDataLoaded = false;
@@ -95,7 +104,9 @@ public class InitializationManager : MonoBehaviour
             if (isAuthenticated)
             {
                 UpdateStatus("Carregando dados do usuário...");
+                Debug.Log("[InitManager] Carregando dados...");
                 userDataLoaded = await LoadUserData();
+                Debug.Log($"[InitManager] userDataLoaded={userDataLoaded}");
                 UpdateProgress(0.7f);
 
                 if (userDataLoaded)
@@ -139,13 +150,11 @@ public class InitializationManager : MonoBehaviour
             elapsed += 0.1f;
 
             if (Mathf.RoundToInt(elapsed * 10) % 30 == 0)
-                Debug.Log($"[InitializationManager] Aguardando AppContext... {elapsed:F1}s");
+                Debug.Log($"[InitManager] Aguardando AppContext... {elapsed:F1}s");
         }
 
         if (!AppContext.IsReady)
-            throw new Exception("[InitializationManager] AppContext não ficou pronto dentro do timeout.");
-
-        Debug.Log("[InitializationManager] AppContext pronto.");
+            throw new Exception("Sem conexão. Verifique sua internet e tente novamente.");
     }
 
     private async Task<bool> CheckAuthentication()
@@ -251,10 +260,18 @@ public class InitializationManager : MonoBehaviour
 
     private void ShowError(string message)
     {
+        // Esconde o spinner explicitamente aqui também
+        try { globalSpinner?.HideSpinner(); } catch { }
+
         if (retryPanel != null)
         {
             retryPanel.SetActive(true);
             if (errorText != null) errorText.text = message;
+        }
+        else
+        {
+            // retryPanel não configurado — loga para identificar no Xcode
+            Debug.LogError($"[InitManager] retryPanel é null. Mensagem de erro: {message}");
         }
     }
 }

@@ -24,6 +24,7 @@ public class LiteDBManager : MonoBehaviour, ILiteDBManager
     public void Initialize()
     {
         if (IsInitialized) return;
+        Debug.Log("[LiteDBManager] Initialize() chamado — IsInitialized será true após este método.");
 
         try
         {

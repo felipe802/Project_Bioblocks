@@ -12,6 +12,7 @@ public class QuestionScoreManager : MonoBehaviour
     private IFirestoreRepository _firestore;
     private UserHeaderManager _userHeaderManager;
     private IPlayerLevelService _playerLevel;
+    private IUserDataSyncService _userDataSync;
 
     private void Start()
     {
@@ -35,6 +36,7 @@ public class QuestionScoreManager : MonoBehaviour
     {
         _auth = AppContext.Auth;
         _firestore = AppContext.Firestore;
+        _userDataSync    = AppContext.UserDataSync;
         _userHeaderManager = FindFirstObjectByType<UserHeaderManager>();
         _playerLevel = AppContext.PlayerLevel;
         currentUserData = UserDataStore.CurrentUserData;
@@ -55,7 +57,17 @@ public class QuestionScoreManager : MonoBehaviour
 
     public async Task UpdateScore(int scoreChange, bool isCorrect, Question answeredQuestion, IQuestionDatabase database = null)
     {
-        if (_firestore == null || _auth == null)
+        if (_userDataSync == null) _userDataSync = AppContext.UserDataSync;
+        if (_auth == null)         _auth         = AppContext.Auth;
+        if (_playerLevel == null)  _playerLevel  = AppContext.PlayerLevel;
+
+        if (_userDataSync == null || _auth == null)
+        {
+            Debug.LogError("[QuestionScoreManager] Dependências ainda null após lazy load.");
+            return;
+        }
+        
+        if (_userDataSync == null || _firestore == null || _auth == null)
         {
             Debug.LogError("[QuestionScoreManager] Dependências não inicializadas. Abortando UpdateScore.");
             return;
@@ -99,7 +111,7 @@ public class QuestionScoreManager : MonoBehaviour
                     }
                     else
                     {
-                        await _firestore.UpdateUserScores(userId, actualScoreChange, questionNumber, databankName, true);
+                        await _userDataSync.UpdateUserScores(userId, actualScoreChange, questionNumber, databankName, true);
 
                         if (answeredQuestionsManager != null && answeredQuestionsManager.IsManagerInitialized)
                             await answeredQuestionsManager.ForceUpdate();
@@ -123,7 +135,7 @@ public class QuestionScoreManager : MonoBehaviour
                 try
                 {
                     if (database == null || !database.IsDatabaseInDevelopment())
-                        await _firestore.UpdateUserScores(userId, actualScoreChange, 0, "", false);
+                        await _userDataSync.UpdateUserScores(userId, actualScoreChange, 0, "", false);
                     else
                         Debug.Log("[QuestionScoreManager] Modo DEV - Score negativo NÃO salvo no Firebase");
                 }

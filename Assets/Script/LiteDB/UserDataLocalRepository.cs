@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class UserDataLocalRepository : MonoBehaviour, IUserDataLocalRepository
@@ -145,6 +146,49 @@ public class UserDataLocalRepository : MonoBehaviour, IUserDataLocalRepository
         {
             Debug.LogError($"[UserDataLocalRepository] Erro ao buscar LastSyncedAt: {e.Message}");
             return DateTime.MinValue;
+        }
+    }
+
+    public void UpdateScore(string userId, int newScore, int newWeekScore)
+    {
+        try
+        {
+            var doc = _db.Users.FindById(userId);
+            if (doc == null) return;
+            doc.Score      = newScore;
+            doc.WeekScore  = newWeekScore;
+            doc.IsDirty    = true;
+            _db.Users.Update(doc);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[UserDataLocalRepository] Erro ao atualizar score: {e.Message}");
+            throw;
+        }
+    }
+
+    public void AddAnsweredQuestion(string userId, string databankName, int questionNumber)
+    {
+        try
+        {
+            var doc = _db.Users.FindById(userId);
+            if (doc == null) return;
+
+            doc.AnsweredQuestions ??= new Dictionary<string, List<int>>();
+
+            if (!doc.AnsweredQuestions.ContainsKey(databankName))
+                doc.AnsweredQuestions[databankName] = new List<int>();
+
+            if (!doc.AnsweredQuestions[databankName].Contains(questionNumber))
+                doc.AnsweredQuestions[databankName].Add(questionNumber);
+
+            doc.IsDirty = true;
+            _db.Users.Update(doc);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[UserDataLocalRepository] Erro ao adicionar questão respondida: {e.Message}");
+            throw;
         }
     }
 }

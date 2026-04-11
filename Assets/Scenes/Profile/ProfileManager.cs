@@ -281,7 +281,8 @@ public class ProfileManager : MonoBehaviour
             if (!string.IsNullOrEmpty(currentUserId))
                 AnsweredQuestionsListStore.ClearUserAnsweredQuestions(currentUserId);
 
-            await _auth.LogoutAsync();
+            await _auth.LogoutAsync().ConfigureAwait(false);
+            await Task.Yield();
             Debug.Log("Logout realizado com sucesso");
 
             Navigate("LoginView");
@@ -396,7 +397,8 @@ public class ProfileManager : MonoBehaviour
                 {
                     try
                     {
-                        await _firestore.DeleteDocument("Users", userId);
+                        await _firestore.DeleteDocument("Users", userId).ConfigureAwait(false);
+                        await Task.Yield();
                         Debug.Log("Documento do Firestore deletado com sucesso");
                         firestoreDeleted = true;
                     }
@@ -425,7 +427,8 @@ public class ProfileManager : MonoBehaviour
             // 3. Deletar usuário do Authentication
             try
             {
-                await _auth.DeleteUser(userId);
+                await _auth.DeleteUser(userId).ConfigureAwait(false);
+                await Task.Yield();
                 Debug.Log("Usuário deletado do Authentication com sucesso");
 
                 if (deleteAccountButtonText != null) deleteAccountButtonText.text = "Até a próxima!";

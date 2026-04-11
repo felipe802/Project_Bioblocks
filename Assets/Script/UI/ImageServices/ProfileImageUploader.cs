@@ -139,7 +139,7 @@ public class ProfileImageUploader : MonoBehaviour
     }
 
     private async void ProcessSelectedImage(string imagePath)
-{
+    {
         isProcessing = true;
         if (uploadButton != null) uploadButton.interactable = false;
 
@@ -165,7 +165,8 @@ public class ProfileImageUploader : MonoBehaviour
             OnProgress  = msg  => Debug.Log($"[ProfileImageUploader] {msg}"),
             OnCompleted = async url =>
             {
-                await _firestore.UpdateUserProfileImageUrl(currentUserData.UserId, url);
+                await _firestore.UpdateUserProfileImageUrl(currentUserData.UserId, url).ConfigureAwait(false);
+                await Task.Yield();
                 currentUserData.ProfileImageUrl = url;
                 UserDataStore.CurrentUserData   = currentUserData;
                 UserAvatarSyncHelper.NotifyAvatarChanged(url);

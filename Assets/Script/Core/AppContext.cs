@@ -44,12 +44,21 @@ public class AppContext : MonoBehaviour
 
         try
         {
-            UserDataStore.Logger = msg => Debug.Log(msg);
-
             Debug.Log("[AppContext] Verificando dependências do Firebase...");
-            var dependencyStatus = await FirebaseApp.CheckAndFixDependenciesAsync();
+        
+            // Timeout de 10 segundos para não bloquear indefinidamente sem internet
+            var dependencyTask = FirebaseApp.CheckAndFixDependenciesAsync();
+            var timeoutTask    = Task.Delay(10000);
+            
+            var completed = await Task.WhenAny(dependencyTask, timeoutTask);
+            
+            if (completed == timeoutTask)
+                throw new Exception("Timeout ao verificar Firebase. Verifique sua conexão.");
+
+            var dependencyStatus = await dependencyTask;
             if (dependencyStatus != DependencyStatus.Available)
-                throw new Exception($"[AppContext] Firebase dependencies unavailable: {dependencyStatus}");
+                throw new Exception($"Firebase dependencies unavailable: {dependencyStatus}");
+
             Debug.Log("[AppContext] Firebase disponível.");
 
             var authRepo         = GetComponent<AuthenticationRepository>();
@@ -138,9 +147,7 @@ public class AppContext : MonoBehaviour
         }
         catch (Exception e)
         {
-            Debug.LogError($"[AppContext] Falha na inicialização: {e.Message}\n{e.StackTrace}");
-            if (e.InnerException != null)
-                Debug.LogError($"[AppContext] InnerException: {e.InnerException.Message}");
+            Debug.LogError($"[AppContext] Falha na inicialização: {e.Message}");
             IsReady = false;
             throw;
         }

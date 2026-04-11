@@ -10,5 +10,7 @@ public interface IUserDataLocalRepository
     bool HasUser(string userId);
     bool IsDirty(string userId);
     void DeleteUser(string userId);
-    DateTime GetLastSyncedAt(string userId); // ← adicionar
+    DateTime GetLastSyncedAt(string userId);
+    void UpdateScore(string userId, int newScore, int newWeekScore);
+    void AddAnsweredQuestion(string userId, string databankName, int questionNumber);
 }

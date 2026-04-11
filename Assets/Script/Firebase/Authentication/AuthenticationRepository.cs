@@ -71,7 +71,8 @@ public class AuthenticationRepository : MonoBehaviour, IAuthRepository
                 throw new Exception("Login falhou: resultado ou usuário nulo");
 
             string uid = result.User.UserId;
-            UserData userData = await _firestore.GetUserData(uid);
+            UserData userData = await _firestore.GetUserData(uid).ConfigureAwait(false);
+            await Task.Yield();
 
             if (userData == null)
                 throw new Exception("Dados do usuário não encontrados");
@@ -109,7 +110,8 @@ public class AuthenticationRepository : MonoBehaviour, IAuthRepository
                 AnsweredQuestions = new Dictionary<string, List<int>>()
             };
 
-            await _firestore.CreateUserDocument(user);
+            await _firestore.CreateUserDocument(user).ConfigureAwait(false);
+            await Task.Yield();
             UserDataStore.CurrentUserData = user;
             return user;
         }

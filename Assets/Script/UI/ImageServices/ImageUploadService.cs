@@ -37,10 +37,14 @@ public class ImageUploadService : MonoBehaviour, IImageUploadService
 
             config.OnProgress?.Invoke("Enviando imagem...");
             string fileName = BuildFileName(config);
-            string imageUrl = await _storage.UploadImageAsync(fileName, imageBytes);
+            string imageUrl = await _storage.UploadImageAsync(fileName, imageBytes).ConfigureAwait(false);
+            await Task.Yield();
 
             Debug.Log($"[ImageUploadService] ✅ Upload concluído: {imageUrl}");
-            config.OnCompleted?.Invoke(imageUrl);
+            
+            if (config.OnCompleted != null)
+                await config.OnCompleted.Invoke(imageUrl);
+
             return imageUrl;
         }
         catch (ImageTooLargeException)
@@ -74,12 +78,15 @@ public class ImageUploadService : MonoBehaviour, IImageUploadService
     {
         try
         {
-            await _storage.DeleteProfileImageAsync(oldImageUrl);
+            await _storage.DeleteProfileImageAsync(oldImageUrl).ConfigureAwait(false);
+            await Task.Yield();
             Debug.Log("[ImageUploadService] Imagem antiga deletada.");
         }
         catch (Exception ex)
         {
-            Debug.LogWarning($"[ImageUploadService] Não foi possível deletar imagem antiga: {ex.Message}");
+            string msg = ex.Message;
+            await Task.Yield();
+            Debug.LogWarning($"[ImageUploadService] Não foi possível deletar imagem antiga: {msg}");
         }
     }
 
