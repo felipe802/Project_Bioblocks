@@ -6,7 +6,6 @@ public class LiteDBManager : MonoBehaviour, ILiteDBManager
 {
     private LiteDatabase _db;
     private const string DB_NAME = "app_cache.db";
-
     public bool IsInitialized { get; private set; }
 
     public LiteDatabase Database
@@ -20,6 +19,9 @@ public class LiteDBManager : MonoBehaviour, ILiteDBManager
 
     public ILiteCollection<UserDataDB> Users
         => Database.GetCollection<UserDataDB>("users");
+
+    public ILiteCollection<RankingDB> Rankings
+        => Database.GetCollection<RankingDB>("rankings");
 
     public void Initialize()
     {
@@ -48,6 +50,8 @@ public class LiteDBManager : MonoBehaviour, ILiteDBManager
     {
         Users.EnsureIndex(x => x.UserId, unique: true);
         CachedImages.EnsureIndex(x => x.ImageUrl, unique: true);
+        Rankings.EnsureIndex(x => x.Score);
+        Rankings.EnsureIndex(x => x.WeekScore);
     }
 
     private void OnDestroy() => Close();

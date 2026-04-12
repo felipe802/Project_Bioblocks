@@ -22,6 +22,8 @@ public class AppContext : MonoBehaviour
     public static IUserDataLocalRepository UserDataLocal { get; private set; }
     public static IUserDataSyncService UserDataSync  { get; private set; }
     public static PendingUploadSyncService PendingUploadSync { get; private set; }
+    public static RankingSyncService RankingSync { get; private set; }
+    public static ConnectivityMonitor Connectivity { get; private set; }
 
     public static bool IsReady { get; private set; }
 
@@ -79,6 +81,8 @@ public class AppContext : MonoBehaviour
             var userDataLocalRepo = GetComponent<UserDataLocalRepository>();
             var userDataSyncSvc  = GetComponent<UserDataSyncService>();
             var pendingUploadSync = GetComponent<PendingUploadSyncService>();
+            var rankingSyncSvc = GetComponent<RankingSyncService>();
+            var connectivityMonitor = GetComponent<ConnectivityMonitor>();
 
             if (authRepo == null)
                 throw new Exception("[AppContext] AuthenticationRepository não encontrado.");
@@ -108,6 +112,11 @@ public class AppContext : MonoBehaviour
                 throw new Exception("[AppContext] UserDataSyncService não encontrado.");
             if (pendingUploadSync == null)
                 throw new Exception("[AppContext] PendingUploadSyncService não encontrado.");
+            if (rankingSyncSvc == null)
+                throw new Exception("[AppContext] RankingSyncManager não encontrado.");
+            if (connectivityMonitor == null)
+                throw new Exception("[AppContext] ConnectivityMonitor não encontrado.");
+
 
             
             // 1. LiteDB
@@ -149,6 +158,8 @@ public class AppContext : MonoBehaviour
             UserDataLocal     = userDataLocalRepo;
             UserDataSync      = userDataSyncSvc;
             PendingUploadSync = pendingUploadSync;
+            RankingSync = rankingSyncSvc;
+            Connectivity = connectivityMonitor;
 
             IsReady = true;
             OnReady?.Invoke();
