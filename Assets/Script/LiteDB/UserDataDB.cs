@@ -22,6 +22,7 @@ public class UserDataDB
     public Dictionary<string, bool> ResetDatabankFlags { get; set; }
     public DateTime LastSyncedAt { get; set; }
     public bool IsDirty { get; set; }
+    public DateTime SavedAt { get; set; }
 
     public UserDataDB()
     {
@@ -50,7 +51,8 @@ public class UserDataDB
             AnsweredQuestions           = domain.AnsweredQuestions  ?? new Dictionary<string, List<int>>(),
             ResetDatabankFlags          = domain.ResetDatabankFlags ?? new Dictionary<string, bool>(),
             LastSyncedAt                = DateTime.UtcNow,
-            IsDirty                     = false
+            IsDirty                     = false,
+            SavedAt                     = domain.SavedAt
         };
     }
 
@@ -72,7 +74,8 @@ public class UserDataDB
             TotalValidQuestionsAnswered = TotalValidQuestionsAnswered,
             TotalQuestionsInAllDatabanks= TotalQuestionsInAllDatabanks,
             AnsweredQuestions           = AnsweredQuestions  ?? new Dictionary<string, List<int>>(),
-            ResetDatabankFlags          = ResetDatabankFlags ?? new Dictionary<string, bool>()
+            ResetDatabankFlags          = ResetDatabankFlags ?? new Dictionary<string, bool>(),
+            SavedAt = SavedAt
         };
     }
 }

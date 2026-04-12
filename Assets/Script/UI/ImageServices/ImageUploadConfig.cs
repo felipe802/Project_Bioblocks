@@ -10,5 +10,6 @@ public class ImageUploadConfig
     public string OldImageUrl        { get; set; }  
     public Action<string> OnProgress { get; set; }  
     public Func<string, Task>   OnCompleted { get; set; }
+    public Func<string, Task> OnSavedOffline { get; set; }
     public Action<string> OnFailed   { get; set; } 
 }

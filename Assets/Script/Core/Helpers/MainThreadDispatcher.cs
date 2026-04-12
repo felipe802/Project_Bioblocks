@@ -24,8 +24,16 @@ public class MainThreadDispatcher : MonoBehaviour
 
     public static void Enqueue(Action action)
     {
+        if (action == null) return;
+
+        if (_instance == null)
+        {
+            Debug.LogWarning("[MainThreadDispatcher] Instance null — ação descartada.");
+            return;
+        }
+
         lock (_lock)
-            Instance._queue.Enqueue(action);
+            _instance._queue.Enqueue(action);
     }
 
     private void Update()

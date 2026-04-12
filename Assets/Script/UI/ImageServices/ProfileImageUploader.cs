@@ -127,12 +127,42 @@ public class ProfileImageUploader : MonoBehaviour
 
             if (string.IsNullOrEmpty(path))
             {
-                Debug.Log("[ProfileImageUploader] Nenhuma imagem selecionada");
-                isProcessing = false;
+                MainThreadDispatcher.Enqueue(() => isProcessing = false);
                 return;
             }
 
-            ProcessSelectedImage(path);
+            // Copia o arquivo imediatamente no callback — antes do MainThreadDispatcher
+            // O iOS pode limpar o arquivo temporário antes do próximo frame
+            string safePath = path;
+            try
+            {
+                string cacheDir  = Path.Combine(Application.persistentDataPath, "ImageTemp");
+                Directory.CreateDirectory(cacheDir);
+                string destPath  = Path.Combine(cacheDir, "selected_image.png");
+                File.Copy(path, destPath, overwrite: true);
+                safePath = destPath;
+                Debug.Log($"[ProfileImageUploader] Arquivo copiado para: {safePath}");
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[ProfileImageUploader] Não foi possível copiar arquivo: {e.Message}. Usando path original.");
+            }
+
+            Debug.Log("[ProfileImageUploader] Enfileirando ProcessSelectedImage no MainThreadDispatcher");
+            string capturedPath = safePath;
+            MainThreadDispatcher.Enqueue(() =>
+            {
+                Debug.Log($"[ProfileImageUploader] MainThreadDispatcher executando. " +
+                        $"this null={this == null}, " +
+                        $"gameObject active={this != null && gameObject.activeInHierarchy}");
+
+                if (this == null || !gameObject.activeInHierarchy)
+                {
+                    Debug.LogWarning("[ProfileImageUploader] Componente destruído antes do processamento");
+                    return;
+                }
+                ProcessSelectedImage(capturedPath);
+            });
         },
         "Selecione uma imagem",
         "image/*");
@@ -143,10 +173,22 @@ public class ProfileImageUploader : MonoBehaviour
         isProcessing = true;
         if (uploadButton != null) uploadButton.interactable = false;
 
+        // Captura tudo que precisa ANTES de qualquer await
+        // — após um await o componente pode não existir mais
+        string userId      = currentUserData.UserId;
+        string oldImageUrl = currentUserData.ProfileImageUrl;
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            Debug.LogError("[ProfileImageUploader] UserId nulo");
+            FinishProcessing();
+            return;
+        }
+
         try
         {
             byte[] previewBytes = File.ReadAllBytes(imagePath);
-            Texture2D preview = new Texture2D(2, 2);
+            Texture2D preview   = new Texture2D(2, 2);
             preview.LoadImage(previewBytes);
             imageLoader.SetTexture(preview);
         }
@@ -155,23 +197,102 @@ public class ProfileImageUploader : MonoBehaviour
             Debug.LogWarning($"[ProfileImageUploader] Erro ao gerar preview: {e.Message}");
         }
 
+        // Sem internet — salva localmente e retorna imediatamente
+        // O PendingUploadSyncService completará quando a internet voltar
+       if (Application.internetReachability == NetworkReachability.NotReachable)
+        {
+            try
+            {
+                string dir = Path.Combine(Application.persistentDataPath, "PendingUploads");
+                Directory.CreateDirectory(dir);
+                string localPath = Path.Combine(dir, $"{userId}_{DateTime.UtcNow.Ticks}.jpg");
+                File.Copy(imagePath, localPath, overwrite: true);
+                Debug.Log($"[ProfileImageUploader] Arquivo copiado para: {localPath}");
+
+                var pending = new PendingUploadDB
+                {
+                    Id          = userId,
+                    UserId      = userId,
+                    LocalPath   = localPath,
+                    OldImageUrl = oldImageUrl,
+                    CreatedAt   = DateTime.UtcNow
+                };
+                AppContext.LocalDatabase?.PendingUploads.Upsert(pending);
+                Debug.Log("[ProfileImageUploader] PendingUploadDB salvo no LiteDB");
+
+                var userData = UserDataStore.CurrentUserData;
+                Debug.Log($"[ProfileImageUploader] userData null={userData == null}");
+                
+                if (userData != null)
+                {
+                    Debug.Log($"[ProfileImageUploader] ProfileImageUrl ANTES: {userData.ProfileImageUrl}");
+                    userData.ProfileImageUrl      = localPath;
+                    Debug.Log($"[ProfileImageUploader] ProfileImageUrl DEPOIS: {userData.ProfileImageUrl}");
+                    
+                    UserDataStore.CurrentUserData = userData;
+                    Debug.Log("[ProfileImageUploader] UserDataStore atualizado");
+                    
+                    AppContext.UserDataLocal?.UpdateUser(userData); // ← sem var, sem atribuição
+                    var litedbCheck = AppContext.UserDataLocal?.GetUser(userId);
+                    Debug.Log($"[ProfileImageUploader] LiteDB após UpdateUser: " +
+                            $"ProfileImageUrl={litedbCheck?.ProfileImageUrl}");
+                    Debug.Log($"[ProfileImageUploader] LiteDB após UpdateUser: " +
+                            $"ProfileImageUrl={litedbCheck?.ProfileImageUrl}");
+                }
+
+                UserAvatarSyncHelper.NotifyAvatarChanged(localPath);
+                Debug.Log("[ProfileImageUploader] NotifyAvatarChanged chamado");
+
+                ShowAlert("Sem internet. Foto salva e será enviada quando a conexão voltar.");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[ProfileImageUploader] Erro: {e.Message}\n{e.StackTrace}");
+            }
+
+            FinishProcessing();
+            return;
+        }
+        // Com internet — monta o config e faz upload
         var config = new ImageUploadConfig
         {
-            ImagePath        = imagePath,
-            DestinationFolder= "profile_images",
-            FileNamePrefix   = currentUserData.UserId,
-            MaxSizeBytes     = maxImageSizeBytes,
-            OldImageUrl      = currentUserData.ProfileImageUrl,
-            OnProgress  = msg  => Debug.Log($"[ProfileImageUploader] {msg}"),
+            ImagePath         = imagePath,
+            DestinationFolder = "profile_images",
+            FileNamePrefix    = userId,
+            MaxSizeBytes      = maxImageSizeBytes,
+            OldImageUrl       = oldImageUrl,
+            OnProgress        = msg => Debug.Log($"[ProfileImageUploader] {msg}"),
             OnCompleted = async url =>
             {
-                await _firestore.UpdateUserProfileImageUrl(currentUserData.UserId, url).ConfigureAwait(false);
-                await Task.Yield();
-                currentUserData.ProfileImageUrl = url;
-                UserDataStore.CurrentUserData   = currentUserData;
-                UserAvatarSyncHelper.NotifyAvatarChanged(url);
+                Debug.Log($"[ProfileImageUploader] OnCompleted. url={url}");
+
+                try
+                {
+                    await _firestore.UpdateUserProfileImageUrl(userId, url).ConfigureAwait(false);
+                    Debug.Log("[ProfileImageUploader] Firestore atualizado");
+                }
+                catch (Exception e)
+                {
+                    string msg = e.Message;
+                    MainThreadDispatcher.Enqueue(() =>
+                        Debug.LogWarning($"[ProfileImageUploader] Firestore falhou: {msg}"));
+                }
+
+                var capturedUserData = currentUserData;
+                var capturedUrl      = url;
+                MainThreadDispatcher.Enqueue(() =>
+                {
+                    capturedUserData.ProfileImageUrl = capturedUrl;
+                    UserDataStore.CurrentUserData    = capturedUserData;
+                    UserAvatarSyncHelper.NotifyAvatarChanged(capturedUrl);
+                    Debug.Log("[ProfileImageUploader] UserDataStore atualizado com nova URL");
+                });
             },
-            OnFailed = error => ShowAlert(error)
+            OnFailed = error =>
+            {
+                if (this != null && gameObject.activeInHierarchy)
+                    ShowAlert(error);
+            }
         };
 
         try
@@ -180,10 +301,12 @@ public class ProfileImageUploader : MonoBehaviour
         }
         catch
         {
-            // Erro já tratado pelo OnFailed do config
+            // Erro já tratado pelo OnFailed
         }
 
-        FinishProcessing();
+        // Verifica se o componente ainda existe antes de tocar na UI
+        if (this != null && gameObject.activeInHierarchy)
+            FinishProcessing();
     }
 
     private void ShowAlert(string message)

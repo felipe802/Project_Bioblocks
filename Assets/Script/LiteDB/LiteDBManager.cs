@@ -63,4 +63,7 @@ public class LiteDBManager : MonoBehaviour, ILiteDBManager
             Debug.Log("[LiteDatabaseManager] Banco fechado.");
         }
     }
+
+    public ILiteCollection<PendingUploadDB> PendingUploads
+        => Database.GetCollection<PendingUploadDB>("pending_uploads");
 }

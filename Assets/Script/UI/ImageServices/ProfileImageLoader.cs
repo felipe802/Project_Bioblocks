@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Networking;
 using System.Collections;
+using System.IO;
 
 public class ProfileImageLoader : MonoBehaviour
 {
@@ -188,6 +189,25 @@ public class ProfileImageLoader : MonoBehaviour
 
     private IEnumerator LoadImageFromUrl(string url)
     {
+        // Verifica se é um path local (para modo offline)
+        if (!url.StartsWith("http://") && !url.StartsWith("https://"))
+        {
+            if (File.Exists(url))
+            {
+                byte[]    bytes   = File.ReadAllBytes(url);
+                Texture2D texture = new Texture2D(2, 2);
+                texture.LoadImage(bytes);
+                SetTexture(texture);
+            }
+            else
+            {
+                Debug.LogWarning($"[ProfileImageLoader] Arquivo local não encontrado: {url}");
+                LoadStandardProfileImage();
+            }
+            yield break;
+        }
+
+        // Fluxo normal para URLs remotas   
         string cachedPath = GetCache()?.GetCachedImagePath(url);
 
         if (!string.IsNullOrEmpty(cachedPath))

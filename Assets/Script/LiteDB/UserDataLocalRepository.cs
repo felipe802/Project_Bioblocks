@@ -30,6 +30,7 @@ public class UserDataLocalRepository : MonoBehaviour, IUserDataLocalRepository
         try
         {
             var doc = UserDataDB.FromDomain(userData);
+            doc.SavedAt = DateTime.UtcNow;
             _db.Users.Insert(doc);
         }
         catch (Exception e)
@@ -51,8 +52,9 @@ public class UserDataLocalRepository : MonoBehaviour, IUserDataLocalRepository
             }
 
             var doc = UserDataDB.FromDomain(userData);
-            doc.IsDirty     = existing.IsDirty;
+            doc.IsDirty      = existing.IsDirty;
             doc.LastSyncedAt = existing.LastSyncedAt;
+            doc.SavedAt      = DateTime.UtcNow; // ← atualiza ao modificar
             _db.Users.Update(doc);
         }
         catch (Exception e)
@@ -155,9 +157,10 @@ public class UserDataLocalRepository : MonoBehaviour, IUserDataLocalRepository
         {
             var doc = _db.Users.FindById(userId);
             if (doc == null) return;
-            doc.Score      = newScore;
-            doc.WeekScore  = newWeekScore;
-            doc.IsDirty    = true;
+            doc.Score     = newScore;
+            doc.WeekScore = newWeekScore;
+            doc.IsDirty   = true;
+            doc.SavedAt   = DateTime.UtcNow; // ← atualiza ao modificar score
             _db.Users.Update(doc);
         }
         catch (Exception e)

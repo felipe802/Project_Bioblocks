@@ -86,34 +86,99 @@ public class UserDataSyncService : MonoBehaviour, IUserDataSyncService
     {
         try
         {
-            if (!_localRepository.HasUser(userId))
+            bool hasLocal = _localRepository.HasUser(userId);
+
+            // Sem cache local — dispositivo novo, busca do Firestore
+            if (!hasLocal)
             {
-                Debug.Log("[SyncService] Sem cache local, buscando do Firestore...");
+                Debug.Log("[SyncService] Sem cache local — buscando do Firestore...");
                 await SyncFromFirestore(userId);
                 return;
             }
 
+            // Cache dirty — há dados locais para enviar
             if (_localRepository.IsDirty(userId))
             {
-                Debug.Log("[SyncService] Dados pendentes encontrados, enviando ao Firestore...");
+                Debug.Log("[SyncService] Dados pendentes encontrados — enviando ao Firestore...");
                 await SyncToFirestore(userId);
                 return;
             }
 
+            // Cache stale — verifica se Firestore tem dados mais recentes
             if (IsCacheStale(userId))
             {
-                Debug.Log("[SyncService] Cache desatualizado, sincronizando do Firestore...");
-                await SyncFromFirestore(userId);
+                Debug.Log("[SyncService] Cache desatualizado — comparando com Firestore...");
+                await MergeWithFirestore(userId);
                 return;
             }
 
-            Debug.Log("[SyncService] Cache válido, carregando do local.");
+            // Cache válido — usa LiteDB diretamente
+            Debug.Log("[SyncService] Cache válido — carregando do local.");
             var cached = _localRepository.GetUser(userId);
-            UserDataStore.CurrentUserData = cached;
+            if (cached != null)
+                UserDataStore.CurrentUserData = cached;
         }
         catch (Exception e)
         {
-            Debug.LogWarning($"[SyncService] TrySyncPendingData falhou, usando cache local: {e.Message}");
+            Debug.LogWarning($"[SyncService] TrySyncPendingData falhou — usando cache local: {e.Message}");
+            var cached = _localRepository.GetUser(userId);
+            if (cached != null)
+                UserDataStore.CurrentUserData = cached;
+        }
+    }
+
+    // Método que compara SavedAt e usa o mais recente como fonte verdade
+    private async Task MergeWithFirestore(string userId)
+    {
+        try
+        {
+            var localData = _localRepository.GetUser(userId);
+            UserData remoteData = null;
+
+            try
+            {
+                remoteData = await _firestore.GetUserData(userId).ConfigureAwait(false);
+                await Task.Yield();
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[SyncService] Firestore indisponível: {e.Message}");
+            }
+
+            if (remoteData == null)
+            {
+                // Sem internet — usa LiteDB
+                Debug.Log("[SyncService] Firestore indisponível — usando LiteDB.");
+                UserDataStore.CurrentUserData = localData;
+                return;
+            }
+
+            // Compara SavedAt — usa o mais recente
+            if (localData.SavedAt >= remoteData.SavedAt)
+            {
+                Debug.Log($"[SyncService] LiteDB mais recente " +
+                        $"(local={localData.SavedAt:HH:mm:ss}, " +
+                        $"remote={remoteData.SavedAt:HH:mm:ss}) — usando LiteDB.");
+                UserDataStore.CurrentUserData = localData;
+
+                // Se local é mais recente, sincroniza ao Firestore
+                if (localData.SavedAt > remoteData.SavedAt)
+                    _localRepository.MarkAsDirty(userId);
+            }
+            else
+            {
+                Debug.Log($"[SyncService] Firestore mais recente " +
+                        $"(local={localData.SavedAt:HH:mm:ss}, " +
+                        $"remote={remoteData.SavedAt:HH:mm:ss}) — usando Firestore.");
+                remoteData.SavedAt = DateTime.UtcNow;
+                _localRepository.UpdateUser(remoteData);
+                _localRepository.MarkAsSynced(userId);
+                UserDataStore.CurrentUserData = remoteData;
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[SyncService] MergeWithFirestore falhou: {e.Message}");
             var cached = _localRepository.GetUser(userId);
             if (cached != null)
                 UserDataStore.CurrentUserData = cached;

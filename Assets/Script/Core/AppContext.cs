@@ -21,11 +21,15 @@ public class AppContext : MonoBehaviour
     public static IPlayerLevelService  PlayerLevel { get; private set; }
     public static IUserDataLocalRepository UserDataLocal { get; private set; }
     public static IUserDataSyncService UserDataSync  { get; private set; }
+    public static PendingUploadSyncService PendingUploadSync { get; private set; }
 
     public static bool IsReady { get; private set; }
 
     private async void Awake()
     {
+        // Garante que o MainThreadDispatcher existe antes de qualquer operação
+        var _ = MainThreadDispatcher.Instance;
+        
         Debug.Log("[AppContext] Awake() chamado");
         if (_instance != null && _instance != this)
         {
@@ -74,6 +78,7 @@ public class AppContext : MonoBehaviour
             var playerLevelMgr   = GetComponent<PlayerLevelService>();
             var userDataLocalRepo = GetComponent<UserDataLocalRepository>();
             var userDataSyncSvc  = GetComponent<UserDataSyncService>();
+            var pendingUploadSync = GetComponent<PendingUploadSyncService>();
 
             if (authRepo == null)
                 throw new Exception("[AppContext] AuthenticationRepository não encontrado.");
@@ -101,6 +106,9 @@ public class AppContext : MonoBehaviour
                 throw new Exception("[AppContext] UserDataLocalRepository não encontrado.");
             if (userDataSyncSvc == null)
                 throw new Exception("[AppContext] UserDataSyncService não encontrado.");
+            if (pendingUploadSync == null)
+                throw new Exception("[AppContext] PendingUploadSyncService não encontrado.");
+
             
             // 1. LiteDB
             liteDBMgr.Initialize();
@@ -140,6 +148,7 @@ public class AppContext : MonoBehaviour
             PlayerLevel       = playerLevelMgr;
             UserDataLocal     = userDataLocalRepo;
             UserDataSync      = userDataSyncSvc;
+            PendingUploadSync = pendingUploadSync;
 
             IsReady = true;
             OnReady?.Invoke();

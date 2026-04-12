@@ -7,4 +7,5 @@ public interface ILiteDBManager
     ILiteCollection<CachedImageDB> CachedImages { get; }
     void Initialize();
     void Close();
+    ILiteCollection<PendingUploadDB> PendingUploads { get; }
 }

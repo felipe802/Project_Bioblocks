@@ -171,7 +171,8 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
         var updates = new Dictionary<string, object>
         {
             { "Score",     current.Score },
-            { "WeekScore", current.WeekScore }
+            { "WeekScore", current.WeekScore },
+            { "SavedAt", FieldValue.ServerTimestamp }
         };
 
         if (isCorrect && !string.IsNullOrEmpty(databankName) && questionNumber > 0)
@@ -222,7 +223,8 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
         var docRef = db.Collection("Users").Document(userId);
         await docRef.UpdateAsync(new Dictionary<string, object>
         {
-            { "WeekScore", current.WeekScore }
+            { "WeekScore", current.WeekScore },
+            { "SavedAt", FieldValue.ServerTimestamp }
         }).ConfigureAwait(false);
 
         Debug.Log($"[FirestoreRepository] WeekScore atualizado: {current.WeekScore}");
@@ -272,7 +274,10 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
         try
         {
             DocumentReference userRef = db.Collection("Users").Document(userId);
-            await userRef.UpdateAsync(new Dictionary<string, object> { { "ProfileImageUrl", imageUrl } });
+            await userRef.UpdateAsync(new Dictionary<string, object> { 
+                { "ProfileImageUrl", imageUrl },
+                { "SavedAt", FieldValue.ServerTimestamp } 
+            });
         }
         catch (Exception ex)
         {
@@ -439,6 +444,48 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
                     }
                 }
 
+                //listener to profileImage
+                if (data.ContainsKey("ProfileImageUrl") && currentUserData != null)
+                {
+                    string incomingUrl = data["ProfileImageUrl"] as string ?? "";
+                    
+                    // Ignora se a URL incoming é vazia ou igual à atual
+                    if (string.IsNullOrEmpty(incomingUrl)) return;
+                    if (currentUserData.ProfileImageUrl == incomingUrl) return;
+                    
+                    // Ignora se há upload pendente — o path local deve ser preservado
+                    var pendingUpload = AppContext.LocalDatabase?.PendingUploads
+                                                .FindById(currentUserData.UserId);
+                    if (pendingUpload != null)
+                    {
+                        Debug.Log("[FirestoreRepository] ProfileImageUrl ignorado — upload pendente.");
+                        return;
+                    }
+
+                    // Ignora se a URL incoming é um path local (não começa com http)
+                    if (!incomingUrl.StartsWith("http"))
+                    {
+                        Debug.Log("[FirestoreRepository] ProfileImageUrl ignorado — path local.");
+                        return;
+                    }
+
+                    var capturedUrl = incomingUrl;
+                    MainThreadDispatcher.Enqueue(() =>
+                    {
+                        var local = UserDataStore.CurrentUserData;
+                        if (local == null) return;
+                        
+                        // Verifica novamente se não há upload pendente no main thread
+                        var pending = AppContext.LocalDatabase?.PendingUploads.FindById(local.UserId);
+                        if (pending != null) return;
+                        
+                        local.ProfileImageUrl = capturedUrl;
+                        UserDataStore.CurrentUserData = local;
+                        UserAvatarSyncHelper.NotifyAvatarChanged(capturedUrl);
+                        Debug.Log($"[FirestoreRepository] ProfileImageUrl atualizado via listener: {capturedUrl}");
+                    });
+                }
+                                                                                                                                                                                                                                                                                                                                
                 // AnsweredQuestions
                 if (onAnsweredQuestionsChanged != null && data.ContainsKey("AnsweredQuestions"))
                 {
@@ -696,6 +743,8 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
             ? Convert.ToInt32(data["TotalQuestionsInAllDatabanks"]) : 0;
         userData.IsUserRegistered = data.ContainsKey("IsUserRegistered")
             ? Convert.ToBoolean(data["IsUserRegistered"]) : false;
+        userData.SavedAt = data.ContainsKey("SavedAt") && data["SavedAt"] is Timestamp savedAt 
+            ? savedAt.ToDateTime() : DateTime.MinValue; 
 
         if (data.ContainsKey("CreatedTime") && data["CreatedTime"] is Timestamp timestamp)
             userData.CreatedTime = timestamp.ToDateTime();
@@ -737,6 +786,7 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
             { "WeekScore",                    userData.WeekScore },
             { "QuestionTypeProgress",         userData.QuestionTypeProgress },
             { "IsUserRegistered",             userData.IsUserRegistered },
+            { "SavedAt",                      FieldValue.ServerTimestamp },
             { "PlayerLevel",                  userData.PlayerLevel },
             { "TotalValidQuestionsAnswered",  userData.TotalValidQuestionsAnswered },
             { "TotalQuestionsInAllDatabanks", userData.TotalQuestionsInAllDatabanks },

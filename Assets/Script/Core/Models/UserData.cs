@@ -19,6 +19,7 @@ public class UserData
     public int    TotalQuestionsInAllDatabanks { get; set; } = 0;
     public Dictionary<string, List<int>> AnsweredQuestions  { get; set; }
     public Dictionary<string, bool>      ResetDatabankFlags { get; set; }
+    public DateTime SavedAt { get; set; }
 
     // -------------------------------------------------------
     // Construtores
