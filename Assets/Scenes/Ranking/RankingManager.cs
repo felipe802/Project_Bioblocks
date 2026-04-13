@@ -81,20 +81,39 @@ public class RankingManager : MonoBehaviour
     {
         try
         {
-            _currentUserRanking = await _rankingRepository.GetCurrentUserRankingAsync();
+            var syncService = AppContext.RankingSync;
+            string userId   = AppContext.Auth?.CurrentUserId ?? "";
+
+            // Ranking do usuário atual
+            if (syncService != null && !string.IsNullOrEmpty(userId))
+                _currentUserRanking = await syncService
+                                            .GetCurrentUserRankingWithFallback(userId);
+            else
+                _currentUserRanking = await _rankingRepository.GetCurrentUserRankingAsync();
 
             if (_currentUserRanking == null)
-            {
-                Debug.LogError("[RankingManager] Entrada de ranking do usuário não encontrada.");
-                return;
-            }
+                Debug.LogWarning("[RankingManager] Ranking do usuário não encontrado.");
 
             UserDataStore.OnUserDataChanged += OnUserDataChanged;
-            await FetchRankings();
+
+            // Rankings gerais
+            if (syncService != null)
+                _rankings = await syncService.GetRankingsWithFallback();
+            else
+                await FetchRankings();
+
+            if (_rankings != null && _rankings.Count > 0)
+                UpdateRankingTable();
+            else
+                Debug.LogWarning("[RankingManager] Sem rankings disponíveis.");
         }
         catch (Exception e)
         {
             Debug.LogError($"[RankingManager] Falha na inicialização: {e.Message}");
+        }
+        finally
+        {
+            ShowLoadingIndicator(false);
         }
     }
 

@@ -1,36 +1,25 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Firebase.Firestore;
 
-/// <summary>
-/// Implementação fake do IFirestoreRepository para uso em testes e desenvolvimento.
-/// Não faz nenhuma chamada real ao Firebase — opera inteiramente em memória.
-/// 
-/// Como usar em testes:
-///   var fakeFirestore = new FakeFirestoreRepository();
-///   fakeFirestore.SetFakeUser(new UserData { UserId = "test-user", Score = 100 });
-///   var manager = new PlayerLevelManager();
-///   manager.Initialize(fakeFirestore);
-/// </summary>
 public class FakeFirestoreRepository : IFirestoreRepository
 {
-    // -------------------------------------------------------
-    // Estado interno — configure antes de rodar o teste
-    // -------------------------------------------------------
     private readonly Dictionary<string, UserData> _users = new();
     private readonly List<UserData> _allUsers = new();
 
-    // Contadores para verificar chamadas em testes
-    public int UpdateUserFieldCallCount { get; private set; }
-    public int UpdateUserScoresCallCount { get; private set; }
-    public string LastUpdatedField { get; private set; }
-    public object LastUpdatedValue { get; private set; }
+    public int UpdateUserFieldCallCount    { get; private set; }
+    public int UpdateUserScoresCallCount   { get; private set; }
+    public string LastUpdatedField         { get; private set; }
+    public object LastUpdatedValue         { get; private set; }
 
     // -------------------------------------------------------
-    // Configuração do fake
+    // Listener state — fake
     // -------------------------------------------------------
+    public bool IsListening { get; private set; }
 
+    // -------------------------------------------------------
+    // Configuração
+    // -------------------------------------------------------
     public void SetFakeUser(UserData user)
     {
         _users[user.UserId] = user;
@@ -41,10 +30,8 @@ public class FakeFirestoreRepository : IFirestoreRepository
     // -------------------------------------------------------
     // IFirestoreRepository
     // -------------------------------------------------------
-
     public bool IsInitialized => true;
-
-    public void Initialize() { /* Nada a fazer no fake */ }
+    public void Initialize() { }
 
     public Task<UserData> GetUserData(string userId)
     {
@@ -64,19 +51,21 @@ public class FakeFirestoreRepository : IFirestoreRepository
         return Task.CompletedTask;
     }
 
-    public Task UpdateUserScore(string userId, int newScore, int questionNumber, string databankName, bool isCorrect)
+    public Task UpdateUserScore(string userId, int newScore, int questionNumber,
+                                string databankName, bool isCorrect)
     {
         if (_users.TryGetValue(userId, out var user))
             user.Score = newScore;
         return Task.CompletedTask;
     }
 
-    public Task UpdateUserScores(string userId, int additionalScore, int questionNumber, string databankName, bool isCorrect)
+    public Task UpdateUserScores(string userId, int additionalScore, int questionNumber,
+                                 string databankName, bool isCorrect, UserData capturedUserData)
     {
         UpdateUserScoresCallCount++;
         if (_users.TryGetValue(userId, out var user))
         {
-            user.Score += additionalScore;
+            user.Score     += additionalScore;
             user.WeekScore += additionalScore;
         }
         return Task.CompletedTask;
@@ -97,15 +86,14 @@ public class FakeFirestoreRepository : IFirestoreRepository
 
         if (_users.TryGetValue(userId, out var user))
         {
-            // Atualiza o campo correspondente no objeto em memória
             switch (fieldName)
             {
-                case "PlayerLevel":                   user.PlayerLevel = Convert.ToInt32(value); break;
-                case "TotalValidQuestionsAnswered":   user.TotalValidQuestionsAnswered = Convert.ToInt32(value); break;
-                case "TotalQuestionsInAllDatabanks":  user.TotalQuestionsInAllDatabanks = Convert.ToInt32(value); break;
-                case "Score":                         user.Score = Convert.ToInt32(value); break;
-                case "WeekScore":                     user.WeekScore = Convert.ToInt32(value); break;
-                case "ProfileImageUrl":               user.ProfileImageUrl = value?.ToString(); break;
+                case "PlayerLevel":                  user.PlayerLevel = Convert.ToInt32(value); break;
+                case "TotalValidQuestionsAnswered":  user.TotalValidQuestionsAnswered = Convert.ToInt32(value); break;
+                case "TotalQuestionsInAllDatabanks": user.TotalQuestionsInAllDatabanks = Convert.ToInt32(value); break;
+                case "Score":                        user.Score = Convert.ToInt32(value); break;
+                case "WeekScore":                    user.WeekScore = Convert.ToInt32(value); break;
+                case "ProfileImageUrl":              user.ProfileImageUrl = value?.ToString(); break;
             }
         }
         return Task.CompletedTask;
@@ -147,26 +135,55 @@ public class FakeFirestoreRepository : IFirestoreRepository
     }
 
     public Task<List<UserData>> GetAllUsersData()
-    {
-        return Task.FromResult(new List<UserData>(_allUsers));
-    }
+        => Task.FromResult(new List<UserData>(_allUsers));
 
+    // -------------------------------------------------------
+    // Listeners — fake dispara callbacks imediatamente
+    // -------------------------------------------------------
     public void ListenToUserData(
         string userId,
         Action<int> onScoreChanged = null,
         Action<int> onWeekScoreChanged = null,
         Action<Dictionary<string, List<int>>> onAnsweredQuestionsChanged = null)
     {
-        // No fake, dispara os callbacks imediatamente com os dados em memória
+        IsListening = true;
         if (!_users.TryGetValue(userId, out var user)) return;
-
         onScoreChanged?.Invoke(user.Score);
         onWeekScoreChanged?.Invoke(user.WeekScore);
         onAnsweredQuestionsChanged?.Invoke(user.AnsweredQuestions);
     }
 
+    public IDisposable ListenToScore(string userId,
+        Action<int> onScoreChanged,
+        Action<int> onWeekScoreChanged)
+    {
+        IsListening = true;
+        if (_users.TryGetValue(userId, out var user))
+        {
+            onScoreChanged?.Invoke(user.Score);
+            onWeekScoreChanged?.Invoke(user.WeekScore);
+        }
+        return null;
+    }
+
+    public IDisposable ListenToAnsweredQuestions(string userId,
+        Action<Dictionary<string, List<int>>> onChanged)
+    {
+        if (_users.TryGetValue(userId, out var user))
+            onChanged?.Invoke(user.AnsweredQuestions);
+        return null;
+    }
+
     public void StopListening()
     {
-        // Em testes, não faz nada
+        IsListening = false;
+    }
+
+    public void ResumeListening(string userId,
+        Action<int> onScoreChanged = null,
+        Action<int> onWeekScoreChanged = null,
+        Action<Dictionary<string, List<int>>> onAnsweredQuestionsChanged = null)
+    {
+        IsListening = true;
     }
 }

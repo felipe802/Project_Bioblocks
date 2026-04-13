@@ -53,7 +53,7 @@ public class ProgressBarManager : MonoBehaviour
 
         if (_gradientTexture == null)
         {
-            _gradientTexture          = new Texture2D(width, 1, TextureFormat.RGBA32, false);
+            _gradientTexture = new Texture2D(width, 1, TextureFormat.RGBA32, false);
             _gradientTexture.wrapMode = TextureWrapMode.Clamp;
             _gradientTexture.filterMode = FilterMode.Bilinear;
         }
