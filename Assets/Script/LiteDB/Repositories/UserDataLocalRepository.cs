@@ -54,7 +54,7 @@ public class UserDataLocalRepository : MonoBehaviour, IUserDataLocalRepository
             var doc = UserDataDB.FromDomain(userData);
             doc.IsDirty      = existing.IsDirty;
             doc.LastSyncedAt = existing.LastSyncedAt;
-            doc.SavedAt      = DateTime.UtcNow; // ← atualiza ao modificar
+            doc.SavedAt      = userData.SavedAt != DateTime.MinValue ? userData.SavedAt : DateTime.UtcNow; // manter turtple para os testes
             _db.Users.Update(doc);
         }
         catch (Exception e)
@@ -142,7 +142,8 @@ public class UserDataLocalRepository : MonoBehaviour, IUserDataLocalRepository
         try
         {
             var doc = _db.Users.FindById(userId);
-            return doc?.LastSyncedAt ?? DateTime.MinValue;
+            if (doc == null) return DateTime.MinValue;
+            return DateTime.SpecifyKind(doc.LastSyncedAt, DateTimeKind.Utc);
         }
         catch (Exception e)
         {

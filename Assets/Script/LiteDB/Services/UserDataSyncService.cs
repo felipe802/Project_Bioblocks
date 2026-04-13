@@ -156,9 +156,6 @@ public class UserDataSyncService : MonoBehaviour, IUserDataSyncService
             // Compara SavedAt — usa o mais recente
             if (localData.SavedAt >= remoteData.SavedAt)
             {
-                Debug.Log($"[SyncService] LiteDB mais recente " +
-                        $"(local={localData.SavedAt:HH:mm:ss}, " +
-                        $"remote={remoteData.SavedAt:HH:mm:ss}) — usando LiteDB.");
                 UserDataStore.CurrentUserData = localData;
 
                 // Se local é mais recente, sincroniza ao Firestore
@@ -167,9 +164,6 @@ public class UserDataSyncService : MonoBehaviour, IUserDataSyncService
             }
             else
             {
-                Debug.Log($"[SyncService] Firestore mais recente " +
-                        $"(local={localData.SavedAt:HH:mm:ss}, " +
-                        $"remote={remoteData.SavedAt:HH:mm:ss}) — usando Firestore.");
                 remoteData.SavedAt = DateTime.UtcNow;
                 _localRepository.UpdateUser(remoteData);
                 _localRepository.MarkAsSynced(userId);

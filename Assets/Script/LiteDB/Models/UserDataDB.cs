@@ -50,7 +50,7 @@ public class UserDataDB
             TotalQuestionsInAllDatabanks= domain.TotalQuestionsInAllDatabanks,
             AnsweredQuestions           = domain.AnsweredQuestions  ?? new Dictionary<string, List<int>>(),
             ResetDatabankFlags          = domain.ResetDatabankFlags ?? new Dictionary<string, bool>(),
-            LastSyncedAt                = DateTime.UtcNow,
+            LastSyncedAt                = DateTime.MinValue,
             IsDirty                     = false,
             SavedAt                     = domain.SavedAt
         };
@@ -68,14 +68,14 @@ public class UserDataDB
             Score                       = Score,
             WeekScore                   = WeekScore,
             QuestionTypeProgress        = QuestionTypeProgress,
-            CreatedTime                 = CreatedTime,
+            CreatedTime                 = DateTime.SpecifyKind(CreatedTime, DateTimeKind.Utc),
             IsUserRegistered            = IsUserRegistered,
             PlayerLevel                 = PlayerLevel,
             TotalValidQuestionsAnswered = TotalValidQuestionsAnswered,
             TotalQuestionsInAllDatabanks= TotalQuestionsInAllDatabanks,
             AnsweredQuestions           = AnsweredQuestions  ?? new Dictionary<string, List<int>>(),
             ResetDatabankFlags          = ResetDatabankFlags ?? new Dictionary<string, bool>(),
-            SavedAt = SavedAt
+            SavedAt                     = DateTime.SpecifyKind(SavedAt, DateTimeKind.Utc)
         };
     }
 }
