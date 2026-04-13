@@ -26,19 +26,26 @@ public class LiteDBManager : MonoBehaviour, ILiteDBManager
     public void Initialize()
     {
         if (IsInitialized) return;
-        Debug.Log("[LiteDBManager] Initialize() chamado — IsInitialized será true após este método.");
-
         try
         {
+            var mapper = new BsonMapper();
+            mapper.ResolveMember += (type, memberInfo, memberMapper) =>
+            {
+                if (memberMapper.DataType == typeof(DateTime))
+                {
+                    memberMapper.Serialize   = (obj, m) => new BsonValue(((DateTime)obj).ToUniversalTime());
+                    memberMapper.Deserialize = (val, m) => DateTime.SpecifyKind(val.AsDateTime, DateTimeKind.Utc);
+                }
+            };
+
             string path = System.IO.Path.Combine(Application.persistentDataPath, DB_NAME);
-            _db = new LiteDatabase(path);
+            _db = new LiteDatabase(path, mapper);
             EnsureIndexes();
             IsInitialized = true;
-            Debug.Log($"[LiteDatabaseManager] Banco aberto em: {path}");
         }
         catch (Exception e)
         {
-            Debug.LogError($"[LiteDatabaseManager] Falha ao abrir banco: {e.Message}");
+            Debug.LogError($"[LiteDBManager] Falha ao abrir banco: {e.Message}");
             throw;
         }
     }

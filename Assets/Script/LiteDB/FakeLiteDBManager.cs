@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using LiteDB;
 
@@ -12,13 +13,24 @@ using LiteDB;
 ///   repo.InjectDependencies(db);
 /// </summary>
 /// 
+
 public class FakeLiteDBManager : ILiteDBManager
 {
     private LiteDatabase _db;
 
     public FakeLiteDBManager()
     {
-        _db = new LiteDatabase(new MemoryStream());
+        var mapper = new BsonMapper();
+        mapper.ResolveMember += (type, memberInfo, memberMapper) =>
+        {
+            if (memberMapper.DataType == typeof(DateTime))
+            {
+                memberMapper.Serialize   = (obj, m) => new BsonValue(((DateTime)obj).ToUniversalTime());
+                memberMapper.Deserialize = (val, m) => DateTime.SpecifyKind(val.AsDateTime, DateTimeKind.Utc);
+            }
+        };
+
+        _db = new LiteDatabase(new MemoryStream(), mapper);
         IsInitialized = true;
     }
 

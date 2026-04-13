@@ -154,7 +154,7 @@ public class UserDataSyncService : MonoBehaviour, IUserDataSyncService
             }
 
             // Compara SavedAt — usa o mais recente
-            if (localData.SavedAt >= remoteData.SavedAt)
+            if (localData.SavedAt.ToUniversalTime() >= remoteData.SavedAt.ToUniversalTime())
             {
                 UserDataStore.CurrentUserData = localData;
 
@@ -183,7 +183,7 @@ public class UserDataSyncService : MonoBehaviour, IUserDataSyncService
     {
         var lastSync = _localRepository.GetLastSyncedAt(userId);
         if (lastSync == DateTime.MinValue) return true;
-        return (DateTime.UtcNow - lastSync).TotalMinutes > cacheValidMinutes;
+        return (DateTime.Now - lastSync).TotalMinutes > cacheValidMinutes;
     }
 
     // UserDataSyncService.cs
