@@ -1,143 +1,288 @@
-// Assets/Editor/Tests/QuestionSetManagerTests.cs
-// Testes unitários para QuestionSetManager.
+// Assets/Editor/Tests/UserDataSyncServiceTests.cs
+// Testes unitários para UserDataSyncService — gaps não cobertos por LiteDBTests.cs
 //
-// QuestionSetManager é uma classe estática com estado global (campo privado estático).
-// O [TearDown] restaura o valor padrão após cada teste para garantir isolamento.
-// Não remova essa chamada — sem ela, a ordem de execução dos testes pode causar falhas.
+// LiteDBTests.cs já cobre:
+//   ✅ TrySyncPendingData (sem local, dirty, stale, fallback)
+//   ✅ MergeWithFirestore (local mais recente, remoto mais recente, MinValue)
+//   ✅ UpdateUserScores (score, weekScore, questão correta/incorreta, score < 0)
+//
+// Este arquivo cobre os gaps restantes:
+//   🔲 SyncFromFirestore direto (usuário existe / não existe / IsSyncing guard)
+//   🔲 SyncToFirestore direto (usuário existe / não existe / propaga exceção)
+//   🔲 UpdateUserScores com questão duplicada não é adicionada duas vezes
+//   🔲 UpdateUserScores com usuário ausente do LiteDB não crasha
+// para testes com [UnityTest], que usa coroutines e Task.Yield)
 
 using NUnit.Framework;
-using QuestionSystem;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.TestTools;
 
 [TestFixture]
-public class QuestionSetManagerTests
+public class UserDataSyncServiceTests
 {
     // -------------------------------------------------------
-    // Isolamento — restaura o estado padrão após cada teste
+    // Fixtures compartilhadas
     // -------------------------------------------------------
+
+    private FakeLiteDBManager         _db;
+    private UserDataLocalRepository   _repo;
+    private FakeFirestoreRepository   _firestore;
+    private UserDataSyncService       _syncService;
+    private GameObject                _syncServiceGO;
+
+    [SetUp]
+    public void Setup()
+    {
+        _db   = new FakeLiteDBManager();
+        _repo = new UserDataLocalRepository();
+        _repo.InjectDependencies(_db);
+
+        _firestore = new FakeFirestoreRepository();
+
+        _syncServiceGO = new GameObject("SyncService");
+        _syncService   = _syncServiceGO.AddComponent<UserDataSyncService>();
+        _syncService.InjectDependencies(_repo, _firestore);
+
+        UserDataStore.Clear();
+        UserDataStore.Logger = _ => { };
+    }
 
     [TearDown]
     public void TearDown()
     {
-        // Restaura o valor padrão definido na classe (QuestionSet.biochem)
-        QuestionSetManager.SetCurrentQuestionSet(QuestionSet.biochem);
+        _db.Close();
+        UserDataStore.Clear();
+        if (_syncServiceGO != null)
+            Object.DestroyImmediate(_syncServiceGO);
+    }
+
+    // -------------------------------------------------------
+    // Helper
+    // -------------------------------------------------------
+
+    private static UserData MakeUser(string id, int score = 0, int weekScore = 0)
+        => new UserData(id, "Nick", "Name", "email@test.com",
+                        score: score, weekScore: weekScore);
+
+    // =======================================================
+    // SyncFromFirestore — direto
+    // =======================================================
+
+    [UnityTest]
+    public IEnumerator SyncFromFirestore_UsuarioExisteNoFirestore_SalvaNoLiteDB()
+    {
+        var remoteUser = MakeUser("u1", score: 200);
+        _firestore.SetFakeUser(remoteUser);
+
+        var task = _syncService.SyncFromFirestore("u1");
+        yield return new WaitUntil(() => task.IsCompleted);
+
+        Assert.IsTrue(_repo.HasUser("u1"), "Usuário deve ser salvo no LiteDB após sync");
+        Assert.AreEqual(200, _repo.GetUser("u1").Score);
+    }
+
+    [UnityTest]
+    public IEnumerator SyncFromFirestore_UsuarioExisteNoFirestore_AtualizaUserDataStore()
+    {
+        var remoteUser = MakeUser("u1", score: 350);
+        _firestore.SetFakeUser(remoteUser);
+
+        var task = _syncService.SyncFromFirestore("u1");
+        yield return new WaitUntil(() => task.IsCompleted);
+
+        Assert.IsNotNull(UserDataStore.CurrentUserData);
+        Assert.AreEqual(350, UserDataStore.CurrentUserData.Score);
+    }
+
+    [UnityTest]
+    public IEnumerator SyncFromFirestore_UsuarioNaoExisteNoFirestore_NaoAlteraLiteDB()
+    {
+        // Firestore não tem o usuário → GetUserData retorna null
+        // LiteDB deve permanecer sem o usuário
+
+        var task = _syncService.SyncFromFirestore("fantasma");
+        yield return new WaitUntil(() => task.IsCompleted);
+
+        Assert.IsFalse(_repo.HasUser("fantasma"));
+    }
+
+    [UnityTest]
+    public IEnumerator SyncFromFirestore_UsuarioExiste_MarcaLiteDBComoSynced()
+    {
+        var remoteUser = MakeUser("u1", score: 100);
+        _firestore.SetFakeUser(remoteUser);
+
+        var task = _syncService.SyncFromFirestore("u1");
+        yield return new WaitUntil(() => task.IsCompleted);
+
+        Assert.IsFalse(_repo.IsDirty("u1"),
+            "Após sync do Firestore o cache local deve estar marcado como synced (não dirty)");
+    }
+
+    [UnityTest]
+    public IEnumerator SyncFromFirestore_IsSyncing_SegundaChamadaEhIgnorada()
+    {
+        // Sinaliza que já está em andamento antes da segunda chamada
+        var remoteUser = MakeUser("u1", score: 100);
+        _firestore.SetFakeUser(remoteUser);
+
+        // Dispara primeira chamada e imediatamente verifica o guard
+        var task1 = _syncService.SyncFromFirestore("u1");
+
+        // Durante a primeira chamada IsSyncing deve ser true
+        Assert.IsTrue(_syncService.IsSyncing,
+            "IsSyncing deve ser true enquanto o primeiro sync está em andamento");
+
+        yield return new WaitUntil(() => task1.IsCompleted);
+
+        Assert.IsFalse(_syncService.IsSyncing,
+            "IsSyncing deve ser false após a conclusão do sync");
     }
 
     // =======================================================
-    // Estado inicial
+    // SyncToFirestore — direto
     // =======================================================
 
-    [Test]
-    public void GetCurrentQuestionSet_EstadoInicial_RetornaBiochem()
+    [UnityTest]
+    public IEnumerator SyncToFirestore_UsuarioExisteNoLiteDB_EnviaAoFirestore()
     {
-        // O campo privado estático é inicializado como QuestionSet.biochem
-        // Este teste verifica que o padrão não foi alterado inadvertidamente
-        Assert.AreEqual(QuestionSet.biochem, QuestionSetManager.GetCurrentQuestionSet());
+        var localUser = MakeUser("u1", score: 400);
+        _repo.SaveUser(localUser);
+
+        var task = _syncService.SyncToFirestore("u1");
+        yield return new WaitUntil(() => task.IsCompleted);
+
+        // FakeFirestoreRepository deve ter recebido a chamada de update
+        var remoteUser = await_fake(_firestore, "u1");
+        Assert.IsNotNull(remoteUser, "SyncToFirestore deve ter chamado UpdateUserData no Firestore");
     }
 
-    // =======================================================
-    // Round-trip: Set → Get para cada valor do enum
-    // =======================================================
-
-    [Test]
-    public void SetAndGet_AcidsBase_RoundTrip()
+    [UnityTest]
+    public IEnumerator SyncToFirestore_UsuarioExisteNoLiteDB_MarcaSynced()
     {
-        QuestionSetManager.SetCurrentQuestionSet(QuestionSet.acidsBase);
-        Assert.AreEqual(QuestionSet.acidsBase, QuestionSetManager.GetCurrentQuestionSet());
+        var localUser = MakeUser("u1", score: 100);
+        _repo.SaveUser(localUser);
+        _repo.MarkAsDirty("u1");
+
+        var task = _syncService.SyncToFirestore("u1");
+        yield return new WaitUntil(() => task.IsCompleted);
+
+        Assert.IsFalse(_repo.IsDirty("u1"),
+            "Após SyncToFirestore bem-sucedido, IsDirty deve ser false");
     }
 
-    [Test]
-    public void SetAndGet_Aminoacids_RoundTrip()
+    [UnityTest]
+    public IEnumerator SyncToFirestore_UsuarioNaoExisteNoLiteDB_NaoLancaExcecao()
     {
-        QuestionSetManager.SetCurrentQuestionSet(QuestionSet.aminoacids);
-        Assert.AreEqual(QuestionSet.aminoacids, QuestionSetManager.GetCurrentQuestionSet());
-    }
+        // Usuário não existe no LiteDB — deve retornar sem lançar exceção
+        var task = _syncService.SyncToFirestore("inexistente");
+        yield return new WaitUntil(() => task.IsCompleted);
 
-    [Test]
-    public void SetAndGet_Biochem_RoundTrip()
-    {
-        QuestionSetManager.SetCurrentQuestionSet(QuestionSet.biochem);
-        Assert.AreEqual(QuestionSet.biochem, QuestionSetManager.GetCurrentQuestionSet());
-    }
-
-    [Test]
-    public void SetAndGet_Carbohydrates_RoundTrip()
-    {
-        QuestionSetManager.SetCurrentQuestionSet(QuestionSet.carbohydrates);
-        Assert.AreEqual(QuestionSet.carbohydrates, QuestionSetManager.GetCurrentQuestionSet());
-    }
-
-    [Test]
-    public void SetAndGet_Enzymes_RoundTrip()
-    {
-        QuestionSetManager.SetCurrentQuestionSet(QuestionSet.enzymes);
-        Assert.AreEqual(QuestionSet.enzymes, QuestionSetManager.GetCurrentQuestionSet());
-    }
-
-    [Test]
-    public void SetAndGet_Lipids_RoundTrip()
-    {
-        QuestionSetManager.SetCurrentQuestionSet(QuestionSet.lipids);
-        Assert.AreEqual(QuestionSet.lipids, QuestionSetManager.GetCurrentQuestionSet());
-    }
-
-    [Test]
-    public void SetAndGet_Membranes_RoundTrip()
-    {
-        QuestionSetManager.SetCurrentQuestionSet(QuestionSet.membranes);
-        Assert.AreEqual(QuestionSet.membranes, QuestionSetManager.GetCurrentQuestionSet());
-    }
-
-    [Test]
-    public void SetAndGet_NucleicAcids_RoundTrip()
-    {
-        QuestionSetManager.SetCurrentQuestionSet(QuestionSet.nucleicAcids);
-        Assert.AreEqual(QuestionSet.nucleicAcids, QuestionSetManager.GetCurrentQuestionSet());
-    }
-
-    [Test]
-    public void SetAndGet_Proteins_RoundTrip()
-    {
-        QuestionSetManager.SetCurrentQuestionSet(QuestionSet.proteins);
-        Assert.AreEqual(QuestionSet.proteins, QuestionSetManager.GetCurrentQuestionSet());
-    }
-
-    [Test]
-    public void SetAndGet_Water_RoundTrip()
-    {
-        QuestionSetManager.SetCurrentQuestionSet(QuestionSet.water);
-        Assert.AreEqual(QuestionSet.water, QuestionSetManager.GetCurrentQuestionSet());
+        Assert.IsTrue(task.IsCompletedSuccessfully,
+            "SyncToFirestore não deve lançar exceção quando usuário não existe no LiteDB");
     }
 
     // =======================================================
-    // Troca de valor
+    // UpdateUserScores — gaps específicos
     // =======================================================
 
-    [Test]
-    public void Set_TrocaDeValor_GetRefleteUltimoSet()
+    [UnityTest]
+    public IEnumerator UpdateUserScores_QuestaoCorretaDuplicada_NaoAdicionaDuasVezes()
     {
-        QuestionSetManager.SetCurrentQuestionSet(QuestionSet.lipids);
-        QuestionSetManager.SetCurrentQuestionSet(QuestionSet.water);
+        // Garante que responder a mesma questão duas vezes não duplica a entrada
+        var user = MakeUser("u1", score: 100);
+        _repo.SaveUser(user);
+        UserDataStore.CurrentUserData = user;
 
-        Assert.AreEqual(QuestionSet.water, QuestionSetManager.GetCurrentQuestionSet(),
-            "O segundo Set deve sobrescrever o primeiro");
+        // Responde questão 42 pela primeira vez
+        var task1 = _syncService.UpdateUserScores("u1", 5, 42, "BioQuestions", isCorrect: true);
+        yield return new WaitUntil(() => task1.IsCompleted);
+
+        // Responde questão 42 novamente
+        var task2 = _syncService.UpdateUserScores("u1", 5, 42, "BioQuestions", isCorrect: true);
+        yield return new WaitUntil(() => task2.IsCompleted);
+
+        var loaded = _repo.GetUser("u1");
+        int count  = loaded.AnsweredQuestions["BioQuestions"]
+                           .FindAll(n => n == 42).Count;
+
+        Assert.AreEqual(1, count,
+            "A questão 42 não deve aparecer duplicada em AnsweredQuestions");
     }
 
-    [Test]
-    public void Set_MesmoValorDuasVezes_NaoAlteraResultado()
+    [UnityTest]
+    public IEnumerator UpdateUserScores_UsuarioAusenteDoLiteDB_NaoLancaExcecao()
     {
-        QuestionSetManager.SetCurrentQuestionSet(QuestionSet.enzymes);
-        QuestionSetManager.SetCurrentQuestionSet(QuestionSet.enzymes);
+        // UserDataStore tem o usuário mas LiteDB não — não deve crashar
+        UserDataStore.CurrentUserData = MakeUser("ghost", score: 50);
 
-        Assert.AreEqual(QuestionSet.enzymes, QuestionSetManager.GetCurrentQuestionSet());
+        var task = _syncService.UpdateUserScores("ghost", 10, 1, "BioQuestions", true);
+        yield return new WaitUntil(() => task.IsCompleted);
+
+        // O teste passa se chegou aqui sem exceção
+        Assert.IsTrue(task.IsCompletedSuccessfully);
     }
 
-    [Test]
-    public void Set_VoltaParaPadrao_RetornaBiochem()
+    [UnityTest]
+    public IEnumerator UpdateUserScores_ScoreNegativoGrandeNoWeekScore_NaoVaiAbaixoDeZero()
     {
-        // Simula navegação de cena: vai para outro banco e volta ao padrão
-        QuestionSetManager.SetCurrentQuestionSet(QuestionSet.proteins);
-        QuestionSetManager.SetCurrentQuestionSet(QuestionSet.biochem);
+        // WeekScore começa em 5, subtrai 100 → deve ficar em 0
+        var user = MakeUser("u1", score: 5, weekScore: 5);
+        _repo.SaveUser(user);
+        UserDataStore.CurrentUserData = user;
 
-        Assert.AreEqual(QuestionSet.biochem, QuestionSetManager.GetCurrentQuestionSet());
+        var task = _syncService.UpdateUserScores("u1", -100, 0, "", isCorrect: false);
+        yield return new WaitUntil(() => task.IsCompleted);
+
+        Assert.GreaterOrEqual(_repo.GetUser("u1").WeekScore, 0,
+            "WeekScore não pode ser negativo");
+        Assert.GreaterOrEqual(UserDataStore.CurrentUserData.WeekScore, 0);
     }
+
+    [UnityTest]
+    public IEnumerator UpdateUserScores_QuestaoNumeracaoZero_NaoAdicionaEmAnswered()
+    {
+        // questionNumber = 0 é inválido — não deve ser adicionado a AnsweredQuestions
+        var user = MakeUser("u1", score: 0);
+        _repo.SaveUser(user);
+        UserDataStore.CurrentUserData = user;
+
+        var task = _syncService.UpdateUserScores("u1", 5, questionNumber: 0,
+                                                 "BioQuestions", isCorrect: true);
+        yield return new WaitUntil(() => task.IsCompleted);
+
+        var loaded = _repo.GetUser("u1");
+        bool wasAdded = loaded.AnsweredQuestions.ContainsKey("BioQuestions")
+                     && loaded.AnsweredQuestions["BioQuestions"].Contains(0);
+
+        Assert.IsFalse(wasAdded,
+            "questionNumber = 0 não deve ser adicionado a AnsweredQuestions");
+    }
+
+    [UnityTest]
+    public IEnumerator UpdateUserScores_DatabaseNameVazio_NaoAdicionaEmAnswered()
+    {
+        // databankName vazio é inválido — não deve ser adicionado a AnsweredQuestions
+        var user = MakeUser("u1", score: 0);
+        _repo.SaveUser(user);
+        UserDataStore.CurrentUserData = user;
+
+        var task = _syncService.UpdateUserScores("u1", 5, questionNumber: 1,
+                                                 databankName: "", isCorrect: true);
+        yield return new WaitUntil(() => task.IsCompleted);
+
+        var loaded = _repo.GetUser("u1");
+        Assert.AreEqual(0, loaded.AnsweredQuestions.Count,
+            "databankName vazio não deve gerar entrada em AnsweredQuestions");
+    }
+
+    // =======================================================
+    // Helper privado
+    // =======================================================
+
+    // Obtém o usuário do FakeFirestore de forma síncrona (já é Task.FromResult)
+    private static UserData await_fake(FakeFirestoreRepository fake, string userId)
+        => fake.GetUserData(userId).Result;
 }
