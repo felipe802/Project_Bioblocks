@@ -113,7 +113,7 @@ public class AppContext : MonoBehaviour
             if (pendingUploadSync == null)
                 throw new Exception("[AppContext] PendingUploadSyncService não encontrado.");
             if (rankingSyncSvc == null)
-                throw new Exception("[AppContext] RankingSyncManager não encontrado.");
+                throw new Exception("[AppContext] RankingSyncService não encontrado.");
             if (connectivityMonitor == null)
                 throw new Exception("[AppContext] ConnectivityMonitor não encontrado.");
 

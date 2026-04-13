@@ -16,7 +16,23 @@ public class PendingUploadSyncService : MonoBehaviour
     {
         _imageUpload = AppContext.ImageUpload;
         _firestore   = AppContext.Firestore;
-        _lastReachability = Application.internetReachability;
+        if (AppContext.Connectivity != null)
+            AppContext.Connectivity.OnConnectivityChanged += OnConnectivityChanged;
+    }
+
+    private void OnDestroy()
+    {
+        if (AppContext.Connectivity != null)
+            AppContext.Connectivity.OnConnectivityChanged -= OnConnectivityChanged;
+    }
+
+    private void OnConnectivityChanged(bool isOnline)
+    {
+        if (isOnline)
+        {
+            Debug.Log("[PendingUploadSync] Internet voltou — sincronizando.");
+            _ = TrySyncPendingUploads();
+        }
     }
 
     private void Update()
@@ -25,22 +41,13 @@ public class PendingUploadSyncService : MonoBehaviour
         if (_imageUpload == null) _imageUpload = AppContext.ImageUpload;
         if (_firestore == null)   _firestore   = AppContext.Firestore;
 
-        var current = Application.internetReachability;
-
-        if (_lastReachability == NetworkReachability.NotReachable &&
-            current != NetworkReachability.NotReachable)
-        {
-            Debug.Log("[PendingUploadSync] Internet voltou — sincronizando.");
-            _ = TrySyncPendingUploads();
-        }
-        _lastReachability = current;
-
         _elapsed += Time.deltaTime;
-        if (_elapsed < _checkInterval) return;
-        _elapsed = 0f;
 
-        if (current != NetworkReachability.NotReachable)
-            _ = TrySyncPendingUploads();
+        if (_elapsed < _checkInterval) return;
+            _elapsed = 0f;
+
+        if (AppContext.Connectivity?.IsOnline == true)
+            _ = TrySyncPendingUploads();        
     }
 
     public async Task TrySyncPendingUploads()

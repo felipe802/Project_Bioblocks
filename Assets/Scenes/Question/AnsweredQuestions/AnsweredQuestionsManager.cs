@@ -317,13 +317,12 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
             AppContext.UserDataLocal?.AddAnsweredQuestion(userId, databankName, questionNumber);
 
             // Tenta Firestore — sem bloqueio se offline
-            if (Application.internetReachability != NetworkReachability.NotReachable)
+            if (AppContext.Connectivity?.IsOnline == true)
             {
                 try
                 {
-                    await _firestore.UpdateUserScore(userId, userData.Score,
-                                                     questionNumber, databankName, true)
-                                    .ConfigureAwait(false);
+                    await _firestore.UpdateUserScore(userId, userData.Score, questionNumber, databankName, true).ConfigureAwait(false);
+                    await Task.Yield();
                     AppContext.UserDataLocal?.MarkAsSynced(userId);
                 }
                 catch (Exception e)
@@ -352,7 +351,6 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
     // -------------------------------------------------------
     // ForceUpdate — relê do cache local, sem rede
     // -------------------------------------------------------
-
     public async Task ForceUpdate()
     {
         try

@@ -199,7 +199,7 @@ public class ProfileImageUploader : MonoBehaviour
 
         // Sem internet — salva localmente e retorna imediatamente
         // O PendingUploadSyncService completará quando a internet voltar
-       if (Application.internetReachability == NetworkReachability.NotReachable)
+       if (AppContext.Connectivity?.IsOnline == false)
         {
             try
             {
