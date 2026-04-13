@@ -1,6 +1,20 @@
-// Assets/Editor/Tests/ScoreManagerTests.cs
+// Assets/Editor/Tests/QuestionScoreManagerTests.cs
 // Testes unitários para QuestionScoreManager via AppContext.OverrideForTests().
-
+//
+// Contexto: A classe ScoreManager não existe mais no projeto.
+// A responsabilidade de score foi absorvida por QuestionScoreManager,
+// que delega persistência ao UserDataSyncService e autenticação ao IAuthRepository.
+//
+// O AppContext expõe OverrideForTests() exatamente para este cenário:
+// injeta fakes sem inicializar o Firebase, permitindo testar
+// QuestionScoreManager em Play Mode com controle total do estado.
+//
+// Equivalência com os testes originais:
+//   AddScore(10) → GetScore() == 10        → UpdateScore_Correto_AtualizaScoreNoStore
+//   AddScore(5) + AddScore(15) == 20       → UpdateScore_MultiplasChamadas_AcumulaScore
+//   singleton permanece consistente        → AppContext.OverrideForTests garante instância única
+//
+// Para rodar: Window → General → Test Runner → PlayMode → Run All
 // (requer PlayMode pois UpdateScore usa async/await com Task.Yield)
 
 using NUnit.Framework;
@@ -70,6 +84,18 @@ public class QuestionScoreManagerTests
         // 5. QuestionScoreManager
         _managerGO    = new GameObject("QuestionScoreManager");
         _scoreManager = _managerGO.AddComponent<QuestionScoreManager>();
+
+        // Em Play Mode o Start() executa num frame posterior ao AddComponent,
+        // mas os testes correm imediatamente. Forçamos InitializeDependencies
+        // via reflection para garantir que _firestore e _auth estejam prontos
+        // antes do primeiro UpdateScore.
+        LogAssert.Expect(LogType.Warning,
+            "[QuestionScoreManager] QuestionBonusManager não encontrado. O sistema de bônus não estará disponível.");
+        var init = typeof(QuestionScoreManager).GetMethod(
+            "InitializeDependencies",
+            System.Reflection.BindingFlags.NonPublic |
+            System.Reflection.BindingFlags.Instance);
+        init?.Invoke(_scoreManager, null);
     }
 
     [TearDown]
@@ -228,6 +254,8 @@ public class QuestionScoreManagerTests
     public IEnumerator UpdateScore_UsuarioNaoAutenticado_NaoLancaExcecao()
     {
         _auth.SetLoggedOut();
+
+        LogAssert.Expect(LogType.Error, "Usuário não autenticado");
 
         var task = _scoreManager.UpdateScore(10, true, MakeQuestion(1));
         yield return new WaitUntil(() => task.IsCompleted);

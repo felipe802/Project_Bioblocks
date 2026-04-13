@@ -101,6 +101,8 @@ public class QuestionLoadManagerTests
     [UnityTest]
     public IEnumerator LoadQuestionsFromDatabase_DatabaseNulo_RetornaListaVazia()
     {
+        LogAssert.Expect(LogType.Error, "[QuestionLoadManager] Database é null");
+
         var task = InvokeLoadFromDatabase(null);
         yield return new WaitUntil(() => task.IsCompleted);
 
@@ -112,6 +114,9 @@ public class QuestionLoadManagerTests
     {
         var db = FakeQuestionDatabase.Empty();
         db.DatabaseName = DB_NAME;
+
+        LogAssert.Expect(LogType.Error,
+            "[QuestionLoadManager] ❌ Database retornou lista nula ou vazia");
 
         var task = InvokeLoadFromDatabase(db);
         yield return new WaitUntil(() => task.IsCompleted);

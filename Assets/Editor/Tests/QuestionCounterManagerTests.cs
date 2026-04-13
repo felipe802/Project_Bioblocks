@@ -12,13 +12,19 @@
 using NUnit.Framework;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.TestTools;
 using QuestionSystem;
 
 [TestFixture]
 public class QuestionCounterManagerTests
 {
-    private GameObject           _managerGO;
-    private QuestionCounterManager _manager;
+    private GameObject              _managerGO;
+    private QuestionCounterManager  _manager;
+
+    // Mensagem exata emitida por Initialize quando UI não está configurada.
+    // Declarada como constante para não repetir a string em cada teste.
+    private const string NO_UI_ERROR =
+        "QuestionCounterManager: Nenhuma UI configurada (progressBarManager ou questionCounterText)!";
 
     [SetUp]
     public void Setup()
@@ -34,7 +40,7 @@ public class QuestionCounterManagerTests
     }
 
     // -------------------------------------------------------
-    // Helper
+    // Helpers
     // -------------------------------------------------------
 
     private static List<Question> MakeQuestions(int nivel1, int nivel2 = 0, int nivel3 = 0)
@@ -45,6 +51,17 @@ public class QuestionCounterManagerTests
         var list = new List<string>();
         foreach (var n in numbers) list.Add(n.ToString());
         return list;
+    }
+
+    // Chama Initialize declarando o LogError esperado.
+    // Usar este helper em todos os testes garante que o log
+    // seja consumido antes de cada Assert, evitando falha por log não tratado.
+    private void InitializeWithExpectedUIError(
+        List<Question> questions,
+        List<string> answered)
+    {
+        LogAssert.Expect(LogType.Error, NO_UI_ERROR);
+        _manager.Initialize(questions, answered);
     }
 
     // =======================================================
@@ -63,7 +80,7 @@ public class QuestionCounterManagerTests
     public void GetCurrentLevelProgress_AposInitialize_NaoENull()
     {
         var questions = MakeQuestions(nivel1: 3);
-        _manager.Initialize(questions, new List<string>());
+        InitializeWithExpectedUIError(questions, new List<string>());
 
         // Precisamos chamar UpdateCounter para definir o nível atual
         _manager.UpdateCounter(questions[0]);
@@ -80,7 +97,7 @@ public class QuestionCounterManagerTests
     public void GetCurrentLevelProgress_SemRespostas_AnsweredZero()
     {
         var questions = MakeQuestions(nivel1: 4);
-        _manager.Initialize(questions, new List<string>());
+        InitializeWithExpectedUIError(questions, new List<string>());
         _manager.UpdateCounter(questions[0]);
 
         var progress = _manager.GetCurrentLevelProgress();
@@ -94,7 +111,7 @@ public class QuestionCounterManagerTests
     public void GetCurrentLevelProgress_MetadeRespondida_Percentual50()
     {
         var questions = MakeQuestions(nivel1: 4);
-        _manager.Initialize(questions, Answered(1, 2)); // 2 de 4 = 50%
+        InitializeWithExpectedUIError(questions, Answered(1, 2)); // 2 de 4 = 50%
         _manager.UpdateCounter(questions[0]);
 
         var progress = _manager.GetCurrentLevelProgress();
@@ -107,7 +124,7 @@ public class QuestionCounterManagerTests
     public void GetCurrentLevelProgress_TodasRespondidas_Percentual100()
     {
         var questions = MakeQuestions(nivel1: 3);
-        _manager.Initialize(questions, Answered(1, 2, 3));
+        InitializeWithExpectedUIError(questions, Answered(1, 2, 3));
         _manager.UpdateCounter(questions[0]);
 
         var progress = _manager.GetCurrentLevelProgress();
@@ -120,7 +137,7 @@ public class QuestionCounterManagerTests
     public void GetCurrentLevelProgress_Level_CorrespondeAoNivelDaQuestaoAtual()
     {
         var questions = MakeQuestions(nivel1: 2, nivel2: 2);
-        _manager.Initialize(questions, new List<string>());
+        InitializeWithExpectedUIError(questions, new List<string>());
         _manager.UpdateCounter(questions[0]); // questão de nível 1
 
         var progress = _manager.GetCurrentLevelProgress();
@@ -136,7 +153,7 @@ public class QuestionCounterManagerTests
     public void GetCurrentLevelProgress_Nivel1_LevelNameBasico()
     {
         var questions = MakeQuestions(nivel1: 2);
-        _manager.Initialize(questions, new List<string>());
+        InitializeWithExpectedUIError(questions, new List<string>());
         _manager.UpdateCounter(questions[0]);
 
         var progress = _manager.GetCurrentLevelProgress();
@@ -148,7 +165,7 @@ public class QuestionCounterManagerTests
     public void GetCurrentLevelProgress_Nivel2_LevelNameIntermediario()
     {
         var questions = MakeQuestions(nivel1: 0, nivel2: 2);
-        _manager.Initialize(questions, new List<string>());
+        InitializeWithExpectedUIError(questions, new List<string>());
         _manager.UpdateCounter(questions[0]); // questão de nível 2
 
         var progress = _manager.GetCurrentLevelProgress();
@@ -160,7 +177,7 @@ public class QuestionCounterManagerTests
     public void GetCurrentLevelProgress_Nivel3_LevelNameDificil()
     {
         var questions = MakeQuestions(nivel1: 0, nivel2: 0, nivel3: 2);
-        _manager.Initialize(questions, new List<string>());
+        InitializeWithExpectedUIError(questions, new List<string>());
         _manager.UpdateCounter(questions[0]); // questão de nível 3
 
         var progress = _manager.GetCurrentLevelProgress();
@@ -176,7 +193,7 @@ public class QuestionCounterManagerTests
     public void MarkQuestionAsAnswered_AdicionaAoConjuntoDeRespondidas()
     {
         var questions = MakeQuestions(nivel1: 3);
-        _manager.Initialize(questions, new List<string>());
+        InitializeWithExpectedUIError(questions, new List<string>());
         _manager.UpdateCounter(questions[0]);
 
         _manager.MarkQuestionAsAnswered(1);
@@ -190,7 +207,7 @@ public class QuestionCounterManagerTests
     public void MarkQuestionAsAnswered_MesmaQuestaoduasVezes_NaoDuplica()
     {
         var questions = MakeQuestions(nivel1: 3);
-        _manager.Initialize(questions, new List<string>());
+        InitializeWithExpectedUIError(questions, new List<string>());
 
         _manager.MarkQuestionAsAnswered(1);
         _manager.MarkQuestionAsAnswered(1); // segunda vez não deve duplicar
@@ -210,7 +227,7 @@ public class QuestionCounterManagerTests
     public void UpdateAnsweredQuestions_SubstituiListaAnterior()
     {
         var questions = MakeQuestions(nivel1: 4);
-        _manager.Initialize(questions, Answered(1)); // começa com 1 respondida
+        InitializeWithExpectedUIError(questions, Answered(1)); // começa com 1 respondida
         _manager.UpdateCounter(questions[0]);
 
         _manager.UpdateAnsweredQuestions(Answered(1, 2, 3)); // atualiza para 3
@@ -224,7 +241,7 @@ public class QuestionCounterManagerTests
     public void UpdateAnsweredQuestions_ListaNula_NaoCrasha()
     {
         var questions = MakeQuestions(nivel1: 3);
-        _manager.Initialize(questions, new List<string>());
+        InitializeWithExpectedUIError(questions, new List<string>());
 
         Assert.DoesNotThrow(() => _manager.UpdateAnsweredQuestions(null));
     }
@@ -243,7 +260,7 @@ public class QuestionCounterManagerTests
             questionSemNivel
         };
 
-        _manager.Initialize(questions, new List<string>());
+        InitializeWithExpectedUIError(questions, new List<string>());
 
         Assert.DoesNotThrow(() => _manager.UpdateCounter(questionSemNivel),
             "Questão com level=0 não deve causar exceção");
@@ -253,7 +270,10 @@ public class QuestionCounterManagerTests
     public void UpdateCounter_QuestaoNula_NaoCrasha()
     {
         var questions = MakeQuestions(nivel1: 2);
-        _manager.Initialize(questions, new List<string>());
+        InitializeWithExpectedUIError(questions, new List<string>());
+
+        LogAssert.Expect(LogType.Warning,
+            "QuestionCounterManager: Dados insuficientes para atualizar contador");
 
         Assert.DoesNotThrow(() => _manager.UpdateCounter(null));
     }
