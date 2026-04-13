@@ -349,6 +349,7 @@ public class ProfileImageLoader : MonoBehaviour
         get => standardProfileImage;
         set => standardProfileImage = value;
     }
+    
     public bool IsInitialized => isInitialized;
     public string PendingImageUrl => pendingImageUrl;
 }

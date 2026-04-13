@@ -245,10 +245,12 @@ public class UserDataSyncService : MonoBehaviour, IUserDataSyncService
     {
         try
         {
-            await _firestore.UpdateUserScores(userId, additionalScore,
-                                            questionNumber, databankName,
-                                            isCorrect, capturedUserData)
-                            .ConfigureAwait(false);
+            await _firestore.UpdateUserScores(
+                userId, additionalScore,
+                questionNumber, databankName,
+                isCorrect, capturedUserData
+            )
+            .ConfigureAwait(false);
             await Task.Yield();
             _localRepository.MarkAsSynced(userId);
             Debug.Log("[SyncService] Score sincronizado com Firestore.");

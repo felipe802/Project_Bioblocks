@@ -1,14 +1,14 @@
 using UnityEngine;
 
 /// <summary>
-/// Helper est�tico para sincronizar mudan�as de avatar entre ProfileScene e UserTopBar
-/// Segue o mesmo padr�o do projeto para manter consist�ncia
+/// Helper estático para sincronizar mudanças de avatar entre ProfileScene e UserTopBar
+/// Segue o mesmo padrão do projeto para manter consistência
 /// </summary>
 public static class UserAvatarSyncHelper
 {
     /// <summary>
     /// Notifica a UserTopBar que o avatar foi atualizado
-    /// Deve ser chamado ap�s o upload bem-sucedido de uma nova imagem no ProfileImageManager
+    /// Deve ser chamado após o upload bem-sucedido de uma nova imagem no ProfileImageManager
     /// </summary>
 
     public static void NotifyAvatarChanged(string newImageUrl, UserHeaderManager userHeader = null)

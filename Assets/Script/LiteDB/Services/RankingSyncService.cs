@@ -28,7 +28,6 @@ public class RankingSyncService : MonoBehaviour
     // -------------------------------------------------------
     // Lazy-init — chamado antes de qualquer operação
     // -------------------------------------------------------
-
     private bool EnsureInitialized()
     {
         if (_db != null && _remoteRepo != null) return true;
@@ -136,7 +135,6 @@ public class RankingSyncService : MonoBehaviour
     // -------------------------------------------------------
     // Privados
     // -------------------------------------------------------
-
     private List<Ranking> GetCachedRankings()
     {
         if (!EnsureInitialized()) return new List<Ranking>();
