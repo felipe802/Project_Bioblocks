@@ -1,13 +1,10 @@
+using System;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using System;
-using System.Threading.Tasks;
 using UnityEngine.SceneManagement;
 
-/// <summary>
-/// Gerencia o fluxo de inicialização do app.
-///
 public class InitializationManager : MonoBehaviour
 {
     [Header("UI References")]
@@ -22,11 +19,10 @@ public class InitializationManager : MonoBehaviour
     [Header("Global Loading Spinner")]
     [SerializeField] private GameObject globalSpinnerPrefab;
 
-    // -------------------------------------------------------
-    // Dependências — obtidas do AppContext, nunca via .Instance
-    // -------------------------------------------------------
     private IFirestoreRepository _firestore;
     private IAuthRepository _auth;
+    private IUserDataSyncService _userDataSync;
+    private IUserDataLocalRepository _userDataLocal;
 
     private LoadingSpinnerComponent globalSpinner;
 
@@ -37,15 +33,10 @@ public class InitializationManager : MonoBehaviour
 
     private void Start()
     {
-        // Obtém os serviços do AppContext uma única vez
-        // O AppContext já garantiu que estão inicializados no seu próprio Awake              
         SetupUI();
         StartInitialization();
     }
 
-    // -------------------------------------------------------
-    // Spinner
-    // -------------------------------------------------------
     private void InitializeGlobalSpinner()
     {
         try
@@ -67,13 +58,10 @@ public class InitializationManager : MonoBehaviour
         }
         catch (Exception e)
         {
-            Debug.LogError($"Error initializing spinner: {e.Message}");
+            Debug.LogError($"[InitializationManager] Erro ao inicializar spinner: {e.Message}");
         }
     }
 
-    // -------------------------------------------------------
-    // Fluxo principal
-    // -------------------------------------------------------
     private void SetupUI()
     {
         if (retryPanel != null) retryPanel.SetActive(false);
@@ -83,28 +71,42 @@ public class InitializationManager : MonoBehaviour
     private async void StartInitialization()
     {
         float startTime = Time.time;
+        Debug.Log("[InitManager] StartInitialization começou");
+
         try
         {
             if (!AppContext.IsReady)
             {
-            UpdateStatus("Inicializando Firebase...");
-            await WaitForAppContext();
+                Debug.Log("[InitManager] Aguardando AppContext...");
+                UpdateStatus("Inicializando Firebase...");
+                await WaitForAppContext();
+                Debug.Log("[InitManager] AppContext pronto");
+            }
+            else
+            {
+                Debug.Log("[InitManager] AppContext já estava pronto");
             }
 
-            // Só busca as dependências DEPOIS que o AppContext está pronto
-            _firestore = AppContext.Firestore;
-            _auth      = AppContext.Auth;
+            _firestore     = AppContext.Firestore;
+            _auth          = AppContext.Auth;
+            _userDataSync  = AppContext.UserDataSync;
+            _userDataLocal = AppContext.UserDataLocal;
 
             UpdateProgress(0.3f);
             UpdateStatus("Verificando autenticação...");
+            Debug.Log("[InitManager] Verificando autenticação...");
             bool isAuthenticated = await CheckAuthentication();
+            Debug.Log($"[InitManager] isAuthenticated={isAuthenticated}");
             UpdateProgress(0.5f);
+
             bool userDataLoaded = false;
 
             if (isAuthenticated)
             {
                 UpdateStatus("Carregando dados do usuário...");
+                Debug.Log("[InitManager] Carregando dados...");
                 userDataLoaded = await LoadUserData();
+                Debug.Log($"[InitManager] userDataLoaded={userDataLoaded}");
                 UpdateProgress(0.7f);
 
                 if (userDataLoaded)
@@ -119,7 +121,6 @@ public class InitializationManager : MonoBehaviour
                 }
             }
 
-            // Garante tempo mínimo de loading
             float elapsed = Time.time - startTime;
             if (elapsed < minimumLoadingTime)
                 await Task.Delay(Mathf.RoundToInt((minimumLoadingTime - elapsed) * 1000));
@@ -128,22 +129,16 @@ public class InitializationManager : MonoBehaviour
         }
         catch (Exception ex)
         {
-            Debug.LogError($"[InitializationManager] INITIALIZATION FAILED: {ex.GetType().Name}: {ex.Message}");
+            Debug.LogError($"[InitializationManager] Falha: {ex.GetType().Name}: {ex.Message}");
             Debug.LogError($"[InitializationManager] StackTrace: {ex.StackTrace}");
             if (ex.InnerException != null)
                 Debug.LogError($"[InitializationManager] InnerException: {ex.InnerException.Message}");
 
             try { globalSpinner?.HideSpinner(); } catch { }
-
             ShowError($"Falha na inicialização: {ex.Message}");
         }
     }
 
-    /// <summary>
-    /// Aguarda o AppContext terminar a inicialização assíncrona.
-    /// Em condições normais isso já estará pronto quando o Start() rodar,
-    /// mas esta guarda evita race conditions caso o Firebase demore mais que o esperado.
-    /// </summary>
     private async Task WaitForAppContext()
     {
         float timeout = 15f;
@@ -154,32 +149,28 @@ public class InitializationManager : MonoBehaviour
             await Task.Delay(100);
             elapsed += 0.1f;
 
-            // Loga a cada 3 segundos para acompanhar o progresso
             if (Mathf.RoundToInt(elapsed * 10) % 30 == 0)
-            Debug.Log($"[InitializationManager] Aguardando AppContext... {elapsed:F1}s");
+                Debug.Log($"[InitManager] Aguardando AppContext... {elapsed:F1}s");
         }
 
         if (!AppContext.IsReady)
-            throw new Exception("[InitializationManager] AppContext não ficou pronto dentro do timeout.");
-
-        Debug.Log("[InitializationManager] AppContext pronto.");
+            throw new Exception("Sem conexão. Verifique sua internet e tente novamente.");
     }
 
-    // -------------------------------------------------------
-    // Autenticação e dados
-    // -------------------------------------------------------
     private async Task<bool> CheckAuthentication()
     {
-        if (!_auth.IsUserLoggedIn()) return false;
+        if (!_auth.HasLocalSession()) return false;
 
         try
         {
             await _auth.ReloadCurrentUserAsync();
+            Debug.Log("[InitializationManager] Sessão validada com o servidor.");
             return true;
         }
-        catch (Exception)
+        catch (Exception e)
         {
-            return false;
+            Debug.LogWarning($"[InitializationManager] Validação online falhou, entrando offline: {e.Message}");
+            return _auth.HasLocalSession();
         }
     }
 
@@ -187,30 +178,56 @@ public class InitializationManager : MonoBehaviour
     {
         try
         {
-            if (!_auth.IsUserLoggedIn()) return false;
+            if (!_auth.HasLocalSession()) return false;
+
             string userId = _auth.CurrentUserId;
-            var userData  = await _firestore.GetUserData(userId);
-            if (userData == null) return false;
-            UserDataStore.CurrentUserData = userData;
-            Debug.Log($"[InitializationManager] UserData carregado. UserId: {userData.UserId}, Level: {userData.PlayerLevel}");
+            if (string.IsNullOrEmpty(userId)) return false;
+
+            // TrySyncPendingData já resolve todos os cenários:
+            //   - sem cache local    → busca Firestore → salva LiteDB
+            //   - cache dirty        → envia ao Firestore → marca synced
+            //   - cache stale        → busca Firestore → atualiza LiteDB
+            //   - cache válido       → carrega LiteDB direto
+            //   - Firestore offline  → usa LiteDB como fallback
+            await _userDataSync.TrySyncPendingData(userId);
+
+            if (UserDataStore.CurrentUserData == null)
+            {
+                Debug.LogError("[InitializationManager] UserData nulo após sync.");
+                return false;
+            }
+
+            Debug.Log($"[InitializationManager] UserData pronto. " +
+                      $"UserId: {UserDataStore.CurrentUserData.UserId}, " +
+                      $"Level: {UserDataStore.CurrentUserData.PlayerLevel}");
             return true;
         }
         catch (Exception e)
         {
-            Debug.LogError($"Erro ao carregar dados: {e.Message}");
-            throw;
+            Debug.LogError($"[InitializationManager] Erro ao carregar dados: {e.Message}");
+
+            // Último recurso: tenta carregar direto do LiteDB
+            string userId = _auth.CurrentUserId;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var cached = _userDataLocal.GetUser(userId);
+                if (cached != null)
+                {
+                    UserDataStore.CurrentUserData = cached;
+                    Debug.LogWarning("[InitializationManager] UserData carregado do cache de emergência.");
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 
-    // -------------------------------------------------------
-    // Navegação
-    // -------------------------------------------------------
     private void NavigateAfterInit(bool authenticated)
     {
         try
         {
             string targetScene = authenticated ? "PathwayScene" : "LoginView";
-
             globalSpinner?.ShowSpinnerUntilSceneLoaded(targetScene);
             SceneManager.LoadScene(targetScene);
         }
@@ -221,9 +238,6 @@ public class InitializationManager : MonoBehaviour
         }
     }
 
-    // -------------------------------------------------------
-    // PlayerLevelManager (ainda singleton — será refatorado)
-    // -------------------------------------------------------
     private void InitializePlayerLevelService()
     {
         if (AppContext.PlayerLevel == null)
@@ -231,13 +245,9 @@ public class InitializationManager : MonoBehaviour
             Debug.LogError("[InitializationManager] PlayerLevelService não encontrado no AppContext.");
             return;
         }
-
-        Debug.Log("[InitializationManager] PlayerLevelService pronto.");    
+        Debug.Log("[InitializationManager] PlayerLevelService pronto.");
     }
 
-    // -------------------------------------------------------
-    // UI helpers
-    // -------------------------------------------------------
     private void UpdateStatus(string message)
     {
         if (statusText != null) statusText.text = message;
@@ -250,10 +260,18 @@ public class InitializationManager : MonoBehaviour
 
     private void ShowError(string message)
     {
+        // Esconde o spinner explicitamente aqui também
+        try { globalSpinner?.HideSpinner(); } catch { }
+
         if (retryPanel != null)
         {
             retryPanel.SetActive(true);
             if (errorText != null) errorText.text = message;
+        }
+        else
+        {
+            // retryPanel não configurado — loga para identificar no Xcode
+            Debug.LogError($"[InitManager] retryPanel é null. Mensagem de erro: {message}");
         }
     }
 }

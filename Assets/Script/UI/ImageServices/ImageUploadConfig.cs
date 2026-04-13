@@ -1,13 +1,15 @@
 using System;
+using System.Threading.Tasks;
 
 public class ImageUploadConfig
 {
-    public string ImagePath          { get; set; }  // caminho local da imagem
-    public string DestinationFolder  { get; set; }  // ex: "profile_images", "post_images"
-    public string FileNamePrefix     { get; set; }  // ex: userId, postId
-    public int    MaxSizeBytes       { get; set; } = 1024 * 1024; // 1MB default
-    public string OldImageUrl        { get; set; }  // URL antiga para deletar (opcional)
-    public Action<string> OnProgress { get; set; }  // mensagem de progresso (opcional)
-    public Action<string> OnCompleted{ get; set; }  // URL final
-    public Action<string> OnFailed   { get; set; }  // mensagem de erro
+    public string ImagePath          { get; set; }  
+    public string DestinationFolder  { get; set; }  
+    public string FileNamePrefix     { get; set; }  
+    public int    MaxSizeBytes       { get; set; } 
+    public string OldImageUrl        { get; set; }  
+    public Action<string> OnProgress { get; set; }  
+    public Func<string, Task>   OnCompleted { get; set; }
+    public Func<string, Task> OnSavedOffline { get; set; }
+    public Action<string> OnFailed   { get; set; } 
 }

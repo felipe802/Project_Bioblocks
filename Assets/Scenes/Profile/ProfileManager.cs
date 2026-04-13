@@ -259,7 +259,6 @@ public class ProfileManager : MonoBehaviour
     // -------------------------------------------------------
     // Logout
     // -------------------------------------------------------
-
     public void LogoutButton()
     {
         StartCoroutine(LogoutAsync().AsCoroutine());
@@ -269,21 +268,49 @@ public class ProfileManager : MonoBehaviour
     {
         try
         {
-            // Desinscreve os eventos ANTES de limpar os dados
             UserDataStore.OnUserDataChanged -= OnUserDataChanged;
             AnsweredQuestionsManager.OnAnsweredQuestionsUpdated -= HandleAnsweredQuestionsUpdated;
-
-
             string currentUserId = UserDataStore.CurrentUserData?.UserId;
+
+            // Sincroniza tudo que estiver pendente antes de limpar
+            if (!string.IsNullOrEmpty(currentUserId) &&
+                Application.internetReachability != NetworkReachability.NotReachable)
+            {
+                Debug.Log("[ProfileManager] Sincronizando dados pendentes antes do logout...");
+
+                // 1. Score, questões respondidas, dados gerais — via SyncService
+                try
+                {
+                    await AppContext.UserDataSync.TrySyncPendingData(currentUserId);
+                    Debug.Log("[ProfileManager] Dados sincronizados.");
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"[ProfileManager] Falha ao sincronizar dados: {e.Message}");
+                }
+
+                // 2. Upload de imagem pendente — via PendingUploadSyncService
+                try
+                {
+                    if (AppContext.PendingUploadSync != null)
+                        await AppContext.PendingUploadSync.TrySyncPendingUploads();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"[ProfileManager] Falha ao sincronizar uploads: {e.Message}");
+                }
+            }
+
             UserDataStore.CurrentUserData = null;
             AppContext.AnsweredQuestions?.ResetManager();
 
             if (!string.IsNullOrEmpty(currentUserId))
                 AnsweredQuestionsListStore.ClearUserAnsweredQuestions(currentUserId);
 
-            await _auth.LogoutAsync();
-            Debug.Log("Logout realizado com sucesso");
+            await _auth.LogoutAsync().ConfigureAwait(false);
+            await Task.Yield();
 
+            Debug.Log("Logout realizado com sucesso");
             Navigate("LoginView");
         }
         catch (Exception ex)
@@ -396,7 +423,8 @@ public class ProfileManager : MonoBehaviour
                 {
                     try
                     {
-                        await _firestore.DeleteDocument("Users", userId);
+                        await _firestore.DeleteDocument("Users", userId).ConfigureAwait(false);
+                        await Task.Yield();
                         Debug.Log("Documento do Firestore deletado com sucesso");
                         firestoreDeleted = true;
                     }
@@ -425,7 +453,8 @@ public class ProfileManager : MonoBehaviour
             // 3. Deletar usuário do Authentication
             try
             {
-                await _auth.DeleteUser(userId);
+                await _auth.DeleteUser(userId).ConfigureAwait(false);
+                await Task.Yield();
                 Debug.Log("Usuário deletado do Authentication com sucesso");
 
                 if (deleteAccountButtonText != null) deleteAccountButtonText.text = "Até a próxima!";

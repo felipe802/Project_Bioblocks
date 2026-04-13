@@ -1,5 +1,3 @@
-// Assets/Script/Core/Player/PlayerLevelService.cs
-
 using UnityEngine;
 using System;
 using System.Collections.Generic;
@@ -9,16 +7,20 @@ using System.Threading.Tasks;
 public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
 {
     public event Action<int, int> OnLevelChanged;
-    public event Action<int> OnLevelProgressUpdated;   private IFirestoreRepository _firestore;
+    public event Action<int> OnLevelProgressUpdated;
+
+    private IFirestoreRepository _firestore;
     private IStatisticsProvider _statistics;
     private UserData _currentUserData;
     private bool _isInitialized = false;
     private bool _isMigrating = false;
     private bool _migrationChecked = false;
+    private IUserDataSyncService _userDataSync;
 
     // -------------------------------------------------------
     // Ciclo de vida Unity
     // -------------------------------------------------------
+
     private void Awake()
     {
         DontDestroyOnLoad(gameObject);
@@ -46,8 +48,9 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
 
     private void InitializeDependencies()
     {
-        _firestore  = AppContext.Firestore;
-        _statistics = AppContext.Statistics;
+        _firestore    = AppContext.Firestore;
+        _statistics   = AppContext.Statistics;
+        _userDataSync = AppContext.UserDataSync;
 
         if (_firestore == null)
             Debug.LogError("[PlayerLevelService] _firestore é null");
@@ -64,7 +67,8 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
             Debug.LogWarning("[PlayerLevelService] CurrentUserData é null. Aguardando OnUserDataChanged...");
         else
         {
-            Debug.Log($"[PlayerLevelService] CurrentUserData encontrado: {_currentUserData.UserId}, Level: {_currentUserData.PlayerLevel}");
+            Debug.Log($"[PlayerLevelService] CurrentUserData encontrado: " +
+                      $"{_currentUserData.UserId}, Level: {_currentUserData.PlayerLevel}");
             _migrationChecked = true;
             PerformMigrationIfNeeded();
         }
@@ -76,7 +80,7 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
     private void OnDestroy()
     {
         UserDataStore.OnUserDataChanged -= OnUserDataChanged;
-        _migrationChecked    = false;
+        _migrationChecked     = false;
         _cachedTotalQuestions = 0;
     }
 
@@ -86,8 +90,8 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
 
     public void OnUserDataLoaded(UserData userData)
     {
-        Debug.Log($"[PlayerLevelService] OnUserDataLoaded. UserId: {userData?.UserId}, Level: {userData?.PlayerLevel}");
-
+        Debug.Log($"[PlayerLevelService] OnUserDataLoaded. UserId: {userData?.UserId}, " +
+                  $"Level: {userData?.PlayerLevel}");
         _currentUserData = userData;
 
         if (_currentUserData != null && _isInitialized)
@@ -96,12 +100,11 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
 
     private void OnUserDataChanged(UserData userData)
     {
-        _currentUserData = userData;
+        _currentUserData      = userData;
         _cachedTotalQuestions = 0;
 
         if (_currentUserData == null || string.IsNullOrEmpty(_currentUserData.UserId)) return;
 
-        // Migração: roda apenas uma vez por sessão
         if (_isInitialized && !_isMigrating && !_migrationChecked)
         {
             _migrationChecked = true;
@@ -109,18 +112,14 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
             PerformMigrationIfNeeded();
         }
 
-        // Progresso de level: dispara sempre que UserData mudar
-        // (score, questões respondidas, etc.)
         if (_isInitialized)
-        {
             OnLevelProgressUpdated?.Invoke(_currentUserData.TotalValidQuestionsAnswered);
-        }
     }
 
     // -------------------------------------------------------
     // Migração de dados legados
     // -------------------------------------------------------
-    // -------------------------------------------------------
+
     private async void PerformMigrationIfNeeded()
     {
         if (_currentUserData == null) return;
@@ -148,11 +147,38 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
             _currentUserData.TotalValidQuestionsAnswered = realTotal;
             _currentUserData.PlayerLevel                 = newLevel;
 
-            await _firestore.UpdateUserField(_currentUserData.UserId, "TotalValidQuestionsAnswered", realTotal);
-            await _firestore.UpdateUserField(_currentUserData.UserId, "PlayerLevel", newLevel);
+            // Persiste no LiteDB imediatamente — funciona offline
+            AppContext.UserDataLocal?.UpdateUser(_currentUserData);
 
-            UserDataStore.CurrentUserData = _currentUserData;
-            Debug.Log($"[PlayerLevelService] Corrigido. Level: {newLevel}, Questões: {realTotal}");
+            // Tenta Firestore — sem bloqueio se offline
+            if (Application.internetReachability != NetworkReachability.NotReachable)
+            {
+                try
+                {
+                    await _firestore.UpdateUserField(_currentUserData.UserId,
+                        "TotalValidQuestionsAnswered", realTotal).ConfigureAwait(false);
+                    await _firestore.UpdateUserField(_currentUserData.UserId,
+                        "PlayerLevel", newLevel).ConfigureAwait(false);
+                    AppContext.UserDataLocal?.MarkAsSynced(_currentUserData.UserId);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"[PlayerLevelService] Firestore offline na migração: {e.Message}");
+                    AppContext.UserDataLocal?.MarkAsDirty(_currentUserData.UserId);
+                }
+            }
+            else
+            {
+                Debug.Log("[PlayerLevelService] Offline — migração salva localmente.");
+                AppContext.UserDataLocal?.MarkAsDirty(_currentUserData.UserId);
+            }
+
+            var captured = _currentUserData;
+            MainThreadDispatcher.Enqueue(() =>
+            {
+                UserDataStore.CurrentUserData = captured;
+                Debug.Log($"[PlayerLevelService] Migração concluída. Level: {newLevel}, Questões: {realTotal}");
+            });
         }
         catch (Exception e)
         {
@@ -183,63 +209,107 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
     // -------------------------------------------------------
     // IPlayerLevelService — progressão
     // -------------------------------------------------------
+
     public async Task IncrementTotalAnswered()
     {
-        if (!_isInitialized || _currentUserData == null || _firestore == null) return;
+        if (_userDataSync == null) _userDataSync = AppContext.UserDataSync;
+        if (_firestore == null)    _firestore    = AppContext.Firestore;
+        if (!_isInitialized || _currentUserData == null) return;
+
         _currentUserData.TotalValidQuestionsAnswered++;
+        var total  = _currentUserData.TotalValidQuestionsAnswered;
+        var userId = _currentUserData.UserId;
 
-        await _firestore.UpdateUserField(
-            _currentUserData.UserId,
-            "TotalValidQuestionsAnswered",
-            _currentUserData.TotalValidQuestionsAnswered
-        );
+        // Persiste no LiteDB imediatamente — funciona offline
+        AppContext.UserDataLocal?.UpdateUser(_currentUserData);
 
-        UserDataStore.UpdateTotalValidQuestionsAnswered(_currentUserData.TotalValidQuestionsAnswered);
-        OnLevelProgressUpdated?.Invoke(_currentUserData.TotalValidQuestionsAnswered);
+        // Tenta Firestore — sem bloqueio se offline
+        if (Application.internetReachability != NetworkReachability.NotReachable)
+        {
+            try
+            {
+                await _firestore.UpdateUserField(userId,
+                    "TotalValidQuestionsAnswered", total).ConfigureAwait(false);
+                AppContext.UserDataLocal?.MarkAsSynced(userId);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[PlayerLevelService] Firestore offline: {e.Message}");
+                AppContext.UserDataLocal?.MarkAsDirty(userId);
+            }
+        }
+        else
+        {
+            Debug.Log("[PlayerLevelService] Offline — TotalAnswered salvo localmente.");
+            AppContext.UserDataLocal?.MarkAsDirty(userId);
+        }
 
-        Debug.Log($"[PlayerLevelService] Total válido: {_currentUserData.TotalValidQuestionsAnswered}");
+        MainThreadDispatcher.Enqueue(() =>
+        {
+            UserDataStore.UpdateTotalValidQuestionsAnswered(total);
+            OnLevelProgressUpdated?.Invoke(total);
+        });
     }
 
     public async Task CheckAndHandleLevelUp()
     {
-        if (!_isInitialized || _currentUserData == null || _firestore == null) return;
+        if (!_isInitialized || _currentUserData == null) return;
 
         int totalQuestions = GetTotalQuestionsCount();
         int oldLevel       = _currentUserData.PlayerLevel;
         int newLevel       = PlayerLevelConfig.CalculateLevel(
-            _currentUserData.TotalValidQuestionsAnswered,
-            totalQuestions
-        );
+            _currentUserData.TotalValidQuestionsAnswered, totalQuestions);
 
-        if (newLevel > oldLevel)
+        if (newLevel <= oldLevel) return;
+
+        _currentUserData.PlayerLevel = newLevel;
+        var userId = _currentUserData.UserId;
+
+        int totalBonus = 0;
+        for (int level = oldLevel + 1; level <= newLevel; level++)
+            totalBonus += PlayerLevelConfig.GetBonusForLevel(level);
+
+        await GrantLevelUpBonus(totalBonus);
+
+        // Persiste no LiteDB imediatamente
+        AppContext.UserDataLocal?.UpdateUser(_currentUserData);
+
+        // Tenta Firestore — sem bloqueio se offline
+        if (Application.internetReachability != NetworkReachability.NotReachable)
         {
-            Debug.Log($"[PlayerLevelService] LEVEL UP! {oldLevel} → {newLevel}");
-
-            _currentUserData.PlayerLevel = newLevel;
-
-            int totalBonus = 0;
-            for (int level = oldLevel + 1; level <= newLevel; level++)
+            try
             {
-                int bonus = PlayerLevelConfig.GetBonusForLevel(level);
-                totalBonus += bonus;
-                Debug.Log($"[PlayerLevelService] Bônus do nível {level}: {bonus} pontos");
+                await _firestore.UpdateUserField(userId, "PlayerLevel", newLevel)
+                                .ConfigureAwait(false);
+                AppContext.UserDataLocal?.MarkAsSynced(userId);
             }
-
-            await GrantLevelUpBonus(totalBonus);
-            await _firestore.UpdateUserField(_currentUserData.UserId, "PlayerLevel", newLevel);
-
-            UserDataStore.UpdatePlayerLevel(newLevel);
-            OnLevelChanged?.Invoke(oldLevel, newLevel);
-
-            Debug.Log("[PlayerLevelService] Level atualizado no Firebase e UserDataStore");
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[PlayerLevelService] Firestore offline: {e.Message}");
+                AppContext.UserDataLocal?.MarkAsDirty(userId);
+            }
         }
+        else
+        {
+            Debug.Log("[PlayerLevelService] Offline — PlayerLevel salvo localmente.");
+            AppContext.UserDataLocal?.MarkAsDirty(userId);
+        }
+
+        int capturedOld = oldLevel;
+        int capturedNew = newLevel;
+        MainThreadDispatcher.Enqueue(() =>
+        {
+            UserDataStore.UpdatePlayerLevel(capturedNew);
+            OnLevelChanged?.Invoke(capturedOld, capturedNew);
+        });
     }
 
     public async Task RecalculateTotalAnswered()
     {
         if (!_isInitialized || _currentUserData == null) return;
-        int realTotal  = CalculateValidAnsweredQuestionsFromData(_currentUserData);
-        int oldTotal   = _currentUserData.TotalValidQuestionsAnswered;
+
+        int realTotal = CalculateValidAnsweredQuestionsFromData(_currentUserData);
+        int oldTotal  = _currentUserData.TotalValidQuestionsAnswered;
 
         if (realTotal == oldTotal)
         {
@@ -247,21 +317,47 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
             return;
         }
 
-        _currentUserData.TotalValidQuestionsAnswered = realTotal;        
-        await _firestore.UpdateUserField(
-            _currentUserData.UserId,
-            "TotalValidQuestionsAnswered",
-            realTotal
-        );
+        _currentUserData.TotalValidQuestionsAnswered = realTotal;
+        var userId = _currentUserData.UserId;
 
-        UserDataStore.UpdateTotalValidQuestionsAnswered(realTotal);
-        OnLevelProgressUpdated?.Invoke(realTotal);
-        Debug.Log($"[PlayerLevelService] Recalculado: {oldTotal} → {realTotal}");
+        // Persiste no LiteDB imediatamente
+        AppContext.UserDataLocal?.UpdateUser(_currentUserData);
+
+        // Tenta Firestore — sem bloqueio se offline
+        if (Application.internetReachability != NetworkReachability.NotReachable)
+        {
+            try
+            {
+                await _firestore.UpdateUserField(userId,
+                    "TotalValidQuestionsAnswered", realTotal).ConfigureAwait(false);
+                AppContext.UserDataLocal?.MarkAsSynced(userId);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[PlayerLevelService] Firestore offline: {e.Message}");
+                AppContext.UserDataLocal?.MarkAsDirty(userId);
+            }
+        }
+        else
+        {
+            Debug.Log("[PlayerLevelService] Offline — RecalculateTotalAnswered salvo localmente.");
+            AppContext.UserDataLocal?.MarkAsDirty(userId);
+        }
+
+        int capturedReal = realTotal;
+        int capturedOld  = oldTotal;
+        MainThreadDispatcher.Enqueue(() =>
+        {
+            UserDataStore.UpdateTotalValidQuestionsAnswered(capturedReal);
+            OnLevelProgressUpdated?.Invoke(capturedReal);
+            Debug.Log($"[PlayerLevelService] Recalculado: {capturedOld} → {capturedReal}");
+        });
     }
 
     // -------------------------------------------------------
     // IPlayerLevelService — getters
     // -------------------------------------------------------
+
     public int GetCurrentLevel()                => _currentUserData?.PlayerLevel ?? 1;
     public int GetTotalValidAnswered()           => _currentUserData?.TotalValidQuestionsAnswered ?? 0;
     public int GetTotalQuestionsInAllDatabanks() => _currentUserData?.TotalQuestionsInAllDatabanks ?? 0;
@@ -270,9 +366,9 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
     {
         if (_currentUserData == null) return 0f;
 
-        int totalQuestions  = GetTotalQuestionsCount();
-        int currentLevel    = _currentUserData.PlayerLevel;
-        var threshold       = PlayerLevelConfig.GetThresholdForLevel(currentLevel);
+        int totalQuestions = GetTotalQuestionsCount();
+        int currentLevel   = _currentUserData.PlayerLevel;
+        var threshold      = PlayerLevelConfig.GetThresholdForLevel(currentLevel);
 
         float currentPercentage = (float)_currentUserData.TotalValidQuestionsAnswered / totalQuestions;
         float levelRange        = threshold.MaxPercentage - threshold.MinPercentage;
@@ -287,11 +383,11 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
         if (_currentUserData.PlayerLevel >= 10) return 0;
 
         int totalQuestions = GetTotalQuestionsCount();
-        int nextLevel = _currentUserData.PlayerLevel + 1;
-        var nextThreshold = PlayerLevelConfig.GetThresholdForLevel(nextLevel);
+        int nextLevel      = _currentUserData.PlayerLevel + 1;
+        var nextThreshold  = PlayerLevelConfig.GetThresholdForLevel(nextLevel);
 
         int questionsNeeded = nextThreshold.GetMinRequiredQuestions(totalQuestions);
-        int remaining = questionsNeeded - _currentUserData.TotalValidQuestionsAnswered;
+        int remaining       = questionsNeeded - _currentUserData.TotalValidQuestionsAnswered;
 
         return Mathf.Max(0, remaining);
     }
@@ -310,17 +406,20 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
     // -------------------------------------------------------
     // Helpers privados
     // -------------------------------------------------------
+
     private async Task GrantLevelUpBonus(int bonusPoints)
     {
         _currentUserData.Score     += bonusPoints;
         _currentUserData.WeekScore += bonusPoints;
 
-        await _firestore.UpdateUserScores(
+        // UpdateUserScores já gerencia LiteDB + Firestore com fallback offline
+        await _userDataSync.UpdateUserScores(
             _currentUserData.UserId,
             bonusPoints,
             0, "", false
         );
 
+        // UpdateUserScores já retorna no main thread (tem await Task.Yield internamente)
         UserDataStore.CurrentUserData = _currentUserData;
         Debug.Log($"[PlayerLevelService] Bônus concedido: {bonusPoints} pontos");
     }
@@ -329,6 +428,7 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
     private int GetTotalQuestionsCount()
     {
         if (_cachedTotalQuestions > 0) return _cachedTotalQuestions;
+
         int total = _currentUserData?.TotalQuestionsInAllDatabanks ?? 0;
 
         if (total <= 0 && _statistics != null)
@@ -338,36 +438,9 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
         }
 
         if (total <= 0)
-        {
-            Debug.LogError("[PlayerLevelService] Não foi possível obter total de questões. Usando fallback 100.");
-            total = 0;
-        }
+            Debug.LogError("[PlayerLevelService] Não foi possível obter total de questões.");
 
         _cachedTotalQuestions = total;
-        return total;
-    }
-
-    private async Task<int> CalculateValidAnsweredQuestions(string userId)
-    {
-        Debug.Log($"[PlayerLevelService] CalculateValidAnsweredQuestions() para userId: {userId}");
-
-        UserData userData = await _firestore.GetUserData(userId);
-
-        if (userData == null)
-        {
-            Debug.LogError("[PlayerLevelService] GetUserData retornou NULL!");
-            return 0;
-        }
-
-        int total = 0;
-        foreach (var kvp in userData.AnsweredQuestions)
-        {
-            int count = new HashSet<int>(kvp.Value).Count;
-            total += count;
-            Debug.Log($"[PlayerLevelService] Banco '{kvp.Key}': {count} questões únicas");
-        }
-
-        Debug.Log($"[PlayerLevelService] Total calculado: {total} questões");
         return total;
     }
 }

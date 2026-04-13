@@ -6,15 +6,14 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Gerencia as questões respondidas corretamente pelo usuário.
+/// Fonte primária de dados: UserDataStore (memória) → LiteDB (cache local)
+/// Firestore: apenas para escrita e sincronização inicial
 /// </summary>
 public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
 {
-  public delegate void AnsweredQuestionsUpdatedHandler(Dictionary<string, int> answeredCounts);
+    public delegate void AnsweredQuestionsUpdatedHandler(Dictionary<string, int> answeredCounts);
     public static event AnsweredQuestionsUpdatedHandler OnAnsweredQuestionsUpdated;
 
-    // -------------------------------------------------------
-    // Dependências — obtidas do AppContext no Start()
-    // -------------------------------------------------------
     private IFirestoreRepository _firestore;
     private IAuthRepository _auth;
 
@@ -24,6 +23,7 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
     // -------------------------------------------------------
     // Ciclo de vida
     // -------------------------------------------------------
+
     private void Awake()
     {
         DontDestroyOnLoad(gameObject);
@@ -63,6 +63,7 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
     // -------------------------------------------------------
     // Inicialização
     // -------------------------------------------------------
+
     private async Task Initialize()
     {
         if (isInitialized) return;
@@ -71,25 +72,13 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
         {
             await Task.Yield();
 
-            if (_firestore == null)
-            {
-                Debug.LogError("[AnsweredQuestionsManager] _firestore é null");
-                return;
-            }
-
-            if (!_firestore.IsInitialized)
+            if (_firestore == null || !_firestore.IsInitialized)
             {
                 Debug.LogError("[AnsweredQuestionsManager] FirestoreRepository não está inicializado");
                 return;
             }
 
-            if (_auth == null)
-            {
-                Debug.LogError("[AnsweredQuestionsManager] _auth é null");
-                return;
-            }
-
-            if (!_auth.IsUserLoggedIn())
+            if (_auth == null || !_auth.IsUserLoggedIn())
             {
                 Debug.LogError("[AnsweredQuestionsManager] Nenhum usuário está autenticado");
                 return;
@@ -98,14 +87,13 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
             userId = _auth.CurrentUserId;
             Debug.Log($"[AnsweredQuestionsManager] Inicializando para usuário: {userId}");
 
-            _firestore.ListenToUserData(
-                userId,
-                onScoreChanged: null,
-                onWeekScoreChanged: null,
-                onAnsweredQuestionsChanged: HandleAnsweredQuestionsUpdate
-            );
+            // Listener para atualizações em tempo real do Firestore
+            // (só dispara quando há internet — inofensivo offline)
+            _firestore.ListenToAnsweredQuestions(userId, HandleAnsweredQuestionsUpdate);
 
+            // Popula a partir do UserDataStore — já carregado pelo SyncService na inicialização
             await FetchUserAnsweredQuestions();
+
             isInitialized = true;
             Debug.Log("[AnsweredQuestionsManager] Inicializado com sucesso");
         }
@@ -117,8 +105,37 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
     }
 
     // -------------------------------------------------------
-    // Listener de atualizações em tempo real
+    // Fonte primária de dados — UserDataStore → LiteDB → Firestore
     // -------------------------------------------------------
+
+    /// <summary>
+    /// Retorna UserData da fonte mais rápida disponível.
+    /// Nunca bloqueia: sem internet usa cache local imediatamente.
+    /// </summary>
+    private UserData GetLocalUserData()
+    {
+        // 1. Memória — mais rápido, sempre atualizado pelo SyncService
+        var inMemory = UserDataStore.CurrentUserData;
+        if (inMemory != null) return inMemory;
+
+        // 2. LiteDB — fallback se memória estiver vazia
+        if (!string.IsNullOrEmpty(userId))
+        {
+            var cached = AppContext.UserDataLocal?.GetUser(userId);
+            if (cached != null)
+            {
+                Debug.Log("[AnsweredQuestionsManager] Usando dados do LiteDB.");
+                return cached;
+            }
+        }
+
+        return null;
+    }
+
+    // -------------------------------------------------------
+    // Listener de atualizações em tempo real (Firestore → memória)
+    // -------------------------------------------------------
+
     private void HandleAnsweredQuestionsUpdate(Dictionary<string, List<int>> answeredQuestions)
     {
         try
@@ -129,13 +146,12 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
 
             foreach (var kvp in answeredQuestions)
             {
-                string databankName = kvp.Key;
+                string databankName    = kvp.Key;
                 List<int> questionsList = kvp.Value;
-
                 if (questionsList == null) continue;
 
                 var distinctQuestions = questionsList.Distinct().ToList();
-                int totalQuestions = QuestionBankStatistics.GetTotalQuestions(databankName);
+                int totalQuestions    = QuestionBankStatistics.GetTotalQuestions(databankName);
                 if (totalQuestions <= 0) totalQuestions = 50;
 
                 int count = Mathf.Min(distinctQuestions.Count, totalQuestions);
@@ -155,40 +171,53 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
     }
 
     // -------------------------------------------------------
-    // Busca de dados
+    // Busca de dados — usa UserDataStore/LiteDB, sem chamadas de rede
     // -------------------------------------------------------
+
+    /// <summary>
+    /// Atualiza os contadores locais a partir do UserDataStore.
+    /// Sem chamadas de rede — instantâneo online e offline.
+    /// </summary>
     private async Task FetchUserAnsweredQuestions()
     {
         try
         {
-            UserData userData = await _firestore.GetUserData(userId);
+            // Lê da memória/LiteDB — sem chamada de rede
+            UserData userData = GetLocalUserData();
 
-            if (userData?.AnsweredQuestions == null) return;
+            if (userData?.AnsweredQuestions == null)
+            {
+                Debug.LogWarning("[AnsweredQuestionsManager] UserData sem AnsweredQuestions no cache local.");
+                return;
+            }
 
             Dictionary<string, int> answeredCounts = new Dictionary<string, int>();
 
             foreach (var kvp in userData.AnsweredQuestions)
             {
-                string databankName = kvp.Key;
+                string databankName    = kvp.Key;
                 List<int> questionsList = kvp.Value;
-
                 if (questionsList == null) continue;
 
                 var distinctQuestions = questionsList.Distinct().ToList();
 
                 if (distinctQuestions.Count != questionsList.Count)
-                    Debug.LogWarning($"[AnsweredQuestionsManager] {questionsList.Count - distinctQuestions.Count} questões duplicadas em {databankName}");
+                    Debug.LogWarning($"[AnsweredQuestionsManager] " +
+                        $"{questionsList.Count - distinctQuestions.Count} questões duplicadas em {databankName}");
 
                 int totalQuestions = QuestionBankStatistics.GetTotalQuestions(databankName);
-                int count = Mathf.Min(distinctQuestions.Count, totalQuestions);
+                int count          = Mathf.Min(distinctQuestions.Count, totalQuestions);
 
                 answeredCounts[databankName] = count;
                 AnsweredQuestionsListStore.UpdateAnsweredQuestionsCount(userId, databankName, count);
                 Debug.Log($"[AnsweredQuestionsManager] {databankName}: {count} questões respondidas");
             }
 
-            Debug.Log($"[AnsweredQuestionsManager] Disparando OnAnsweredQuestionsUpdated com {answeredCounts.Count} bancos");
+            Debug.Log($"[AnsweredQuestionsManager] OnAnsweredQuestionsUpdated com {answeredCounts.Count} bancos");
             OnAnsweredQuestionsUpdated?.Invoke(answeredCounts);
+
+            // Task.Yield mantido para não bloquear o frame
+            await Task.Yield();
         }
         catch (Exception e)
         {
@@ -197,23 +226,24 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
         }
     }
 
+    /// <summary>
+    /// Retorna questões respondidas de um banco específico.
+    /// Lê do UserDataStore/LiteDB — sem chamada de rede.
+    /// </summary>
     public async Task<List<string>> FetchUserAnsweredQuestionsInTargetDatabase(string target)
     {
-        List<string> answeredQuestions = new List<string>();
+        var answeredQuestions = new List<string>();
 
         try
         {
             if (!isInitialized)
             {
                 await Initialize();
-                if (!isInitialized)
-                {
-                    Debug.LogError("[AnsweredQuestionsManager] Falha ao inicializar");
-                    return answeredQuestions;
-                }
+                if (!isInitialized) return answeredQuestions;
             }
 
-            UserData userData = await _firestore.GetUserData(userId);
+            // Lê da memória/LiteDB — sem chamada de rede
+            UserData userData = GetLocalUserData();
 
             if (userData?.AnsweredQuestions != null &&
                 userData.AnsweredQuestions.ContainsKey(target))
@@ -222,7 +252,8 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
                     .Select(q => q.ToString())
                     .ToList();
 
-                Debug.Log($"[AnsweredQuestionsManager] {answeredQuestions.Count} questões respondidas em {target}");
+                Debug.Log($"[AnsweredQuestionsManager] {answeredQuestions.Count} questões respondidas " +
+                          $"em {target} (cache local)");
             }
         }
         catch (Exception e)
@@ -234,8 +265,13 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
     }
 
     // -------------------------------------------------------
-    // Marcar questão como respondida corretamente
+    // Marcar questão como respondida
     // -------------------------------------------------------
+
+    /// <summary>
+    /// Marca uma questão como respondida.
+    /// Verifica duplicata no cache local — só vai ao Firestore para escrever.
+    /// </summary>
     public async Task MarkQuestionAsAnswered(string databankName, int questionNumber)
     {
         try
@@ -243,11 +279,7 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
             if (!isInitialized)
             {
                 await Initialize();
-                if (!isInitialized)
-                {
-                    Debug.LogError("[AnsweredQuestionsManager] Falha ao inicializar");
-                    return;
-                }
+                if (!isInitialized) return;
             }
 
             if (string.IsNullOrEmpty(userId))
@@ -256,10 +288,12 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
                 return;
             }
 
-            UserData userData = await _firestore.GetUserData(userId);
+            // Verifica duplicata no cache local — sem chamada de rede
+            UserData userData = GetLocalUserData();
+
             if (userData == null)
             {
-                Debug.LogError("[AnsweredQuestionsManager] Dados do usuário não encontrados");
+                Debug.LogError("[AnsweredQuestionsManager] Dados do usuário não encontrados no cache");
                 return;
             }
 
@@ -267,16 +301,46 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
                                    userData.AnsweredQuestions.ContainsKey(databankName) &&
                                    userData.AnsweredQuestions[databankName].Contains(questionNumber);
 
-            if (!alreadyAnswered)
+            if (alreadyAnswered)
             {
-                await _firestore.UpdateUserScore(userId, userData.Score, questionNumber, databankName, true);
-                await ForceUpdate();
-                Debug.Log($"[AnsweredQuestionsManager] Questão {questionNumber} marcada em {databankName}");
+                Debug.Log($"[AnsweredQuestionsManager] Questão {questionNumber} já estava marcada em {databankName}");
+                return;
+            }
+
+            // Atualiza cache local imediatamente
+            userData.AnsweredQuestions ??= new Dictionary<string, List<int>>();
+            if (!userData.AnsweredQuestions.ContainsKey(databankName))
+                userData.AnsweredQuestions[databankName] = new List<int>();
+            userData.AnsweredQuestions[databankName].Add(questionNumber);
+
+            // Persiste no LiteDB
+            AppContext.UserDataLocal?.AddAnsweredQuestion(userId, databankName, questionNumber);
+
+            // Tenta Firestore — sem bloqueio se offline
+            if (AppContext.Connectivity?.IsOnline == true)
+            {
+                try
+                {
+                    await _firestore.UpdateUserScore(userId, userData.Score, questionNumber, databankName, true).ConfigureAwait(false);
+                    await Task.Yield();
+                    AppContext.UserDataLocal?.MarkAsSynced(userId);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"[AnsweredQuestionsManager] Firestore offline, marcado localmente: {e.Message}");
+                    AppContext.UserDataLocal?.MarkAsDirty(userId);
+                }
             }
             else
             {
-                Debug.Log($"[AnsweredQuestionsManager] Questão {questionNumber} já estava marcada em {databankName}");
+                Debug.Log("[AnsweredQuestionsManager] Offline — questão marcada localmente.");
+                AppContext.UserDataLocal?.MarkAsDirty(userId);
             }
+
+            await Task.Yield();
+            await ForceUpdate();
+
+            Debug.Log($"[AnsweredQuestionsManager] Questão {questionNumber} marcada em {databankName}");
         }
         catch (Exception ex)
         {
@@ -285,7 +349,7 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
     }
 
     // -------------------------------------------------------
-    // Força atualização
+    // ForceUpdate — relê do cache local, sem rede
     // -------------------------------------------------------
     public async Task ForceUpdate()
     {
@@ -303,13 +367,8 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
                 }
             }
 
+            // FetchUserAnsweredQuestions agora lê do UserDataStore — sem rede
             await FetchUserAnsweredQuestions();
-
-            if (userId != null)
-            {
-                var userCounts = AnsweredQuestionsListStore.GetAnsweredQuestionsCountForUser(userId);
-                OnAnsweredQuestionsUpdated?.Invoke(userCounts);
-            }
 
             Debug.Log("[AnsweredQuestionsManager] ForceUpdate concluído");
         }
@@ -322,6 +381,7 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
     // -------------------------------------------------------
     // Questões restantes
     // -------------------------------------------------------
+
     public async Task<bool> HasRemainingQuestions(string currentDatabase, List<string> currentQuestionList)
     {
         try
@@ -329,14 +389,12 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
             if (!isInitialized)
             {
                 await Initialize();
-                if (!isInitialized)
-                {
-                    Debug.LogError("[AnsweredQuestionsManager] Falha ao inicializar");
-                    return false;
-                }
+                if (!isInitialized) return false;
             }
 
-            List<string> answeredQuestions = await FetchUserAnsweredQuestionsInTargetDatabase(currentDatabase);
+            List<string> answeredQuestions =
+                await FetchUserAnsweredQuestionsInTargetDatabase(currentDatabase);
+
             bool hasRemaining = currentQuestionList.Except(answeredQuestions).Any();
 
             Debug.Log($"[AnsweredQuestionsManager] {currentDatabase}: " +
@@ -356,10 +414,11 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
     // -------------------------------------------------------
     // Reset
     // -------------------------------------------------------
+
     public void ResetManager()
     {
         isInitialized = false;
-        userId = null;
+        userId        = null;
     }
 
     public bool IsManagerInitialized => isInitialized;

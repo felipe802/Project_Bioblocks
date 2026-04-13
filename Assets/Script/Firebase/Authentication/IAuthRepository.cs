@@ -15,6 +15,8 @@ public interface IAuthRepository
 
     bool IsUserLoggedIn();
 
+    bool HasLocalSession();
+
     Task InitializeAsync();
 
     Task<UserData> SignInWithEmailAsync(string email, string password);

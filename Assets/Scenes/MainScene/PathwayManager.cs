@@ -27,13 +27,6 @@ public class PathwayManager : MonoBehaviour
             return;
         }
 
-        _firestore.ListenToUserData(
-            UserDataStore.CurrentUserData.UserId,
-            onScoreChanged: null,
-            onWeekScoreChanged: null,
-            onAnsweredQuestionsChanged: null
-        );
-
         InitializeTopBar();
 
         AnsweredQuestionsManager.OnAnsweredQuestionsUpdated += HandleAnsweredQuestionsUpdated;
