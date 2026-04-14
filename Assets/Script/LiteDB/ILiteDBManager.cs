@@ -9,4 +9,5 @@ public interface ILiteDBManager
     ILiteCollection<CachedImageDB>      CachedImages { get; }
     ILiteCollection<RankingDB>          Rankings { get; }
     ILiteCollection<PendingUploadDB>    PendingUploads { get; } 
+    ILiteCollection<QuestionDB>     Questions      { get; }
 }

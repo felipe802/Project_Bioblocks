@@ -17,11 +17,16 @@ public class LiteDBManager : MonoBehaviour, ILiteDBManager
         }
     }
 
-    public ILiteCollection<UserDataDB> Users
-        => Database.GetCollection<UserDataDB>("users");
+    // ── Collections existentes ─────────────────────────────────────────────────
+    public ILiteCollection<UserDataDB>      Users          => Database.GetCollection<UserDataDB>("users");
+    public ILiteCollection<RankingDB>       Rankings       => Database.GetCollection<RankingDB>("rankings");
+    public ILiteCollection<CachedImageDB>   CachedImages   => Database.GetCollection<CachedImageDB>("cached_images");
+    public ILiteCollection<PendingUploadDB> PendingUploads => Database.GetCollection<PendingUploadDB>("pending_uploads");
 
-    public ILiteCollection<RankingDB> Rankings
-        => Database.GetCollection<RankingDB>("rankings");
+    // ── Collection nova: questões ──────────────────────────────────────────────
+    public ILiteCollection<QuestionDB>      Questions      => Database.GetCollection<QuestionDB>("questions");
+
+    // ── Inicialização ──────────────────────────────────────────────────────────
 
     public void Initialize()
     {
@@ -50,18 +55,21 @@ public class LiteDBManager : MonoBehaviour, ILiteDBManager
         }
     }
 
-    public ILiteCollection<CachedImageDB> CachedImages
-    => Database.GetCollection<CachedImageDB>("cached_images");
-
     private void EnsureIndexes()
     {
+        // Índices existentes
         Users.EnsureIndex(x => x.UserId, unique: true);
         CachedImages.EnsureIndex(x => x.ImageUrl, unique: true);
         Rankings.EnsureIndex(x => x.Score);
         Rankings.EnsureIndex(x => x.WeekScore);
+
+        // Índices novos para questões
+        Questions.EnsureIndex(x => x.QuestionDatabankName);   // busca por banco (hot path)
+        Questions.EnsureIndex(x => x.Topic);                  // busca por tópico (futuro)
+        Questions.EnsureIndex(x => x.CachedAt);               // verificação de staleness
     }
 
-    private void OnDestroy() => Close();
+    private void OnDestroy()          => Close();
     private void OnApplicationQuit() => Close();
 
     public void Close()
@@ -74,7 +82,4 @@ public class LiteDBManager : MonoBehaviour, ILiteDBManager
             Debug.Log("[LiteDatabaseManager] Banco fechado.");
         }
     }
-
-    public ILiteCollection<PendingUploadDB> PendingUploads
-        => Database.GetCollection<PendingUploadDB>("pending_uploads");
 }
