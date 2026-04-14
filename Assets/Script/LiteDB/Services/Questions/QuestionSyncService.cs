@@ -137,7 +137,9 @@ public class QuestionSyncService : MonoBehaviour, IQuestionSyncService
     /// </summary>
     private async Task RefreshCacheInBackground()
     {
-        if (IsSyncing) return;
+        // Nota: não verifica IsSyncing aqui — este método é chamado de dentro de
+        // InitializeAsync enquanto IsSyncing ainda é true. Ele assume o controle
+        // da flag para sinalizar que o refresh está em andamento.
         IsSyncing = true;
 
         try
