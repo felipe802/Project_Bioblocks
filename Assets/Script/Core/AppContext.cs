@@ -71,6 +71,21 @@ public class AppContext : MonoBehaviour
 
             Debug.Log("[AppContext] Firebase disponível.");
 
+            // ── 0. App Check — deve ser o primeiro serviço inicializado ───────────
+
+            Debug.Log("AppCheck IN");
+#if UNITY_EDITOR
+            Firebase.AppCheck.FirebaseAppCheck.SetAppCheckProviderFactory(
+                Firebase.AppCheck.DebugAppCheckProviderFactory.Instance);
+#elif UNITY_ANDROID
+            Firebase.AppCheck.FirebaseAppCheck.SetAppCheckProviderFactory(
+                Firebase.AppCheck.PlayIntegrityProviderFactory.Instance);
+#elif UNITY_IOS
+            Firebase.AppCheck.FirebaseAppCheck.SetAppCheckProviderFactory(
+                Firebase.AppCheck.DeviceCheckProviderFactory.Instance);
+#endif
+            Debug.Log("[AppContext] AppCheck inicializado.");
+
             // ── Obtenção dos componentes ───────────────────────────────────────
             var authRepo              = GetComponent<AuthenticationRepository>();
             var firestoreRepo         = GetComponent<FirestoreRepository>();

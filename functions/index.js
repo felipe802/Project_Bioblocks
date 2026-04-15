@@ -8,7 +8,7 @@ admin.initializeApp();
 // ─────────────────────────────────────────────────────────────
 // TRIGGER: Sincroniza Rankings sempre que um Users/{uid} muda
 //
-// Responsabilidade: manter Rankings/{uid} com os campos
+// Responsabilidade: manter Rankings com os campos
 // MÍNIMOS e PÚBLICOS necessários para exibir o ranking.
 // Dados sensíveis (Email, AnsweredQuestions, Name) nunca
 // são copiados para esta coleção.
@@ -16,35 +16,53 @@ admin.initializeApp();
 exports.syncRankingOnUserWrite = onDocumentWritten(
     "Users/{userId}",
     async (event) => {
-      const userId = event.params.userId;
 
       // Documento deletado → remove entrada do ranking
       if (!event.data.after.exists) {
+        const beforeData = event.data.before.data();
+        const nickName = beforeData?.NickName ?? "";
+        if (!nickName) return;
+
         await admin.firestore()
             .collection("Rankings")
-            .doc(userId)
+            .doc(nickName.toLowerCase())
             .delete();
-        console.log(`[syncRanking] Entrada removida para userId: ${userId}`);
+
+        console.log(`[syncRanking] Entrada removida para nickName: ${nickName}`);
         return;
       }
 
-      const data = event.data.after.data();
+      const after  = event.data.after.data();
+      const before = event.data.before?.data() ?? {};
 
-      // Copia apenas os campos públicos necessários para o ranking
+      // Só atualiza Rankings se algum campo relevante mudou
+      const relevantChanged =
+          after.Score          !== before.Score          ||
+          after.WeekScore      !== before.WeekScore      ||
+          after.NickName       !== before.NickName       ||
+          after.ProfileImageUrl !== before.ProfileImageUrl;
+
+      if (!relevantChanged) {
+        console.log("[syncRanking] Nenhum campo relevante alterado — ignorando.");
+        return;
+      }
+
+      const nickName = after.NickName ?? "";
+      if (!nickName) return;
+
       const rankingEntry = {
-        nickName: data.NickName ?? "",
-        score: data.Score ?? 0,
-        weekScore: data.WeekScore ?? 0,
-        profileImageUrl: data.ProfileImageUrl ?? "",
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        nickName: after.NickName ?? "",
+        score: after.Score ?? 0,
+        weekScore: after.WeekScore ?? 0,
+        profileImageUrl: after.ProfileImageUrl ?? "",
       };
 
       await admin.firestore()
           .collection("Rankings")
-          .doc(userId)
+          .doc(nickName.toLowerCase())
           .set(rankingEntry, {merge: true});
 
-      console.log(`[syncRanking] Rankings/${userId} atualizado — score: ${rankingEntry.score}`);
+      console.log(`[syncRanking] Rankings/${nickName} atualizado — score: ${rankingEntry.score}`);
     },
 );
 

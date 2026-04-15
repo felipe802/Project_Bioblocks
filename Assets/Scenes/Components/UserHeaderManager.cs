@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 
 public class UserHeaderManager : BarsManager
 {
-    protected INavigationService _navigation;
     [Header("Elementos da User TopBar")]
     [SerializeField] private RawImage avatarImage;
     [SerializeField] private Image avatarImageBackground;
