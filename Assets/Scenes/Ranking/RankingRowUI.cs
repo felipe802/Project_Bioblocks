@@ -35,7 +35,7 @@ public class RankingRowUI : MonoBehaviour
 
     public void Setup(int rank, string userName,
                       int totalScore, int weekScore,
-                      string profileImageUrl, bool isCurrentUser)
+                      string profileImageUrl)
     {
         if (imageLoader == null)
         {
@@ -66,13 +66,6 @@ public class RankingRowUI : MonoBehaviour
     {
         if (totalScoreText != null) totalScoreText.text = $"{totalScore}";
         if (weekScoreText  != null) weekScoreText.text  = $"{weekScore}";
-    }
-
-    public void SetupAsExtraRow(int actualRank, string userName,
-                                int totalScore, int weekScore, string profileImageUrl)
-    {
-        _isExtraRow = true;
-        Setup(actualRank, userName, totalScore, weekScore, profileImageUrl, true);
     }
 
     // ─────────────────────────────────────────────────────────

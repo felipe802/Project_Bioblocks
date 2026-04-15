@@ -175,7 +175,7 @@ public class RankingManager : MonoBehaviour
         if (rowUI != null)
             rowUI.Setup(rank, ranking.userName,
                         ranking.userScore, ranking.userWeekScore,
-                        ranking.profileImageUrl, isCurrentUser);
+                        ranking.profileImageUrl);
         else
             Debug.LogError("[RankingManager] RankingRowUI não encontrado no prefab!");
     }    private void ShowLoadingIndicator(bool show)

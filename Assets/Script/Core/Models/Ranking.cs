@@ -1,7 +1,7 @@
 using Firebase.Firestore;
 
 [System.Serializable]
-[FirestoreData]
+[FirestoreData(UnknownPropertyHandling = UnknownPropertyHandling.Ignore)]
 public class Ranking
 {
     [FirestoreProperty("nickName")]
