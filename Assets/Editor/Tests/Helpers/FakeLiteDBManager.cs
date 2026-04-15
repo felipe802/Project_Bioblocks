@@ -9,11 +9,9 @@ using LiteDB;
 ///
 /// Como usar:
 ///   var db = new FakeLiteDBManager();
-///   var repo = new UserDataLocalRepository();
+///   var repo = new QuestionLocalRepository();
 ///   repo.InjectDependencies(db);
 /// </summary>
-/// 
-
 public class FakeLiteDBManager : ILiteDBManager
 {
     private LiteDatabase _db;
@@ -36,10 +34,17 @@ public class FakeLiteDBManager : ILiteDBManager
 
     public bool IsInitialized { get; private set; }
 
+    // ── Acesso direto ao banco (necessário para transações) ────────────────────
+    public LiteDatabase Database => _db ?? throw new Exception("[FakeLiteDBManager] Banco não inicializado.");
+
+    // ── Collections existentes ─────────────────────────────────────────────────
     public ILiteCollection<UserDataDB>      Users          => _db.GetCollection<UserDataDB>("users");
     public ILiteCollection<CachedImageDB>   CachedImages   => _db.GetCollection<CachedImageDB>("cached_images");
     public ILiteCollection<RankingDB>       Rankings       => _db.GetCollection<RankingDB>("rankings");
     public ILiteCollection<PendingUploadDB> PendingUploads => _db.GetCollection<PendingUploadDB>("pending_uploads");
+
+    // ── Collection nova: questões ──────────────────────────────────────────────
+    public ILiteCollection<QuestionDB>      Questions      => _db.GetCollection<QuestionDB>("questions");
 
     public void Initialize()  { IsInitialized = true; }
 
