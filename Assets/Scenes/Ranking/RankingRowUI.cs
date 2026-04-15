@@ -17,7 +17,6 @@ public class RankingRowUI : MonoBehaviour
     [Header("Profile Image")]
     [SerializeField] private ProfileImageLoader imageLoader;
 
-    public string UserId { get; private set; } = "";
     private bool _isExtraRow = false;
 
     // ─────────────────────────────────────────────────────────
@@ -34,17 +33,15 @@ public class RankingRowUI : MonoBehaviour
             Debug.LogError($"[RankingRowUI] Componentes de texto obrigatórios ausentes em '{gameObject.name}'!");
     }
 
-    public void Setup(int rank, string userId, string userName,
+    public void Setup(int rank, string userName,
                       int totalScore, int weekScore,
-                      string profileImageUrl, bool isCurrentUser)
+                      string profileImageUrl)
     {
         if (imageLoader == null)
         {
             Debug.LogError($"[RankingRowUI] Setup abortado — ProfileImageLoader ausente para '{userName}'");
             return;
         }
-
-        UserId = userId;
 
         rankText.text     = _isExtraRow ? "..." : $"{rank}";
         nickNameText.text = userName;
@@ -69,13 +66,6 @@ public class RankingRowUI : MonoBehaviour
     {
         if (totalScoreText != null) totalScoreText.text = $"{totalScore}";
         if (weekScoreText  != null) weekScoreText.text  = $"{weekScore}";
-    }
-
-    public void SetupAsExtraRow(int actualRank, string userName,
-                                int totalScore, int weekScore, string profileImageUrl)
-    {
-        _isExtraRow = true;
-        Setup(actualRank, "", userName, totalScore, weekScore, profileImageUrl, true);
     }
 
     // ─────────────────────────────────────────────────────────
