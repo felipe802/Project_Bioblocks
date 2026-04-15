@@ -12,41 +12,7 @@ public class RankingRepository : IRankingRepository
     // ─────────────────────────────────────────────────────────
     // IRankingRepository
     // ─────────────────────────────────────────────────────────
-    public async Task<Ranking> GetCurrentUserRankingAsync()
-    {
-        if (!_auth.IsUserLoggedIn())
-        {
-            Debug.LogError("[RankingRepository] Usuário não autenticado.");
-            return null;
-        }
-
-        string userId = _auth.CurrentUserId;
-
-        try
-        {
-            DocumentSnapshot snap = await _db
-                .Collection("Rankings")
-                .Document(userId)
-                .GetSnapshotAsync();
-
-            if (!snap.Exists)
-            {
-                Debug.LogWarning($"[RankingRepository] Rankings/{userId} não encontrado.");
-                return null;
-            }
-
-            Ranking ranking = snap.ConvertTo<Ranking>();
-            ranking.UserId  = userId;
-            return ranking;
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"[RankingRepository] GetCurrentUserRanking falhou: {e.Message}");
-            throw;
-        }
-    }
-
-    public async Task<List<Ranking>> GetRankingsAsync(int limit = 50)
+public async Task<List<Ranking>> GetRankingsAsync(int limit = 50)
     {
         try
         {
@@ -96,7 +62,6 @@ public class RankingRepository : IRankingRepository
             try
             {
                 Ranking ranking = doc.ConvertTo<Ranking>();
-                ranking.UserId  = doc.Id;   // chave do documento = userId
                 result.Add(ranking);
             }
             catch (Exception e)

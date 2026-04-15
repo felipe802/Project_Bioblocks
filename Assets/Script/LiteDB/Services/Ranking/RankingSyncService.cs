@@ -47,10 +47,6 @@ public class RankingSyncService : MonoBehaviour
         return true;
     }
 
-    // -------------------------------------------------------
-    // API pública
-    // -------------------------------------------------------
-
     /// <summary>
     /// Retorna rankings com fallback offline.
     /// Com internet: usa cache LiteDB + sync em background se stale.
@@ -87,37 +83,6 @@ public class RankingSyncService : MonoBehaviour
     }
 
     /// <summary>
-    /// Retorna o ranking do usuário atual com fallback offline.
-    /// </summary>
-    public async Task<Ranking> GetCurrentUserRankingWithFallback(string userId)
-    {
-        if (!EnsureInitialized() || string.IsNullOrEmpty(userId)) return null;
-
-        // Com internet — busca do Firestore
-        if (_connectivity != null && _connectivity.IsOnline)
-        {
-            try
-            {
-                var remote = await _remoteRepo.GetCurrentUserRankingAsync();
-                if (remote != null)
-                {
-                    SaveRankingToCache(remote);
-                    return remote;
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning($"[RankingSyncService] Firestore indisponível: {e.Message}");
-            }
-        }
-
-        // Sem internet ou Firestore falhou — busca do LiteDB
-        Debug.Log("[RankingSyncService] Buscando ranking do usuário no cache local.");
-        var cached = _db?.Rankings.FindById(userId);
-        return cached?.ToDomain();
-    }
-
-    /// <summary>
     /// Força sync do Firestore — chamado pelo botão refresh na RankingScene.
     /// </summary>
     public async Task<bool> ForceRefresh()
@@ -135,7 +100,7 @@ public class RankingSyncService : MonoBehaviour
     // -------------------------------------------------------
     // Privados
     // -------------------------------------------------------
-    private List<Ranking> GetCachedRankings()
+    public List<Ranking> GetCachedRankings()
     {
         if (!EnsureInitialized()) return new List<Ranking>();
 
@@ -169,9 +134,20 @@ public class RankingSyncService : MonoBehaviour
             }
 
             // Salva no LiteDB — substitui tudo
-            _db?.Rankings.DeleteAll();
-            foreach (var ranking in rankings)
-                SaveRankingToCache(ranking);
+            var docs = rankings.Select(RankingDB.FromDomain).ToList();
+
+            _db.Database.BeginTrans();
+            try
+            {
+                _db.Rankings.DeleteAll();
+                _db.Rankings.Upsert(docs);
+                _db.Database.Commit();
+            }
+            catch
+            {
+                _db.Database.Rollback();
+                throw;
+            }
 
             _lastSyncAt = DateTime.UtcNow;
             Debug.Log($"[RankingSyncService] {rankings.Count} rankings sincronizados.");
@@ -188,20 +164,7 @@ public class RankingSyncService : MonoBehaviour
         }
     }
 
-    private void SaveRankingToCache(Ranking ranking)
-    {
-        if (ranking == null || string.IsNullOrEmpty(ranking.UserId)) return;
-        try
-        {
-            _db?.Rankings.Upsert(RankingDB.FromDomain(ranking));
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"[RankingSyncService] Erro ao salvar no cache: {e.Message}");
-        }
-    }
-
-    private bool IsCacheStale()
+  private bool IsCacheStale()
     {
         if (_lastSyncAt == DateTime.MinValue) return true;
         return (DateTime.UtcNow - _lastSyncAt).TotalMinutes > CACHE_VALID_MINUTES;

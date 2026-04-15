@@ -24,7 +24,6 @@ public class RankingManager : MonoBehaviour
 
     // ─── Estado interno ───────────────────────────────────────
     protected IRankingRepository _rankingRepository;
-    protected Ranking            _currentUserRanking;  // entrada do usuário logado
     protected List<Ranking>      _rankings;
 
     private INavigationService _navigation;
@@ -48,11 +47,6 @@ public class RankingManager : MonoBehaviour
         InitializeWeekResetCountdown();
     }
 
-    protected virtual void OnDestroy()
-    {
-        UserDataStore.OnUserDataChanged -= OnUserDataChanged;
-    }
-
     // ─────────────────────────────────────────────────────────
     // Inicialização
     // ─────────────────────────────────────────────────────────
@@ -68,12 +62,22 @@ public class RankingManager : MonoBehaviour
     protected virtual void InitializeRepository()
     {
         bool debugMode = BioBlocksSettings.Instance != null
-                      && BioBlocksSettings.Instance.IsDebugMode();
+                    && BioBlocksSettings.Instance.IsDebugMode();
 
         _rankingRepository = debugMode
             ? (IRankingRepository) new FakeRankingRepository()
             : new RankingRepository();
 
+        // Popula a tabela imediatamente com o cache — sem await, sem flash
+        var syncService = AppContext.RankingSync;
+        if (syncService != null)
+        {
+            _rankings = syncService.GetCachedRankings();
+            if (_rankings != null && _rankings.Count > 0)
+                UpdateRankingTable();
+        }
+
+        // Verifica staleness e atualiza em background
         _ = InitializeAsync();
     }
 
@@ -82,30 +86,17 @@ public class RankingManager : MonoBehaviour
         try
         {
             var syncService = AppContext.RankingSync;
-            string userId   = AppContext.Auth?.CurrentUserId ?? "";
-
-            // Ranking do usuário atual
-            if (syncService != null && !string.IsNullOrEmpty(userId))
-                _currentUserRanking = await syncService
-                                            .GetCurrentUserRankingWithFallback(userId);
-            else
-                _currentUserRanking = await _rankingRepository.GetCurrentUserRankingAsync();
-
-            if (_currentUserRanking == null)
-                Debug.LogWarning("[RankingManager] Ranking do usuário não encontrado.");
-
-            UserDataStore.OnUserDataChanged += OnUserDataChanged;
-
-            // Rankings gerais
             if (syncService != null)
-                _rankings = await syncService.GetRankingsWithFallback();
+            {
+                var fresh = await syncService.GetRankingsWithFallback();
+                if (fresh != null && fresh.Count > 0)
+                {
+                    _rankings = fresh;
+                    UpdateRankingTable();
+                }
+            }
             else
                 await FetchRankings();
-
-            if (_rankings != null && _rankings.Count > 0)
-                UpdateRankingTable();
-            else
-                Debug.LogWarning("[RankingManager] Sem rankings disponíveis.");
         }
         catch (Exception e)
         {
@@ -115,24 +106,6 @@ public class RankingManager : MonoBehaviour
         {
             ShowLoadingIndicator(false);
         }
-    }
-
-    // ─────────────────────────────────────────────────────────
-    // Eventos
-    // ─────────────────────────────────────────────────────────
-    protected virtual void OnUserDataChanged(UserData userData)
-    {
-        if (userData == null) return;
-
-        // Atualiza a entrada local para refletir mudanças de score
-        if (_currentUserRanking != null)
-        {
-            _currentUserRanking.userScore     = userData.Score;
-            _currentUserRanking.userWeekScore = userData.WeekScore;
-        }
-
-        // Atualiza apenas a linha do usuário já visível — sem novo fetch Firebase
-        UpdateCurrentUserRowIfVisible();
     }
 
     // ─────────────────────────────────────────────────────────
@@ -182,81 +155,30 @@ public class RankingManager : MonoBehaviour
         foreach (Transform child in rankingTableContent)
             Destroy(child.gameObject);
 
-        string currentUserId = AppContext.Auth.CurrentUserId;
-        var    top20         = _rankings.Take(20).ToList();
+        var top20 = _rankings.Take(20).ToList();
 
         for (int i = 0; i < top20.Count; i++)
         {
-            var  ranking       = top20[i];
-            bool isCurrentUser = ranking.UserId == currentUserId;
-            bool applyStyle    = isCurrentUser && (i + 1) > 3;
-            CreateRankingRow(i + 1, ranking, applyStyle);
-        }
-
-        // Usuário fora do top-20: adiciona linha extra no final
-        bool userInTop20 = top20.Any(r => r.UserId == currentUserId);
-        if (!userInTop20)
-        {
-            int     userRank    = _rankings.FindIndex(r => r.UserId == currentUserId) + 1;
-            Ranking userRanking = _rankings.Find(r => r.UserId == currentUserId);
-
-            if (userRanking != null && userRank > 20)
-            {
-                GameObject go    = Instantiate(rankingRowPrefab, rankingTableContent);
-                var        rowUI = go.GetComponent<RankingRowUI>();
-                rowUI?.SetupAsExtraRow(userRank, userRanking.userName,
-                    userRanking.userScore, userRanking.userWeekScore,
-                    userRanking.profileImageUrl);
-            }
+            CreateRankingRow(i + 1, top20[i], false);
         }
 
         Canvas.ForceUpdateCanvases();
         LayoutRebuilder.ForceRebuildLayoutImmediate(rankingTableContent);
 
-        if (scrollRect != null)
-            StartCoroutine(ScrollToCurrentUser(currentUserId));
-    }
-
-    private void UpdateCurrentUserRowIfVisible()
-    {
-        if (_currentUserRanking == null) return;
-
-        string currentUserId = AppContext.Auth.CurrentUserId;
-
-        foreach (Transform child in rankingTableContent)
-        {
-            var row = child.GetComponent<RankingRowUI>();
-            if (row != null && row.UserId == currentUserId)
-            {
-                row.UpdateScores(_currentUserRanking.userScore, _currentUserRanking.userWeekScore);
-                return;
-            }
-        }
-    }
-
+    }    
+    
     protected virtual void CreateRankingRow(int rank, Ranking ranking, bool isCurrentUser)
     {
         GameObject rowGO = Instantiate(rankingRowPrefab, rankingTableContent);
-        var        rowUI = rowGO.GetComponent<RankingRowUI>();
+        var rowUI = rowGO.GetComponent<RankingRowUI>();
 
         if (rowUI != null)
-            rowUI.Setup(rank, ranking.UserId, ranking.userName,
+            rowUI.Setup(rank, ranking.userName,
                         ranking.userScore, ranking.userWeekScore,
                         ranking.profileImageUrl, isCurrentUser);
         else
             Debug.LogError("[RankingManager] RankingRowUI não encontrado no prefab!");
-    }
-
-    protected virtual IEnumerator ScrollToCurrentUser(string currentUserId)
-    {
-        yield return new WaitForEndOfFrame();
-
-        int userRank = _rankings.FindIndex(r => r.UserId == currentUserId) + 1;
-        if (userRank > 15)
-            scrollRect.verticalNormalizedPosition = 0f;
-    }
-
-    private void ShowLoadingIndicator(bool show)
+    }    private void ShowLoadingIndicator(bool show)
     {
         if (loadingIndicator != null)
             loadingIndicator.SetActive(show);
