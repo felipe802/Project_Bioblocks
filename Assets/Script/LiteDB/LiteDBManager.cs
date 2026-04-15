@@ -31,27 +31,69 @@ public class LiteDBManager : MonoBehaviour, ILiteDBManager
     public void Initialize()
     {
         if (IsInitialized) return;
+
+        string path = System.IO.Path.Combine(Application.persistentDataPath, DB_NAME);
+
         try
         {
-            var mapper = new BsonMapper();
-            mapper.ResolveMember += (type, memberInfo, memberMapper) =>
-            {
-                if (memberMapper.DataType == typeof(DateTime))
-                {
-                    memberMapper.Serialize   = (obj, m) => new BsonValue(((DateTime)obj).ToUniversalTime());
-                    memberMapper.Deserialize = (val, m) => DateTime.SpecifyKind(val.AsDateTime, DateTimeKind.Utc);
-                }
-            };
-
-            string path = System.IO.Path.Combine(Application.persistentDataPath, DB_NAME);
-            _db = new LiteDatabase(path, mapper);
-            EnsureIndexes();
-            IsInitialized = true;
+            OpenDatabase(path);
         }
         catch (Exception e)
         {
-            Debug.LogError($"[LiteDBManager] Falha ao abrir banco: {e.Message}");
-            throw;
+            // Banco corrompido (ex: arquivo de log órfão após deleção manual).
+            // Deleta todos os arquivos relacionados e cria banco limpo.
+            Debug.LogWarning($"[LiteDBManager] Banco corrompido ({e.Message}) — recriando banco limpo...");
+            DeleteDatabaseFiles(path);
+
+            try
+            {
+                OpenDatabase(path);
+                Debug.Log("[LiteDBManager] Banco recriado com sucesso.");
+            }
+            catch (Exception e2)
+            {
+                Debug.LogError($"[LiteDBManager] Falha ao recriar banco: {e2.Message}");
+                throw;
+            }
+        }
+    }
+
+    private void OpenDatabase(string path)
+    {
+        var mapper = new BsonMapper();
+        mapper.ResolveMember += (type, memberInfo, memberMapper) =>
+        {
+            if (memberMapper.DataType == typeof(DateTime))
+            {
+                memberMapper.Serialize   = (obj, m) => new BsonValue(((DateTime)obj).ToUniversalTime());
+                memberMapper.Deserialize = (val, m) => DateTime.SpecifyKind(val.AsDateTime, DateTimeKind.Utc);
+            }
+        };
+
+        // Fecha handle anterior antes de abrir novo (evita leaks no recovery)
+        _db?.Dispose();
+        _db = null;
+
+        _db = new LiteDatabase(path, mapper);
+        EnsureIndexes();
+        IsInitialized = true;
+    }
+
+    private static void DeleteDatabaseFiles(string dbPath)
+    {
+        string[] relatedFiles =
+        {
+            dbPath,
+            dbPath.Replace(".db", "-log.db"),
+            dbPath.Replace(".db", "-tmp.db")
+        };
+        foreach (var file in relatedFiles)
+        {
+            if (System.IO.File.Exists(file))
+            {
+                System.IO.File.Delete(file);
+                Debug.Log($"[LiteDBManager] Arquivo deletado: {file}");
+            }
         }
     }
 

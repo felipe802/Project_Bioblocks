@@ -29,14 +29,21 @@ public class QuestionLocalRepository : MonoBehaviour, IQuestionLocalRepository
 
         try
         {
-            int saved = 0;
-            foreach (var q in questions)
+            var docs = questions.Select(QuestionDB.FromDomain).ToList();
+
+            // Usa transação para salvar em lote — mais rápido e atômico
+            _db.Database.BeginTrans();
+            try
             {
-                var doc = QuestionDB.FromDomain(q);
-                _db.Questions.Upsert(doc);   // Insert ou Update baseado no GlobalId
-                saved++;
+                int saved = _db.Questions.Upsert(docs);
+                _db.Database.Commit();
+                Debug.Log($"[QuestionLocalRepository] {saved} questões salvas/atualizadas no LiteDB.");
             }
-            Debug.Log($"[QuestionLocalRepository] {saved} questões salvas/atualizadas no LiteDB.");
+            catch
+            {
+                _db.Database.Rollback();
+                throw;
+            }
         }
         catch (Exception e)
         {

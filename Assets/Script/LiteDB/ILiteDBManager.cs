@@ -6,11 +6,14 @@ public interface ILiteDBManager
     void Initialize();
     void Close();
 
-    ILiteCollection<UserDataDB>     Users          { get; }
-    ILiteCollection<CachedImageDB>  CachedImages   { get; }
-    ILiteCollection<RankingDB>      Rankings       { get; }
+    // ── Acesso direto ao banco (necessário para transações) ────────────────────
+    LiteDatabase Database { get; }
+
+    ILiteCollection<UserDataDB>      Users          { get; }
+    ILiteCollection<CachedImageDB>   CachedImages   { get; }
+    ILiteCollection<RankingDB>       Rankings       { get; }
     ILiteCollection<PendingUploadDB> PendingUploads { get; }
 
     // ── Novo: cache de questões ────────────────────────────────────────────────
-    ILiteCollection<QuestionDB>     Questions      { get; }
+    ILiteCollection<QuestionDB>      Questions      { get; }
 }

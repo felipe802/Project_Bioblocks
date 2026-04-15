@@ -34,6 +34,9 @@ public class FakeLiteDBManager : ILiteDBManager
 
     public bool IsInitialized { get; private set; }
 
+    // ── Acesso direto ao banco (necessário para transações) ────────────────────
+    public LiteDatabase Database => _db ?? throw new Exception("[FakeLiteDBManager] Banco não inicializado.");
+
     // ── Collections existentes ─────────────────────────────────────────────────
     public ILiteCollection<UserDataDB>      Users          => _db.GetCollection<UserDataDB>("users");
     public ILiteCollection<CachedImageDB>   CachedImages   => _db.GetCollection<CachedImageDB>("cached_images");
