@@ -1,5 +1,4 @@
 // Assets/Editor/Tests/QuestionSetManagerTests.cs
-// Testes unitários para QuestionSetManager.
 //
 // Para rodar: Window → General → Test Runner → EditMode → Run All
 //
@@ -16,7 +15,6 @@ public class QuestionSetManagerTests
     // -------------------------------------------------------
     // Isolamento — restaura o estado padrão antes e após cada teste
     // -------------------------------------------------------
-
     [SetUp]
     public void SetUp()
     {
@@ -33,7 +31,6 @@ public class QuestionSetManagerTests
     // =======================================================
     // Estado inicial
     // =======================================================
-
     [Test]
     public void GetCurrentQuestionSet_EstadoInicial_RetornaBiochem()
     {
@@ -45,7 +42,6 @@ public class QuestionSetManagerTests
     // =======================================================
     // Round-trip: Set → Get para cada valor do enum
     // =======================================================
-
     [Test]
     public void SetAndGet_AcidsBase_RoundTrip()
     {
@@ -119,7 +115,6 @@ public class QuestionSetManagerTests
     // =======================================================
     // Troca de valor
     // =======================================================
-
     [Test]
     public void Set_TrocaDeValor_GetRefleteUltimoSet()
     {

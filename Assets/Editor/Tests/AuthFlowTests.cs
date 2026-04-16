@@ -2,9 +2,6 @@
 //
 // Testes de fluxo para RegisterManager e LoginManager.
 //
-// Esses testes existem para detectar regressões nos fluxos críticos de
-// autenticação sempre que partes relacionadas do código forem modificadas.
-//
 // O que É testado:
 //   Registro:
 //   ✅ Campos obrigatórios vazios → exibe feedback de erro
@@ -79,7 +76,6 @@ public class AuthFlowTests
     // =======================================================================
     // Helpers — cria managers com UI mínima funcional
     // =======================================================================
-
     private (RegisterManager manager, GameObject go, SpyFeedbackManager spy) CreateRegisterManager(
         string name = "Test", string nick = "TestUser",
         string email = "test@test.com", string password = "123456")
@@ -136,7 +132,6 @@ public class AuthFlowTests
     // =======================================================================
     // REGISTRO — testes
     // =======================================================================
-
     [UnityTest]
     public IEnumerator Register_CamposVazios_ExibeFeedbackDeErro()
     {
@@ -190,7 +185,9 @@ public class AuthFlowTests
         Assert.AreEqual(userId, UserDataStore.CurrentUserData.UserId);
 
         Object.DestroyImmediate(go);
-    }    [UnityTest]
+    }    
+    
+    [UnityTest]
     public IEnumerator Register_Sucesso_ChamaForceUpdateDeAnsweredQuestions()
     {
         var userId   = "new-user-id-2";
@@ -273,7 +270,6 @@ public class AuthFlowTests
     // =======================================================================
     // LOGIN — testes
     // =======================================================================
-
     [UnityTest]
     public IEnumerator Login_CamposVazios_ExibeFeedbackSemChamarAuth()
     {

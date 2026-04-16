@@ -25,8 +25,6 @@ public class AppContext : MonoBehaviour
     public static PendingUploadSyncService      PendingUploadSync { get; private set; }
     public static RankingSyncService            RankingSync       { get; private set; }
     public static ConnectivityMonitor           Connectivity      { get; private set; }
-
-    // ── Novos serviços de questões ─────────────────────────────────────────────
     public static IFirestoreQuestionRepository  QuestionFirestore { get; private set; }
     public static IQuestionLocalRepository      QuestionLocal     { get; private set; }
     public static IQuestionSyncService          QuestionSync      { get; private set; }
@@ -103,8 +101,6 @@ public class AppContext : MonoBehaviour
             var pendingUploadSync     = GetComponent<PendingUploadSyncService>();
             var rankingSyncSvc        = GetComponent<RankingSyncService>();
             var connectivityMonitor   = GetComponent<ConnectivityMonitor>();
-
-            // ── Novos componentes de questões ──────────────────────────────────
             var questionFirestoreRepo = GetComponent<FirestoreQuestionRepository>();
             var questionLocalRepo     = GetComponent<QuestionLocalRepository>();
             var questionSyncSvc       = GetComponent<QuestionSyncService>();
@@ -126,8 +122,6 @@ public class AppContext : MonoBehaviour
             if (pendingUploadSync   == null) throw new Exception("[AppContext] PendingUploadSyncService não encontrado.");
             if (rankingSyncSvc      == null) throw new Exception("[AppContext] RankingSyncService não encontrado.");
             if (connectivityMonitor == null) throw new Exception("[AppContext] ConnectivityMonitor não encontrado.");
-
-            // ── Validações novas ───────────────────────────────────────────────
             if (questionFirestoreRepo == null) throw new Exception("[AppContext] FirestoreQuestionRepository não encontrado.");
             if (questionLocalRepo     == null) throw new Exception("[AppContext] QuestionLocalRepository não encontrado.");
             if (questionSyncSvc       == null) throw new Exception("[AppContext] QuestionSyncService não encontrado.");
@@ -187,8 +181,6 @@ public class AppContext : MonoBehaviour
             PendingUploadSync = pendingUploadSync;
             RankingSync       = rankingSyncSvc;
             Connectivity      = connectivityMonitor;
-
-            // ── 10. Expõe novos serviços de questões ───────────────────────────
             QuestionFirestore = questionFirestoreRepo;
             QuestionLocal     = questionLocalRepo;
             QuestionSync      = questionSyncSvc;
