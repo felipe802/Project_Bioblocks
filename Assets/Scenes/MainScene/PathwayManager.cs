@@ -31,13 +31,14 @@ public class PathwayManager : MonoBehaviour
 
         AnsweredQuestionsManager.OnAnsweredQuestionsUpdated += HandleAnsweredQuestionsUpdated;
 
+        // AppContext.Statistics já foi inicializado antes de IsReady = true.
+        // Se por algum motivo ainda não estiver pronto, inicializa e aguarda.
         if (_statistics.IsInitialized)
         {
             UpdateAnsweredQuestionsPercentages();
         }
         else
         {
-            DatabaseStatisticsManager.OnStatisticsReady += OnDatabaseStatisticsReady;
             StartCoroutine(InitializeDatabaseStatistics());
         }
     }
@@ -45,7 +46,6 @@ public class PathwayManager : MonoBehaviour
     private void OnDestroy()
     {
         AnsweredQuestionsManager.OnAnsweredQuestionsUpdated -= HandleAnsweredQuestionsUpdated;
-        DatabaseStatisticsManager.OnStatisticsReady -= OnDatabaseStatisticsReady;
     }
 
     // -------------------------------------------------------
@@ -71,12 +71,7 @@ public class PathwayManager : MonoBehaviour
         var task = (_statistics as DatabaseStatisticsManager)?.Initialize();
         if (task == null) yield break;
         while (!task.IsCompleted) yield return null;
-    }
-
-    private void OnDatabaseStatisticsReady()
-    {
         UpdateAnsweredQuestionsPercentages();
-        DatabaseStatisticsManager.OnStatisticsReady -= OnDatabaseStatisticsReady;
     }
 
     // -------------------------------------------------------
@@ -101,8 +96,8 @@ public class PathwayManager : MonoBehaviour
     {
         if (UserDataStore.CurrentUserData == null) return;
 
-        string userId = UserDataStore.CurrentUserData.UserId;
-        var userCounts = AnsweredQuestionsListStore.GetAnsweredQuestionsCountForUser(userId);
+        string userId    = UserDataStore.CurrentUserData.UserId;
+        var userCounts   = AnsweredQuestionsListStore.GetAnsweredQuestionsCountForUser(userId);
 
         string[] allDatabases =
         {
@@ -120,9 +115,23 @@ public class PathwayManager : MonoBehaviour
 
         foreach (string databankName in allDatabases)
         {
-            int count = userCounts.ContainsKey(databankName) ? userCounts[databankName] : 0;
+            int count          = userCounts.ContainsKey(databankName) ? userCounts[databankName] : 0;
             int totalQuestions = QuestionBankStatistics.GetTotalQuestions(databankName);
-            if (totalQuestions <= 0) totalQuestions = 50;
+
+            // Estatísticas ainda não carregadas — pula para não sobrescrever com 0%
+            // O CircularProgressIndicator será atualizado pelo OnAnsweredQuestionsUpdated
+            // quando as estatísticas estiverem prontas
+            if (totalQuestions <= 0)
+            {
+                // Só seta 0% explicitamente se confirmamos que não há questões respondidas
+                if (count == 0)
+                {
+                    string progressObjectName0 = $"{databankName}Porcentage";
+                    var go0 = GameObject.Find(progressObjectName0);
+                    go0?.GetComponent<CircularProgressIndicator>()?.SetProgress(0);
+                }
+                continue;
+            }
 
             int percentageAnswered = Mathf.Min((count * 100) / totalQuestions, 100);
 
@@ -139,7 +148,7 @@ public class PathwayManager : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning($"GameObject {progressObjectName} não encontrado");
+                Debug.LogWarning($"[PathwayManager] GameObject {progressObjectName} não encontrado");
             }
         }
     }

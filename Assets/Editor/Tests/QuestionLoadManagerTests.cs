@@ -1,20 +1,12 @@
 // Assets/Editor/Tests/QuestionLoadManagerTests.cs
 // Testes unitários para QuestionLoadManager — fluxo de carregamento de questões.
 //
-// QuestionLoadManager usa AppContext.AnsweredQuestions, o que permite
-// testá-lo via AppContext.OverrideForTests + FakeAnsweredQuestionsManager.
-//
 // O que É testado:
-//   - LoadQuestionsFromDatabase: filtragem, cálculo de nível, remoção de respondidas
+//   - LoadQuestionsForSet: leitura do LiteDB, filtragem, cálculo de nível
 //   - Integração com QuestionBankStatistics (SetTotalQuestions, SetQuestionsPerLevel)
-//   - Guards: database nulo, lista vazia, usuário sem UserId
-//
-// O que NÃO é testado:
-//   - LoadQuestionsForSet: usa FindObjectsByType — requer cena montada
-//   - Initialize/WaitForAnsweredQuestionsManager: usa Task.Delay em loop
-//
-// Para rodar: Window → General → Test Runner → PlayMode → Run All
-// (requer Play Mode pois LoadQuestionsFromDatabase é async com Task.Yield)
+//   - Guards: LiteDB vazio, usuário sem UserId
+//   - Progressão de níveis: sem respondidas → nível 1, nível 1 completo → nível 2
+//   - Remoção de questões já respondidas do resultado
 
 using NUnit.Framework;
 using System.Collections;
@@ -27,18 +19,27 @@ using QuestionSystem;
 [TestFixture]
 public class QuestionLoadManagerTests
 {
-    private GameObject               _managerGO;
-    private QuestionLoadManager      _loadManager;
+    private GameObject _managerGO;
+    private QuestionLoadManager _loadManager;
     private ConfigurableFakeAnsweredQuestionsManager _fakeAnswered;
+    private FakeQuestionSyncService _fakeSync;
 
-    private const string DB_NAME = "BioQuestions";
+    private const string DB_NAME = "AminoacidQuestionDatabase";
     private const string USER_ID = "user-load-test";
+
+    // QuestionSet que mapeia para DB_NAME no TopicToDatabankName
+    private const QuestionSet TARGET_SET = QuestionSet.aminoacids;
 
     [SetUp]
     public void Setup()
     {
         _fakeAnswered = new ConfigurableFakeAnsweredQuestionsManager();
-        AppContext.OverrideForTests(answeredQuestions: _fakeAnswered);
+        _fakeSync     = new FakeQuestionSyncService { IsCacheReady = true };
+
+        AppContext.OverrideForTests(
+            answeredQuestions: _fakeAnswered,
+            questionSync:      _fakeSync
+        );
 
         var user = new UserData(USER_ID, "Tester", "Tester", "t@test.com");
         UserDataStore.CurrentUserData = user;
@@ -46,7 +47,7 @@ public class QuestionLoadManagerTests
 
         QuestionBankStatistics.ClearAllStatistics();
 
-        _managerGO   = new GameObject("QuestionLoadManager");
+        _managerGO = new GameObject("QuestionLoadManager");
         _loadManager = _managerGO.AddComponent<QuestionLoadManager>();
         _loadManager.databankName = DB_NAME;
     }
@@ -56,69 +57,51 @@ public class QuestionLoadManagerTests
     {
         QuestionBankStatistics.ClearAllStatistics();
         UserDataStore.Clear();
+        _fakeSync.Reset();
+        _fakeAnswered.Reset();
         Object.DestroyImmediate(_managerGO);
     }
 
     // -------------------------------------------------------
-    // Helper: cria IQuestionDatabase fake com questões
+    // Helper
     // -------------------------------------------------------
-
-    private static FakeQuestionDatabase MakeDB(
-        int nivel1, int nivel2 = 0, int nivel3 = 0,
-        string name = DB_NAME)
+    private void SetupLiteDBWithQuestions(int nivel1, int nivel2 = 0, int nivel3 = 0)
     {
-        var db = new FakeQuestionDatabase
-        {
-            IsInDevelopmentMode = false,
-            DatabaseName        = name
-        };
-        db.Questions.AddRange(
-            QuestionTestHelpers.MakeQuestions(nivel1, nivel2, nivel3, databankName: name));
-        return db;
-    }
-
-    // -------------------------------------------------------
-    // Expõe LoadQuestionsFromDatabase via reflection
-    // (método privado — necessário para teste unitário isolado)
-    // -------------------------------------------------------
-
-    private System.Threading.Tasks.Task<List<Question>> InvokeLoadFromDatabase(
-        FakeQuestionDatabase db)
-    {
-        var method = typeof(QuestionLoadManager)
-            .GetMethod("LoadQuestionsFromDatabase",
-                System.Reflection.BindingFlags.NonPublic |
-                System.Reflection.BindingFlags.Instance);
-
-        return (System.Threading.Tasks.Task<List<Question>>)
-            method.Invoke(_loadManager, new object[] { db });
+        var questions = QuestionTestHelpers.MakeQuestions(nivel1, nivel2, nivel3, databankName: DB_NAME);
+        _fakeSync.SetQuestionsForDatabankName(DB_NAME, questions);
     }
 
     // =======================================================
-    // Guards de entrada
+    // Guard: LiteDB vazio
     // =======================================================
-
     [UnityTest]
-    public IEnumerator LoadQuestionsFromDatabase_DatabaseNulo_RetornaListaVazia()
+    public IEnumerator LoadQuestionsForSet_DatabaseNulo_RetornaListaVazia()
     {
-        LogAssert.Expect(LogType.Error, "[QuestionLoadManager] Database é null");
+        // Arrange — LiteDB retorna lista vazia para o banco
+        _fakeSync.SetQuestionsForDatabankName(DB_NAME, new List<Question>());
 
-        var task = InvokeLoadFromDatabase(null);
+        LogAssert.Expect(LogType.Error,
+            new System.Text.RegularExpressions.Regex(
+                @"\[QuestionLoadManager\] ❌ Nenhuma questão no LiteDB"));
+
+        // Act
+        var task = _loadManager.LoadQuestionsForSet(TARGET_SET);
         yield return new WaitUntil(() => task.IsCompleted);
 
+        // Assert
         Assert.AreEqual(0, task.Result.Count);
     }
 
     [UnityTest]
-    public IEnumerator LoadQuestionsFromDatabase_QuestoesVazias_RetornaListaVazia()
+    public IEnumerator LoadQuestionsForSet_QuestoesVazias_RetornaListaVazia()
     {
-        var db = FakeQuestionDatabase.Empty();
-        db.DatabaseName = DB_NAME;
-
+        // LiteDB sem dados para o banco
+        // (FakeQuestionSyncService retorna lista vazia por padrão)
         LogAssert.Expect(LogType.Error,
-            "[QuestionLoadManager] ❌ Database retornou lista nula ou vazia");
+            new System.Text.RegularExpressions.Regex(
+                @"\[QuestionLoadManager\] ❌ Nenhuma questão no LiteDB"));
 
-        var task = InvokeLoadFromDatabase(db);
+        var task = _loadManager.LoadQuestionsForSet(TARGET_SET);
         yield return new WaitUntil(() => task.IsCompleted);
 
         Assert.AreEqual(0, task.Result.Count);
@@ -127,77 +110,93 @@ public class QuestionLoadManagerTests
     // =======================================================
     // Sem userId — retorna apenas questões de nível 1
     // =======================================================
-
     [UnityTest]
-    public IEnumerator LoadQuestionsFromDatabase_SemUserId_RetornaApenasNivel1()
+    public IEnumerator LoadQuestionsForSet_SemUserId_RetornaApenasNivel1()
     {
+        // Arrange
         UserDataStore.CurrentUserData = new UserData(); // UserId vazio
-        var db = MakeDB(nivel1: 3, nivel2: 3);
+        SetupLiteDBWithQuestions(nivel1: 3, nivel2: 3);
 
-        var task = InvokeLoadFromDatabase(db);
+        LogAssert.Expect(LogType.Warning,
+            new System.Text.RegularExpressions.Regex(
+                @"\[QuestionLoadManager\] ⚠️ UserId não disponível"));
+
+        // Act
+        var task = _loadManager.LoadQuestionsForSet(TARGET_SET);
         yield return new WaitUntil(() => task.IsCompleted);
 
+        // Assert
         Assert.IsTrue(task.Result.All(q => q.questionLevel == 1 || q.questionLevel == 0),
             "Sem userId, apenas questões de nível 1 devem ser retornadas");
+        Assert.AreEqual(3, task.Result.Count);
     }
 
     // =======================================================
-    // Com userId — filtra respondidas e calcula nível
+    // Progressão de níveis
     // =======================================================
-
     [UnityTest]
-    public IEnumerator LoadQuestionsFromDatabase_SemRespondidas_RetornaNivel1()
+    public IEnumerator LoadQuestionsForSet_SemRespondidas_RetornaNivel1()
     {
-        // Nenhuma questão respondida → nível atual = 1
+        // Arrange
         _fakeAnswered.SetAnsweredQuestions(DB_NAME, new List<string>());
-        var db = MakeDB(nivel1: 3, nivel2: 3);
+        SetupLiteDBWithQuestions(nivel1: 3, nivel2: 3);
 
-        var task = InvokeLoadFromDatabase(db);
+        // Act
+        var task = _loadManager.LoadQuestionsForSet(TARGET_SET);
         yield return new WaitUntil(() => task.IsCompleted);
 
+        // Assert
         Assert.IsTrue(task.Result.All(q => q.questionLevel == 1),
             "Sem respondidas, todas as questões retornadas devem ser de nível 1");
         Assert.AreEqual(3, task.Result.Count);
     }
 
     [UnityTest]
-    public IEnumerator LoadQuestionsFromDatabase_Nivel1Completo_RetornaNivel2()
+    public IEnumerator LoadQuestionsForSet_Nivel1Completo_RetornaNivel2()
     {
-        // Questões 1, 2, 3 (nível 1) respondidas → avança para nível 2
+        // Arrange — questões 1, 2, 3 (nível 1) respondidas → avança para nível 2
         _fakeAnswered.SetAnsweredQuestions(DB_NAME, new List<string> { "1", "2", "3" });
-        var db = MakeDB(nivel1: 3, nivel2: 3);
+        SetupLiteDBWithQuestions(nivel1: 3, nivel2: 3);
 
-        var task = InvokeLoadFromDatabase(db);
+        // Act
+        var task = _loadManager.LoadQuestionsForSet(TARGET_SET);
         yield return new WaitUntil(() => task.IsCompleted);
 
+        // Assert
         Assert.IsTrue(task.Result.All(q => q.questionLevel == 2),
             "Com nível 1 completo, as questões retornadas devem ser de nível 2");
+        Assert.AreEqual(3, task.Result.Count);
     }
 
     [UnityTest]
-    public IEnumerator LoadQuestionsFromDatabase_RemoveQuestoesJaRespondidas()
+    public IEnumerator LoadQuestionsForSet_RemoveQuestoesJaRespondidas()
     {
-        // Questão 1 (nível 1) já foi respondida — não deve aparecer no resultado
+        // Arrange — questão 1 (nível 1) já foi respondida
         _fakeAnswered.SetAnsweredQuestions(DB_NAME, new List<string> { "1" });
-        var db = MakeDB(nivel1: 3);
+        SetupLiteDBWithQuestions(nivel1: 3);
 
-        var task = InvokeLoadFromDatabase(db);
+        // Act
+        var task = _loadManager.LoadQuestionsForSet(TARGET_SET);
         yield return new WaitUntil(() => task.IsCompleted);
 
+        // Assert
         bool temQ1 = task.Result.Any(q => q.questionNumber == 1);
-        Assert.IsFalse(temQ1, "Questão já respondida não deve aparecer na lista de retorno");
+        Assert.IsFalse(temQ1, "Questão já respondida não deve aparecer no resultado");
         Assert.AreEqual(2, task.Result.Count);
     }
 
     [UnityTest]
-    public IEnumerator LoadQuestionsFromDatabase_TodosRespondidos_RetornaListaVazia()
+    public IEnumerator LoadQuestionsForSet_TodosRespondidos_RetornaListaVazia()
     {
+        // Arrange
         _fakeAnswered.SetAnsweredQuestions(DB_NAME, new List<string> { "1", "2", "3" });
-        var db = MakeDB(nivel1: 3); // todos de nível 1, todos respondidos
+        SetupLiteDBWithQuestions(nivel1: 3);
 
-        var task = InvokeLoadFromDatabase(db);
+        // Act
+        var task = _loadManager.LoadQuestionsForSet(TARGET_SET);
         yield return new WaitUntil(() => task.IsCompleted);
 
+        // Assert
         Assert.AreEqual(0, task.Result.Count,
             "Com todas as questões respondidas, a lista deve estar vazia");
     }
@@ -205,29 +204,34 @@ public class QuestionLoadManagerTests
     // =======================================================
     // Integração com QuestionBankStatistics
     // =======================================================
-
     [UnityTest]
-    public IEnumerator LoadQuestionsFromDatabase_RegistraTotalNoBankStatistics()
+    public IEnumerator LoadQuestionsForSet_RegistraTotalNoBankStatistics()
     {
+        // Arrange
         _fakeAnswered.SetAnsweredQuestions(DB_NAME, new List<string>());
-        var db = MakeDB(nivel1: 3, nivel2: 2);
+        SetupLiteDBWithQuestions(nivel1: 3, nivel2: 2);
 
-        var task = InvokeLoadFromDatabase(db);
+        // Act
+        var task = _loadManager.LoadQuestionsForSet(TARGET_SET);
         yield return new WaitUntil(() => task.IsCompleted);
 
+        // Assert
         Assert.AreEqual(5, QuestionBankStatistics.GetTotalQuestions(DB_NAME),
             "QuestionBankStatistics deve receber o total de questões do banco");
     }
 
     [UnityTest]
-    public IEnumerator LoadQuestionsFromDatabase_RegistraQuestoesPorNivel()
+    public IEnumerator LoadQuestionsForSet_RegistraQuestoesPorNivel()
     {
+        // Arrange
         _fakeAnswered.SetAnsweredQuestions(DB_NAME, new List<string>());
-        var db = MakeDB(nivel1: 3, nivel2: 2, nivel3: 1);
+        SetupLiteDBWithQuestions(nivel1: 3, nivel2: 2, nivel3: 1);
 
-        var task = InvokeLoadFromDatabase(db);
+        // Act
+        var task = _loadManager.LoadQuestionsForSet(TARGET_SET);
         yield return new WaitUntil(() => task.IsCompleted);
 
+        // Assert
         Assert.AreEqual(3, QuestionBankStatistics.GetQuestionsForLevel(DB_NAME, 1));
         Assert.AreEqual(2, QuestionBankStatistics.GetQuestionsForLevel(DB_NAME, 2));
         Assert.AreEqual(1, QuestionBankStatistics.GetQuestionsForLevel(DB_NAME, 3));
@@ -236,10 +240,6 @@ public class QuestionLoadManagerTests
 
 // -------------------------------------------------------
 // Fake especializado para QuestionLoadManagerTests.
-// Sobrescreve FetchUserAnsweredQuestionsInTargetDatabase
-// para retornar questões configuradas por banco de dados.
-// Declarado como classe separada para não colidir com o
-// FakeAnsweredQuestionsManager do QuestionScoreManagerTests.
 // -------------------------------------------------------
 public class ConfigurableFakeAnsweredQuestionsManager : IAnsweredQuestionsManager
 {
@@ -250,6 +250,8 @@ public class ConfigurableFakeAnsweredQuestionsManager : IAnsweredQuestionsManage
 
     public void SetAnsweredQuestions(string databankName, List<string> answered)
         => _answeredByDb[databankName] = answered ?? new List<string>();
+
+    public void Reset() => _answeredByDb.Clear();
 
     public System.Threading.Tasks.Task<List<string>> FetchUserAnsweredQuestionsInTargetDatabase(string target)
     {

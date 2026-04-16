@@ -20,11 +20,28 @@ public class FakeFirestoreRepository : IFirestoreRepository
     // -------------------------------------------------------
     // Configuração
     // -------------------------------------------------------
+
+    /// <summary>
+    /// Adiciona usuário ao _users E ao _allUsers.
+    /// AreNicknameTaken retornará true para o nickname desse usuário.
+    /// Use quando quiser simular um nickname já existente.
+    /// </summary>
     public void SetFakeUser(UserData user)
     {
         _users[user.UserId] = user;
         if (!_allUsers.Exists(u => u.UserId == user.UserId))
             _allUsers.Add(user);
+    }
+
+    /// <summary>
+    /// Adiciona usuário apenas ao _users (para GetUserData).
+    /// NÃO adiciona ao _allUsers — AreNicknameTaken retornará false.
+    /// Use nos testes de registro bem-sucedido, onde o usuário
+    /// ainda não existe e será criado pelo RegisterUserAsync.
+    /// </summary>
+    public void SetFakeUserForGetUserData(UserData user)
+    {
+        _users[user.UserId] = user;
     }
 
     // -------------------------------------------------------

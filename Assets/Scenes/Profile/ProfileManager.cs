@@ -46,7 +46,6 @@ public class ProfileManager : MonoBehaviour
     // -------------------------------------------------------
     // Ciclo de vida
     // -------------------------------------------------------
-
     private void Start()
     {
         _firestore  = AppContext.Firestore;
@@ -91,8 +90,6 @@ public class ProfileManager : MonoBehaviour
     {
         UserDataStore.OnUserDataChanged -= OnUserDataChanged;
         AnsweredQuestionsManager.OnAnsweredQuestionsUpdated -= HandleAnsweredQuestionsUpdated;
-        DatabaseStatisticsManager.OnStatisticsReady -= OnDatabaseStatisticsReady;
-
         if (this != null && gameObject != null && gameObject.scene.isLoaded)
         {
             GameObject darkOverlay = GameObject.Find("DarkOverlay");
@@ -107,7 +104,6 @@ public class ProfileManager : MonoBehaviour
     // -------------------------------------------------------
     // Inicialização
     // -------------------------------------------------------
-
     private void InitializeAccountManager()
     {
         currentUserData = UserDataStore.CurrentUserData;
@@ -139,7 +135,6 @@ public class ProfileManager : MonoBehaviour
         }
         else
         {
-            DatabaseStatisticsManager.OnStatisticsReady += OnDatabaseStatisticsReady;
             StartCoroutine(InitializeDatabaseStatistics());
         }
     }
@@ -151,20 +146,14 @@ public class ProfileManager : MonoBehaviour
         if (task == null) yield break;
         while (!task.IsCompleted) yield return null;
         if (task.IsFaulted)
-            Debug.LogError($"Erro ao inicializar estatísticas: {task.Exception}");
-    }
-
-    private void OnDatabaseStatisticsReady()
-    {
-        Debug.Log("ProfileManager: Estatísticas prontas");
-        DisplayAnsweredQuestionsCount();
-        DatabaseStatisticsManager.OnStatisticsReady -= OnDatabaseStatisticsReady;
+            Debug.LogError($"[ProfileManager] Erro ao inicializar estatísticas: {task.Exception}");
+        else
+            DisplayAnsweredQuestionsCount();
     }
 
     // -------------------------------------------------------
     // UI
     // -------------------------------------------------------
-
     private void OnUserDataChanged(UserData userData)
     {
         currentUserData = userData;
@@ -243,7 +232,6 @@ public class ProfileManager : MonoBehaviour
     // -------------------------------------------------------
     // Navegação
     // -------------------------------------------------------
-    
     public void Navigate(string sceneName)
     {
         
@@ -323,7 +311,6 @@ public class ProfileManager : MonoBehaviour
     // -------------------------------------------------------
     // Delete Account
     // -------------------------------------------------------
-
     private IEnumerator DelayedStartDeleteAccount()
     {
         yield return new WaitForSeconds(0.1f);
@@ -517,7 +504,6 @@ public class ProfileManager : MonoBehaviour
     // -------------------------------------------------------
     // Helpers privados
     // -------------------------------------------------------
-
     private void CleanupOverlays()
     {
         if (deleteAccountDarkOverlay != null)

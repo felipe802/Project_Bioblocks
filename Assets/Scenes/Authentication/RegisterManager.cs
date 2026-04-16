@@ -3,7 +3,6 @@ using Firebase.Auth;
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
-using UnityEngine.SceneManagement;
 using System;
 using System.Threading.Tasks;
 
@@ -19,20 +18,19 @@ public class RegisterManager : MonoBehaviour
     [SerializeField] private FeedbackManager feedbackManager;
     [SerializeField] private LoadingSpinnerComponent loadingSpinner;
 
-    // -------------------------------------------------------
-    // Dependências — obtidas do AppContext no Start()
-    // -------------------------------------------------------
-    private IAuthRepository _auth;
+    private IAuthRepository    _auth;
     private IFirestoreRepository _firestore;
+    private INavigationService _navigation;
 
     private bool isProcessing = false;
 
     private void Start()
     {
-        _auth      = AppContext.Auth;
-        _firestore = AppContext.Firestore;
+        _auth       = AppContext.Auth;
+        _firestore  = AppContext.Firestore;
+        _navigation = AppContext.Navigation;
 
-        nickNameInput.contentType = TMP_InputField.ContentType.Standard;
+        nickNameInput.contentType    = TMP_InputField.ContentType.Standard;
         nickNameInput.characterLimit = 15;
         nickNameInput.onValueChanged.AddListener(ValidateNickname);
         registerButton.onClick.AddListener(HandleRegistration);
@@ -46,20 +44,23 @@ public class RegisterManager : MonoBehaviour
     {
         if (isProcessing) return;
 
+        // Validação síncrona antes do try — garante feedback imediato na main thread
+        // sem passar pelo catch/MainThreadDispatcher
+        if (string.IsNullOrEmpty(nickNameInput.text) ||
+            string.IsNullOrEmpty(nameInput.text)     ||
+            string.IsNullOrEmpty(emailInput.text)    ||
+            string.IsNullOrEmpty(passwordInput.text))
+        {
+            feedbackManager.ShowFeedback("Todos os campos são obrigatórios.", true);
+            return;
+        }
+
         isProcessing = true;
         SetAllButtonsInteractable(false);
         loadingSpinner?.ShowSpinner();
 
         try
         {
-            if (string.IsNullOrEmpty(nickNameInput.text) ||
-                string.IsNullOrEmpty(nameInput.text)     ||
-                string.IsNullOrEmpty(emailInput.text)    ||
-                string.IsNullOrEmpty(passwordInput.text))
-            {
-                throw new Exception("Todos os campossão obrigatórios.");
-            }
-
             bool nicknameExists = await _firestore.AreNicknameTaken(nickNameInput.text).ConfigureAwait(false);
             await Task.Yield();
 
@@ -88,31 +89,39 @@ public class RegisterManager : MonoBehaviour
                 throw new Exception("Erro: usuário criado mas ID não encontrado.");
 
             var userData = await _firestore.GetUserData(userId).ConfigureAwait(false);
-            await Task.Yield();
+            await Task.Yield(); // retorna ao main thread
 
             if (userData == null)
                 throw new Exception("Erro ao carregar dados do usuário recém-criado.");
 
             UserDataStore.CurrentUserData = userData;
+            Debug.Log("[RegisterManager] UserData definido. Iniciando ForceUpdate...");
             await Task.Delay(300);
             await AppContext.AnsweredQuestions.ForceUpdate().ConfigureAwait(false);
-            await Task.Yield();
-            loadingSpinner?.ShowSpinnerUntilSceneLoaded("PathwayScene");
-            SceneManager.LoadScene("PathwayScene");
+            Debug.Log("[RegisterManager] ForceUpdate concluído. Enfileirando LoadScene na main thread...");
+
+            // Task.Yield() não garante retorno à main thread quando ConfigureAwait(false)
+            // foi usado anteriormente na cadeia. MainThreadDispatcher.Enqueue garante.
+            MainThreadDispatcher.Enqueue(() =>
+            {
+                Debug.Log("[RegisterManager] Carregando PathwayScene na main thread...");
+                loadingSpinner?.ShowSpinnerUntilSceneLoaded("PathwayScene");
+                _navigation.NavigateTo("PathwayScene");
+            });
         }
         catch (FirebaseException e)
         {
             string errorMessage = GetFirebaseAuthErrorMessage(e);
+            Debug.LogWarning($"[RegisterManager] {errorMessage}");
             feedbackManager.ShowFeedback(errorMessage, true);
-            Debug.LogError(errorMessage);
             loadingSpinner?.HideSpinner();
             SetAllButtonsInteractable(true);
             isProcessing = false;
         }
         catch (Exception e)
         {
+            Debug.LogWarning($"[RegisterManager] {e.Message}");
             feedbackManager.ShowFeedback(e.Message, true);
-            Debug.LogError(e.Message);
             loadingSpinner?.HideSpinner();
             SetAllButtonsInteractable(true);
             isProcessing = false;
@@ -130,7 +139,7 @@ public class RegisterManager : MonoBehaviour
         isProcessing = true;
         SetAllButtonsInteractable(false);
         loadingSpinner?.ShowSpinnerUntilSceneLoaded("LoginView");
-        SceneManager.LoadScene("LoginView");
+        _navigation.NavigateTo("LoginView");
     }
 
     // -------------------------------------------------------

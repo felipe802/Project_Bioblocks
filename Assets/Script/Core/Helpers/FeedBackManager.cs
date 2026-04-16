@@ -9,7 +9,7 @@ public class FeedbackManager : MonoBehaviour
 
     private Coroutine hideFeedbackCoroutine;
 
-    public void ShowFeedback(string message, bool isError = false)
+    public virtual void ShowFeedback(string message, bool isError = false)
     {
         if (feedbackText == null)
         {
@@ -29,7 +29,7 @@ public class FeedbackManager : MonoBehaviour
         hideFeedbackCoroutine = StartCoroutine(HideFeedbackAfterDelay());
     }
 
-    public void HideFeedback()
+    public virtual void HideFeedback()
     {
         if (feedbackText != null)
         {
