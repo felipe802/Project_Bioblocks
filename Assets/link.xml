@@ -1,0 +1,13 @@
+<linker>
+  <assembly fullname="LiteDB">
+    <type fullname="*" preserve="all"/>
+  </assembly>
+  <assembly fullname="Assembly-CSharp">
+    <type fullname="QuestionDB"      preserve="all"/>
+    <type fullname="QuestionHintDB"  preserve="all"/>
+    <type fullname="RankingDB"       preserve="all"/>
+    <type fullname="UserDataDB"      preserve="all"/>
+    <type fullname="CachedImageDB"   preserve="all"/>
+    <type fullname="PendingUploadDB" preserve="all"/>
+  </assembly>
+</linker>

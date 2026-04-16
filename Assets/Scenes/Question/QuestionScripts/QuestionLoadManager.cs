@@ -60,141 +60,77 @@ public class QuestionLoadManager : MonoBehaviour
         {
             if (!isInitialized)
                 await Initialize();
- 
-            IQuestionDatabase database = FindQuestionDatabase(targetSet);
- 
-            if (database == null)
-            {
-                Debug.LogError($"[QuestionLoadManager] ❌ Nenhum database encontrado para: {targetSet}");
-                return new List<Question>();
-            }
- 
-            return await LoadQuestionsFromDatabase(database);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"[QuestionLoadManager] ❌ Erro em LoadQuestionsForSet: {e.Message}\n{e.StackTrace}");
-            return new List<Question>();
-        }
-    }
- 
-    private IQuestionDatabase FindQuestionDatabase(QuestionSet targetSet)
-    {
-        try
-        {
-            MonoBehaviour[] allBehaviours = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
- 
-            foreach (MonoBehaviour behaviour in allBehaviours)
-            {
-                if (behaviour is IQuestionDatabase database)
-                {
-                    if (database.GetQuestionSetType() == targetSet)
-                        return database;
-                }
-            }
- 
-            return null;
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"[QuestionLoadManager] Erro ao procurar database: {e.Message}");
-            return null;
-        }
-    }
- 
-    private async Task<List<Question>> LoadQuestionsFromDatabase(IQuestionDatabase database)
-    {
-        if (database == null)
-        {
-            Debug.LogError("[QuestionLoadManager] Database é null");
-            return new List<Question>();
-        }
- 
-        try
-        {
-            if (!AppContext.AnsweredQuestions.IsManagerInitialized)
-            {
-                Debug.LogError("[QuestionLoadManager] AnsweredQuestionsManager não está inicializado");
-                return new List<Question>();
-            }
- 
-            List<Question> allQuestions = QuestionFilterService.FilterQuestions(database);
- 
+
+            // Lê do LiteDB via QuestionSyncService —
+            // não depende mais de GameObjects de banco na cena
+            List<Question> allQuestions = AppContext.QuestionSync?
+                                              .GetQuestionsForDatabankName(databankName)
+                                          ?? new List<Question>();
+
             if (allQuestions == null || allQuestions.Count == 0)
             {
-                Debug.LogError("[QuestionLoadManager] ❌ Database retornou lista nula ou vazia");
+                Debug.LogError($"[QuestionLoadManager] ❌ Nenhuma questão no LiteDB para: {databankName}");
                 return new List<Question>();
             }
- 
-            Debug.Log($"\n📚 PASSO 1: BANCO LOCAL");
-            Debug.Log($"  Total de questões: {allQuestions.Count}");
- 
-            if (string.IsNullOrEmpty(databankName))
-            {
-                databankName = database.GetDatabankName();
-                Debug.Log($"  Nome do banco: {databankName}");
-            }
- 
+
+            Debug.Log($"\n📚 PASSO 1: LITEDB");
+            Debug.Log($"  Banco: {databankName} | Total: {allQuestions.Count}");
+
             int totalQuestions = allQuestions.Count;
             QuestionBankStatistics.SetTotalQuestions(databankName, totalQuestions);
- 
+
             var questionsByLevel = GetQuestionCountByLevel(allQuestions);
             QuestionBankStatistics.SetQuestionsPerLevel(databankName, questionsByLevel);
- 
+
             foreach (var kvp in questionsByLevel.OrderBy(x => x.Key))
                 Debug.Log($"    Nível {kvp.Key}: {kvp.Value} questões");
- 
+
             string userId = UserDataStore.CurrentUserData?.UserId;
- 
+
             if (string.IsNullOrEmpty(userId))
             {
-                Debug.LogWarning("[QuestionLoadManager] ⚠️ UserId não disponível, carregando apenas questões de nível 1");
-                allQuestions = allQuestions.Where(q => GetQuestionLevel(q) == 1).ToList();
-                questions = allQuestions;
+                Debug.LogWarning("[QuestionLoadManager] ⚠️ UserId não disponível — carregando nível 1");
+                questions = allQuestions.Where(q => GetQuestionLevel(q) == 1).ToList();
                 return questions;
             }
- 
-            // Busca questões respondidas diretamente pelo AppContext
-            string dbName = database.GetDatabankName();
+
             List<string> answeredQuestionsFromFirebase = await AppContext.AnsweredQuestions
-                .FetchUserAnsweredQuestionsInTargetDatabase(dbName);
- 
-            Debug.Log($"\n🔥 PASSO 2: FIREBASE (AnsweredQuestions)");
-            Debug.Log($"  Questões respondidas corretamente: {answeredQuestionsFromFirebase.Count}");
- 
+                .FetchUserAnsweredQuestionsInTargetDatabase(databankName);
+
+            Debug.Log($"\n🔥 PASSO 2: QUESTÕES RESPONDIDAS");
+            Debug.Log($"  Respondidas corretamente: {answeredQuestionsFromFirebase.Count}");
+
             if (answeredQuestionsFromFirebase.Count > 0 && answeredQuestionsFromFirebase.Count <= 20)
                 Debug.Log($"  IDs: [{string.Join(", ", answeredQuestionsFromFirebase)}]");
- 
+
             Debug.Log($"\n🔢 PASSO 3: CÁLCULO DO NÍVEL ATUAL");
- 
+
             int currentLevel = LevelCalculator.CalculateCurrentLevel(
-                allQuestions,
-                answeredQuestionsFromFirebase
-            );
- 
+                allQuestions, answeredQuestionsFromFirebase);
+
             HashSet<string> answeredSet = new HashSet<string>(answeredQuestionsFromFirebase);
- 
+
             List<Question> questionsNotAnswered = allQuestions
                 .Where(q => !answeredSet.Contains(q.questionNumber.ToString()))
                 .ToList();
- 
+
             Debug.Log($"\n🗑️ PASSO 4: REMOVER QUESTÕES RESPONDIDAS");
             Debug.Log($"  Questões restantes: {questionsNotAnswered.Count}");
- 
+
             List<Question> questionsForCurrentLevel = questionsNotAnswered
                 .Where(q => GetQuestionLevel(q) == currentLevel)
                 .ToList();
- 
+
             Debug.Log($"\n✅ PASSO 5: FILTRAR POR NÍVEL {currentLevel}");
             Debug.Log($"  Questões disponíveis: {questionsForCurrentLevel.Count}");
- 
+
             if (questionsForCurrentLevel.Count > 0)
             {
                 var questionNumbers = questionsForCurrentLevel
                     .Select(q => q.questionNumber)
                     .OrderBy(n => n)
                     .ToList();
- 
+
                 if (questionNumbers.Count <= 20)
                     Debug.Log($"  IDs: [{string.Join(", ", questionNumbers)}]");
                 else
@@ -203,21 +139,21 @@ public class QuestionLoadManager : MonoBehaviour
             else
             {
                 Debug.Log($"  ⚠️ NENHUMA questão disponível no nível {currentLevel}!");
- 
+
                 var stats = LevelCalculator.GetLevelStats(allQuestions, answeredQuestionsFromFirebase);
                 Debug.Log($"\n📊 ESTATÍSTICAS:");
                 foreach (var stat in stats.Values.OrderBy(s => s.Level))
                     Debug.Log($"  {stat}");
             }
- 
+
             Debug.Log($"╚══════════════════════════════════════════════════════╝\n");
- 
+
             questions = questionsForCurrentLevel;
             return questions;
         }
         catch (Exception e)
         {
-            Debug.LogError($"[QuestionLoadManager] ❌ Erro em LoadQuestionsFromDatabase: {e.Message}\n{e.StackTrace}");
+            Debug.LogError($"[QuestionLoadManager] ❌ Erro em LoadQuestionsForSet: {e.Message}\n{e.StackTrace}");
             return new List<Question>();
         }
     }

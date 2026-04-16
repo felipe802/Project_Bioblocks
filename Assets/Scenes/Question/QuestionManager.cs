@@ -33,7 +33,6 @@ public class QuestionManager : MonoBehaviour
     // -------------------------------------------------------
     // Ciclo de vida
     // -------------------------------------------------------
-
     private void Start()
     {
         _navigation = AppContext.Navigation;
@@ -81,7 +80,6 @@ public class QuestionManager : MonoBehaviour
     // -------------------------------------------------------
     // Validação
     // -------------------------------------------------------
-
     private bool ValidateManagers()
     {
         if (questionBottomBarManager == null)
@@ -120,32 +118,37 @@ public class QuestionManager : MonoBehaviour
     // -------------------------------------------------------
     // Inicialização da sessão
     // -------------------------------------------------------
-
     private async Task InitializeSession()
     {
         try
         {
-            QuestionSet currentSet   = QuestionSetManager.GetCurrentQuestionSet();
-            IQuestionDatabase database = FindQuestionDatabase(currentSet);
+            QuestionSet currentSet      = QuestionSetManager.GetCurrentQuestionSet();
+            string currentDatabaseName  = TopicToDatabankName(currentSet);
+            loadManager.databankName    = currentDatabaseName;
 
-            if (database == null)
+            // Lê as questões do LiteDB via QuestionSyncService —
+            // não depende mais de GameObjects de banco na cena
+            allDatabaseQuestions = AppContext.QuestionSync?
+                                       .GetQuestionsForDatabankName(currentDatabaseName)
+                                   ?? new List<Question>();
+
+            if (allDatabaseQuestions.Count == 0)
             {
-                Debug.LogError($"Nenhum database encontrado para o QuestionSet: {currentSet}");
+                Debug.LogError($"[QuestionManager] Nenhuma questão no LiteDB para: {currentDatabaseName}");
+                _sceneData.SetData(new Dictionary<string, object>
+                    { { "databankName", currentDatabaseName } });
+                SceneManager.LoadScene("ResetDatabaseView");
                 return;
             }
 
-            string currentDatabaseName   = database.GetDatabankName();
-            loadManager.databankName     = currentDatabaseName;
-            allDatabaseQuestions         = QuestionFilterService.FilterQuestions(database);
-            maxLevelInDatabase           = LevelCalculator.GetMaxLevel(allDatabaseQuestions);
+            maxLevelInDatabase = LevelCalculator.GetMaxLevel(allDatabaseQuestions);
+            Debug.Log($"[QuestionManager] Banco: {currentDatabaseName} | " +
+                      $"Questões: {allDatabaseQuestions.Count} | Níveis: {maxLevelInDatabase}");
 
-            Debug.Log($"Banco {currentDatabaseName} possui {maxLevelInDatabase} níveis");
-
-            // FetchUserAnsweredQuestionsInTargetDatabase agora lê do UserDataStore — sem rede
             List<string> answeredQuestions = await AppContext.AnsweredQuestions?
                 .FetchUserAnsweredQuestionsInTargetDatabase(currentDatabaseName);
 
-            int answeredCount  = answeredQuestions.Count;
+            int answeredCount  = answeredQuestions?.Count ?? 0;
             int totalQuestions = QuestionBankStatistics.GetTotalQuestions(currentDatabaseName);
 
             if (totalQuestions <= 0)
@@ -168,7 +171,7 @@ public class QuestionManager : MonoBehaviour
             var questions = await loadManager.LoadQuestionsForSet(currentSet);
             if (questions == null || questions.Count == 0)
             {
-                Debug.LogError("QuestionManager: Nenhuma questão disponível");
+                Debug.LogError("[QuestionManager] Nenhuma questão disponível após LoadQuestionsForSet");
                 _sceneData.SetData(new Dictionary<string, object>
                     { { "databankName", currentDatabaseName } });
                 SceneManager.LoadScene("ResetDatabaseView");
@@ -180,12 +183,12 @@ public class QuestionManager : MonoBehaviour
             if (counterManager != null)
             {
                 counterManager.Initialize(allDatabaseQuestions, answeredQuestions);
-                Debug.Log("QuestionCounterManager inicializado");
+                Debug.Log("[QuestionManager] QuestionCounterManager inicializado");
             }
         }
         catch (Exception e)
         {
-            Debug.LogError($"QuestionManager: Erro em InitializeSession: {e.Message}\n{e.StackTrace}");
+            Debug.LogError($"[QuestionManager] Erro em InitializeSession: {e.Message}\n{e.StackTrace}");
             string currentDatabaseName = loadManager.DatabankName;
             _sceneData.SetData(new Dictionary<string, object>
                 { { "databankName", currentDatabaseName } });
@@ -193,27 +196,21 @@ public class QuestionManager : MonoBehaviour
         }
     }
 
-    private IQuestionDatabase FindQuestionDatabase(QuestionSet targetSet)
+    // Converte QuestionSet → databankName para manter compatibilidade com AnsweredQuestions
+    private static string TopicToDatabankName(QuestionSet set) => set switch
     {
-        try
-        {
-            foreach (MonoBehaviour behaviour in
-                FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
-            {
-                if (behaviour is IQuestionDatabase database &&
-                    database.GetQuestionSetType() == targetSet)
-                    return database;
-            }
-
-            Debug.LogError($"QuestionManager: Nenhum database encontrado para: {targetSet}");
-            return null;
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"Erro ao procurar database: {e.Message}");
-            return null;
-        }
-    }
+        QuestionSet.acidsBase      => "AcidBaseBufferQuestionDatabase",
+        QuestionSet.aminoacids     => "AminoacidQuestionDatabase",
+        QuestionSet.biochem        => "BiochemistryIntroductionQuestionDatabase",
+        QuestionSet.carbohydrates  => "CarbohydratesQuestionDatabase",
+        QuestionSet.enzymes        => "EnzymeQuestionDatabase",
+        QuestionSet.lipids         => "LipidsQuestionDatabase",
+        QuestionSet.membranes      => "MembranesQuestionDatabase",
+        QuestionSet.nucleicAcids   => "NucleicAcidsQuestionDatabase",
+        QuestionSet.proteins       => "ProteinQuestionDatabase",
+        QuestionSet.water          => "WaterQuestionDatabase",
+        _                          => set.ToString()
+    };
 
     // -------------------------------------------------------
     // Event handlers
@@ -230,7 +227,6 @@ public class QuestionManager : MonoBehaviour
     // -------------------------------------------------------
     // Resposta
     // -------------------------------------------------------
-
     private async void CheckAnswer(int selectedAnswerIndex)
     {
         timerManager.StopTimer();
@@ -310,7 +306,6 @@ public class QuestionManager : MonoBehaviour
     // -------------------------------------------------------
     // Feedback de nível
     // -------------------------------------------------------
-
     private void ShowLevelCompletionFeedback(int completedLevel, bool isLastLevel)
     {
         string levelName = GetLevelName(completedLevel);
@@ -356,7 +351,6 @@ public class QuestionManager : MonoBehaviour
     // -------------------------------------------------------
     // Navegação entre questões
     // -------------------------------------------------------
-
     private async void PrepareNextQuestion()
     {
         if (!currentSession.IsLastQuestion())
@@ -575,7 +569,6 @@ public class QuestionManager : MonoBehaviour
     // Conclusão de banco de questões
     // Operação rara — só acontece quando todas as questões são respondidas
     // -------------------------------------------------------
-
     private async Task HandleDatabaseCompletion(string databankName)
     {
         try
