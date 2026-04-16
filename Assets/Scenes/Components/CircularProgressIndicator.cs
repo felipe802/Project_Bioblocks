@@ -186,26 +186,19 @@ public class CircularProgressIndicator : MonoBehaviour
     private void HandleAnsweredQuestionsUpdated(Dictionary<string, int> answeredCounts)
     {
         if (string.IsNullOrEmpty(databaseName) || !answeredCounts.ContainsKey(databaseName))
-        {
             return;
-        }
 
-        int count = answeredCounts[databaseName];
+        int count          = answeredCounts[databaseName];
         int totalQuestions = QuestionBankStatistics.GetTotalQuestions(databaseName);
 
-        if (totalQuestions <= 0) totalQuestions = 50;
-
-        int percentage = totalQuestions > 0 ? (count * 100) / totalQuestions : 0;
-        percentage = Mathf.Min(percentage, 100);
+        int percentage = totalQuestions > 0 ? Mathf.Min((count * 100) / totalQuestions, 100) : 0;
 
         if (percentageText != null)
-        {
             percentageText.text = $"{percentage}%";
-        }
 
         targetFillAmount = percentage / 100f;
 
-        Debug.Log($"CircularProgress {databaseName}: {percentage}% ({count}/{totalQuestions}) - FillAmount: {targetFillAmount}");
+        Debug.Log($"CircularProgress {databaseName}: {percentage}% ({count}/{totalQuestions})");
     }
 
     public void SetProgress(int percentage)

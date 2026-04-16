@@ -20,7 +20,6 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
     // -------------------------------------------------------
     // Ciclo de vida Unity
     // -------------------------------------------------------
-
     private void Awake()
     {
         DontDestroyOnLoad(gameObject);
@@ -87,7 +86,6 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
     // -------------------------------------------------------
     // IPlayerLevelService — carregamento de dados
     // -------------------------------------------------------
-
     public void OnUserDataLoaded(UserData userData)
     {
         Debug.Log($"[PlayerLevelService] OnUserDataLoaded. UserId: {userData?.UserId}, " +
@@ -119,7 +117,6 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
     // -------------------------------------------------------
     // Migração de dados legados
     // -------------------------------------------------------
-
     private async void PerformMigrationIfNeeded()
     {
         if (_currentUserData == null) return;
@@ -209,7 +206,6 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
     // -------------------------------------------------------
     // IPlayerLevelService — progressão
     // -------------------------------------------------------
-
     public async Task IncrementTotalAnswered()
     {
         if (_userDataSync == null) _userDataSync = AppContext.UserDataSync;
@@ -357,7 +353,6 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
     // -------------------------------------------------------
     // IPlayerLevelService — getters
     // -------------------------------------------------------
-
     public int GetCurrentLevel()                => _currentUserData?.PlayerLevel ?? 1;
     public int GetTotalValidAnswered()           => _currentUserData?.TotalValidQuestionsAnswered ?? 0;
     public int GetTotalQuestionsInAllDatabanks() => _currentUserData?.TotalQuestionsInAllDatabanks ?? 0;
@@ -406,7 +401,6 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
     // -------------------------------------------------------
     // Helpers privados
     // -------------------------------------------------------
-
     private async Task GrantLevelUpBonus(int bonusPoints)
     {
         _currentUserData.Score     += bonusPoints;
@@ -429,16 +423,23 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
     {
         if (_cachedTotalQuestions > 0) return _cachedTotalQuestions;
 
+        // 1. Tenta do UserData (já sincronizado com o Firestore)
         int total = _currentUserData?.TotalQuestionsInAllDatabanks ?? 0;
 
-        if (total <= 0 && _statistics != null)
+        // 2. Tenta do DatabaseStatisticsManager — só se já estiver inicializado
+        if (total <= 0 && _statistics != null && _statistics.IsInitialized)
         {
             total = _statistics.GetTotalQuestionsCount();
             Debug.Log($"[PlayerLevelService] Total obtido do IStatisticsProvider: {total}");
         }
 
+        // Não cacheia zero — tenta novamente na próxima chamada quando as
+        // estatísticas estiverem prontas (ex: logo após o registro de novo usuário)
         if (total <= 0)
-            Debug.LogError("[PlayerLevelService] Não foi possível obter total de questões.");
+        {
+            Debug.LogWarning("[PlayerLevelService] Total de questões ainda não disponível.");
+            return 0;
+        }
 
         _cachedTotalQuestions = total;
         return total;

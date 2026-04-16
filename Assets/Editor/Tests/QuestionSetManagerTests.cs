@@ -14,8 +14,14 @@ using QuestionSystem;
 public class QuestionSetManagerTests
 {
     // -------------------------------------------------------
-    // Isolamento — restaura o estado padrão após cada teste
+    // Isolamento — restaura o estado padrão antes e após cada teste
     // -------------------------------------------------------
+
+    [SetUp]
+    public void SetUp()
+    {
+        QuestionSetManager.SetCurrentQuestionSet(QuestionSet.biochem);
+    }
 
     [TearDown]
     public void TearDown()

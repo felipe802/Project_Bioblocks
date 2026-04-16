@@ -158,15 +158,17 @@ public class AppContext : MonoBehaviour
             // ── 6. Navegação ───────────────────────────────────────────────────
             navigationMgr.InjectDependencies(sceneDataMgr);
 
-            // ── 7. Estatísticas ────────────────────────────────────────────────
-            await statsManager.Initialize();
-
-            // ── 8. Sincronização de questões (antes de expor IsReady) ──────────
+            // ── 7. Sincronização de questões — deve rodar ANTES das estatísticas
+            // pois DatabaseStatisticsManager lê do LiteDB via QuestionSyncService
             Debug.Log("[AppContext] Sincronizando questões...");
+            QuestionSync = questionSyncSvc;
             bool questionsReady = await questionSyncSvc.InitializeAsync();
             if (!questionsReady)
                 Debug.LogWarning("[AppContext] Questões indisponíveis (sem internet e sem cache). " +
                                  "O app pode não funcionar corretamente sem conexão na primeira abertura.");
+
+            // ── 8. Estatísticas — agora que o LiteDB está populado ─────────────
+            await statsManager.Initialize();
 
             // ── 9. Expõe serviços existentes ───────────────────────────────────
             Auth              = authRepo;

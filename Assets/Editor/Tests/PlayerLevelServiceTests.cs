@@ -20,7 +20,6 @@ public class PlayerLevelServiceTests
     // -------------------------------------------------------
     // Fixtures
     // -------------------------------------------------------
-
     private GameObject          _serviceGO;
     private PlayerLevelService  _playerLevel;
     private GameObject          _dispatcherGO;
@@ -337,19 +336,4 @@ public class PlayerLevelServiceTests
         Assert.IsFalse(eventoDisparado,
             "Não deve disparar OnLevelChanged quando já está no nível correto");
     }
-}
-
-// -------------------------------------------------------
-// Fake mínimo para IStatisticsProvider
-// Retorna um total fixo de questões configurável no setup.
-// -------------------------------------------------------
-public class FakeStatisticsProvider : IStatisticsProvider
-{
-    private readonly int _totalQuestions;
-
-    public FakeStatisticsProvider(int totalQuestions)
-        => _totalQuestions = totalQuestions;
-
-    public bool IsInitialized       => true;
-    public int GetTotalQuestionsCount() => _totalQuestions;
 }

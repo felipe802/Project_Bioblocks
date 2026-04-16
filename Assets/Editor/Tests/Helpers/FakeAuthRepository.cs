@@ -9,41 +9,38 @@ public class FakeAuthRepository : IAuthRepository
     // Controle de falhas simuladas
     private bool _reloadShouldFail;
     private bool _checkAuthShouldFail;
+    private bool _signInShouldFail;
+
+    // Dados configuráveis
+    private string   _userIdForNextRegistration;
+    private UserData _userDataForSignIn;
 
     // Contadores
-    public int LogoutCallCount        { get; private set; }
-    public int ReloadCallCount        { get; private set; }
+    public int    LogoutCallCount     { get; private set; }
+    public int    ReloadCallCount     { get; private set; }
+    public int    SignInCallCount     { get; private set; }
+    public int    RegisterCallCount   { get; private set; }
     public string LastSignInEmail     { get; private set; }
 
     // -------------------------------------------------------
     // Configuração do fake
     // -------------------------------------------------------
 
-    /// <summary>
-    /// Usuário logado com sessão local válida (caso normal online).
-    /// </summary>
     public void SetLoggedInUser(string userId)
     {
         _currentUserId   = userId;
         _isLoggedIn      = true;
-        _hasLocalSession = true; // ← sincroniza
+        _hasLocalSession = true;
     }
 
-    /// <summary>
-    /// Tem token local mas está offline — ReloadAsync vai falhar.
-    /// Simula o cenário principal que você quer testar.
-    /// </summary>
     public void SetOfflineWithLocalSession(string userId)
     {
         _currentUserId    = userId;
         _isLoggedIn       = true;
         _hasLocalSession  = true;
-        _reloadShouldFail = true; // ← simula sem internet
+        _reloadShouldFail = true;
     }
 
-    /// <summary>
-    /// Sem sessão nenhuma — nunca logou neste dispositivo.
-    /// </summary>
     public void SetLoggedOut()
     {
         _currentUserId    = null;
@@ -52,17 +49,33 @@ public class FakeAuthRepository : IAuthRepository
         _reloadShouldFail = false;
     }
 
-    /// <summary>
-    /// Tem sessão local mas o token expirou.
-    /// </summary>
     public void SetExpiredSession(string userId)
     {
         _currentUserId        = userId;
         _isLoggedIn           = false;
-        _hasLocalSession      = true;  // SDK ainda tem o token salvo...
-        _reloadShouldFail     = true;  // ...mas não consegue renovar
+        _hasLocalSession      = true;
+        _reloadShouldFail     = true;
         _checkAuthShouldFail  = true;
     }
+
+    /// <summary>
+    /// Define o userId que será atribuído após RegisterUserAsync.
+    /// Necessário para que GetUserData encontre o usuário no FakeFirestoreRepository.
+    /// </summary>
+    public void SetUserIdForNextRegistration(string userId)
+        => _userIdForNextRegistration = userId;
+
+    /// <summary>
+    /// Define o UserData retornado por SignInWithEmailAsync.
+    /// </summary>
+    public void SetUserDataForSignIn(UserData userData)
+        => _userDataForSignIn = userData;
+
+    /// <summary>
+    /// Faz SignInWithEmailAsync lançar Exception (simula credenciais erradas).
+    /// </summary>
+    public void SetSignInShouldFail(bool shouldFail)
+        => _signInShouldFail = shouldFail;
 
     // -------------------------------------------------------
     // IAuthRepository
@@ -92,22 +105,29 @@ public class FakeAuthRepository : IAuthRepository
 
     public Task<UserData> SignInWithEmailAsync(string email, string password)
     {
-        LastSignInEmail  = email;
+        SignInCallCount++;
+        LastSignInEmail = email;
+
+        if (_signInShouldFail)
+            throw new System.Exception("Credenciais inválidas (simulado)");
+
         _isLoggedIn      = true;
         _hasLocalSession = true;
-        var fakeUser = new UserData
+
+        var userData = _userDataForSignIn ?? new UserData
         {
             UserId   = _currentUserId ?? "fake-user-id",
             Email    = email,
             NickName = "FakeUser",
             Name     = "Fake User"
         };
-        return Task.FromResult(fakeUser);
+        return Task.FromResult(userData);
     }
 
     public Task<UserData> RegisterUserAsync(string name, string nickName, string email, string password)
     {
-        _currentUserId   = "new-fake-user-id";
+        RegisterCallCount++;
+        _currentUserId   = _userIdForNextRegistration ?? "new-fake-user-id";
         _isLoggedIn      = true;
         _hasLocalSession = true;
         var fakeUser = new UserData
@@ -122,7 +142,7 @@ public class FakeAuthRepository : IAuthRepository
 
     public Task LogoutAsync()
     {
-        LogoutCallCount  ++;
+        LogoutCallCount++;
         _currentUserId   = null;
         _isLoggedIn      = false;
         _hasLocalSession = false;

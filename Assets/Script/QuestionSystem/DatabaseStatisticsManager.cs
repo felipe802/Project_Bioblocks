@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using QuestionSystem;
@@ -7,191 +6,127 @@ using UnityEngine;
 
 public class DatabaseStatisticsManager : MonoBehaviour, IStatisticsProvider
 {
-    private static DatabaseStatisticsManager instance;
-    private bool isInitialized = false;
+    private bool isInitialized  = false;
     private bool isInitializing = false;
-    public delegate void StatisticsReadyHandler();
-    public static event StatisticsReadyHandler OnStatisticsReady;
-
-    public static DatabaseStatisticsManager Instance
-    {
-        get
-        {
-            if (instance == null)
-            {
-                var go = GameObject.Find("FirebaseManager");
-                if (go == null)
-                {
-                    go = new GameObject("FirebaseManager");
-                }
-                
-                instance = go.GetComponent<DatabaseStatisticsManager>();
-                if (instance == null)
-                {
-                    instance = go.AddComponent<DatabaseStatisticsManager>();
-                }
-                DontDestroyOnLoad(go);
-            }
-            return instance;
-        }
-    }
-
-    private void Awake()
-    {
-        if (instance != null && instance != this)
-        {
-            Destroy(this);
-            return;
-        }
-
-        instance = this;
-        DontDestroyOnLoad(gameObject);
-    }
 
     public bool IsInitialized => isInitialized;
 
     public async Task Initialize()
     {
         if (isInitialized || isInitializing) return;
-        
+
         isInitializing = true;
-        Debug.Log("Inicializando DatabaseStatisticsManager...");
+        Debug.Log("[DatabaseStatisticsManager] Inicializando...");
 
         try
         {
-            // Espera um frame para garantir que outros managers foram inicializados
             await Task.Yield();
-
-            // Carrega estatísticas de todos os bancos de dados
             await LoadAllDatabaseStatistics();
 
-            isInitialized = true;
+            isInitialized  = true;
             isInitializing = false;
-            
-            // Notifica que as estatísticas estão prontas
-            OnStatisticsReady?.Invoke();
-            
-            Debug.Log("DatabaseStatisticsManager inicializado com sucesso");
+
+            Debug.Log("[DatabaseStatisticsManager] Inicializado com sucesso.");
         }
         catch (Exception e)
         {
-            Debug.LogError($"Erro na inicialização do DatabaseStatisticsManager: {e.Message}");
+            Debug.LogError($"[DatabaseStatisticsManager] Erro na inicialização: {e.Message}");
             isInitializing = false;
-            isInitialized = false;
+            isInitialized  = false;
         }
     }
 
     private async Task LoadAllDatabaseStatistics()
     {
-        string[] allDatabases = new string[]
+        // Mapeamento QuestionSet → databankName
+        // Necessário para manter compatibilidade com AnsweredQuestions no Firestore,
+        // que ainda usa databankName como chave
+        var topicToDatabankName = new Dictionary<QuestionSet, string>
         {
-            "AcidBaseBufferQuestionDatabase",
-            "AminoacidQuestionDatabase",
-            "BiochemistryIntroductionQuestionDatabase",
-            "CarbohydratesQuestionDatabase",
-            "EnzymeQuestionDatabase",
-            "LipidsQuestionDatabase",
-            "MembranesQuestionDatabase",
-            "NucleicAcidsQuestionDatabase",
-            "ProteinQuestionDatabase",
-            "WaterQuestionDatabase"
+            { QuestionSet.acidsBase,      "AcidBaseBufferQuestionDatabase" },
+            { QuestionSet.aminoacids,     "AminoacidQuestionDatabase" },
+            { QuestionSet.biochem,        "BiochemistryIntroductionQuestionDatabase" },
+            { QuestionSet.carbohydrates,  "CarbohydratesQuestionDatabase" },
+            { QuestionSet.enzymes,        "EnzymeQuestionDatabase" },
+            { QuestionSet.lipids,         "LipidsQuestionDatabase" },
+            { QuestionSet.membranes,      "MembranesQuestionDatabase" },
+            { QuestionSet.nucleicAcids,   "NucleicAcidsQuestionDatabase" },
+            { QuestionSet.proteins,       "ProteinQuestionDatabase" },
+            { QuestionSet.water,          "WaterQuestionDatabase" },
         };
+
+        // Aguarda o QuestionSyncService estar pronto
+        // (é inicializado antes do DatabaseStatisticsManager no AppContext)
+        if (AppContext.QuestionSync == null || !AppContext.QuestionSync.IsCacheReady)
+        {
+            Debug.LogWarning("[DatabaseStatisticsManager] QuestionSyncService não está pronto.");
+            return;
+        }
 
         Dictionary<string, int> questionCounts = new Dictionary<string, int>();
 
-        foreach (string databankName in allDatabases)
+        foreach (var kvp in topicToDatabankName)
         {
+            string databankName = kvp.Value;
+
             try
             {
-                Type databaseType = Type.GetType(databankName);
-                if (databaseType == null)
-                {
-                    foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-                    {
-                        databaseType = assembly.GetType(databankName);
-                        if (databaseType != null) break;
-                    }
-                }
+                // Lê as questões do LiteDB via QuestionSyncService —
+                // sem reflection, sem GameObjects temporários
+                var questions = AppContext.QuestionSync.GetQuestionsForDatabankName(databankName);
+                int count     = questions?.Count ?? 0;
 
-                if (databaseType != null)
-                {
-                    GameObject tempGO = new GameObject($"Temp_{databankName}");
-                    var database = tempGO.AddComponent(databaseType) as IQuestionDatabase;
+                QuestionBankStatistics.SetTotalQuestions(databankName, count);
+                questionCounts[databankName] = count;
 
-                    if (database != null)
-                    {
-                        var questions = QuestionFilterService.FilterQuestions(database);
-                        int count = questions != null ? questions.Count : 0;
-
-                        QuestionBankStatistics.SetTotalQuestions(databankName, count);
-                        questionCounts[databankName] = count;
-
-                        Debug.Log($"Carregado banco {databankName}: {count} questões");
-                    }
-
-                    Destroy(tempGO);
-                }
-                else
-                {
-                    Debug.LogWarning($"Não foi possível encontrar o tipo para {databankName}");
-                    QuestionBankStatistics.SetTotalQuestions(databankName, 50);
-                    questionCounts[databankName] = 50;
-                }
+                Debug.Log($"[DatabaseStatisticsManager] {databankName}: {count} questões");
             }
             catch (Exception e)
             {
-                Debug.LogError($"Erro ao carregar estatísticas para {databankName}: {e.Message}");
-                QuestionBankStatistics.SetTotalQuestions(databankName, 50);
-                questionCounts[databankName] = 50;
+                Debug.LogError($"[DatabaseStatisticsManager] Erro ao carregar {databankName}: {e.Message}");
+                questionCounts[databankName] = 0;
             }
         }
 
-        await Task.Delay(100);
-
         int totalQuestions = 0;
         foreach (var kvp in questionCounts)
-        {
             totalQuestions += kvp.Value;
-            Debug.Log($"Estatísticas: {kvp.Key} tem {kvp.Value} questões");
-        }
 
         Debug.Log($"[DatabaseStatisticsManager] Total geral: {totalQuestions} questões");
 
         if (totalQuestions > 0 && UserDataStore.CurrentUserData != null)
         {
             UserDataStore.UpdateTotalQuestionsInAllDatabanks(totalQuestions);
-            
+
             await AppContext.Firestore.UpdateUserField(
                 UserDataStore.CurrentUserData.UserId,
                 "TotalQuestionsInAllDatabanks",
                 totalQuestions
             );
-            
-            Debug.Log($"[DatabaseStatisticsManager] Total salvo no UserData e Firebase");
+
+            Debug.Log("[DatabaseStatisticsManager] Total salvo no UserData e Firebase");
         }
     }
-    
+
     public int GetTotalQuestionsCount()
     {
-        string[] allDatabases = new string[]
+        var topicToDatabankName = new Dictionary<QuestionSet, string>
         {
-            "AcidBaseBufferQuestionDatabase",
-            "AminoacidQuestionDatabase",
-            "BiochemistryIntroductionQuestionDatabase",
-            "CarbohydratesQuestionDatabase",
-            "EnzymeQuestionDatabase",
-            "LipidsQuestionDatabase",
-            "MembranesQuestionDatabase",
-            "NucleicAcidsQuestionDatabase",
-            "ProteinQuestionDatabase",
-            "WaterQuestionDatabase"
+            { QuestionSet.acidsBase,      "AcidBaseBufferQuestionDatabase" },
+            { QuestionSet.aminoacids,     "AminoacidQuestionDatabase" },
+            { QuestionSet.biochem,        "BiochemistryIntroductionQuestionDatabase" },
+            { QuestionSet.carbohydrates,  "CarbohydratesQuestionDatabase" },
+            { QuestionSet.enzymes,        "EnzymeQuestionDatabase" },
+            { QuestionSet.lipids,         "LipidsQuestionDatabase" },
+            { QuestionSet.membranes,      "MembranesQuestionDatabase" },
+            { QuestionSet.nucleicAcids,   "NucleicAcidsQuestionDatabase" },
+            { QuestionSet.proteins,       "ProteinQuestionDatabase" },
+            { QuestionSet.water,          "WaterQuestionDatabase" },
         };
 
         int total = 0;
-        foreach (string databankName in allDatabases)
-        {
-            total += QuestionBankStatistics.GetTotalQuestions(databankName);
-        }
+        foreach (var kvp in topicToDatabankName)
+            total += QuestionBankStatistics.GetTotalQuestions(kvp.Value);
 
         return total;
     }

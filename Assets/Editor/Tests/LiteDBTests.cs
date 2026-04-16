@@ -33,7 +33,6 @@ public class LiteDBTests
     // -------------------------------------------------------
     // Fixtures compartilhadas
     // -------------------------------------------------------
-
     private FakeLiteDBManager           _db;
     private UserDataLocalRepository     _repo;
     private FakeFirestoreRepository     _firestore;
@@ -139,7 +138,6 @@ public class LiteDBTests
     // ═══════════════════════════════════════════════════════
     // UserDataLocalRepository — Dirty / Synced
     // ═══════════════════════════════════════════════════════
-
     [Test]
     public void SaveUser_InitiallyNotDirty()
     {
@@ -253,7 +251,6 @@ public class LiteDBTests
     // ═══════════════════════════════════════════════════════
     // UserDataLocalRepository — AnsweredQuestions
     // ═══════════════════════════════════════════════════════
-
     [Test]
     public void AddAnsweredQuestion_AddsToCorrectDatabank()
     {
@@ -324,7 +321,6 @@ public class LiteDBTests
     // ═══════════════════════════════════════════════════════
     // PendingUploadDB
     // ═══════════════════════════════════════════════════════
-
     [Test]
     public void PendingUploads_UpsertAndFindById_Works()
     {
@@ -427,11 +423,12 @@ public class LiteDBTests
     [Test]
     public void Rankings_UpsertAndFindById_Works()
     {
+        // RankingDB usa NickName como [BsonId]
         var ranking = RankingDB.FromDomain(new Ranking("Alice", 1000, 200, ""));
 
         _db.Rankings.Upsert(ranking);
 
-        var loaded = _db.Rankings.FindById("u1");
+        var loaded = _db.Rankings.FindById("Alice");
         Assert.IsNotNull(loaded);
         Assert.AreEqual("Alice", loaded.NickName);
         Assert.AreEqual(1000, loaded.Score);
@@ -448,26 +445,26 @@ public class LiteDBTests
         Assert.AreEqual(0, _db.Rankings.Count());
     }
 
-    // [Test]
-    // public void Rankings_OrderByScore_ReturnsCorrectOrder()
-    // {
-    //     _db.Rankings.Upsert(RankingDB.FromDomain(new Ranking("A", 100, 10, "")));
-    //     _db.Rankings.Upsert(RankingDB.FromDomain(new Ranking("B", 500, 50, "")));
-    //     _db.Rankings.Upsert(RankingDB.FromDomain(new Ranking("C", 300, 30, "")));
+    [Test]
+    public void Rankings_OrderByScore_ReturnsCorrectOrder()
+    {
+        _db.Rankings.Upsert(RankingDB.FromDomain(new Ranking("A", 100, 10, "")));
+        _db.Rankings.Upsert(RankingDB.FromDomain(new Ranking("B", 500, 50, "")));
+        _db.Rankings.Upsert(RankingDB.FromDomain(new Ranking("C", 300, 30, "")));
 
-    //     var ordered = _db.Rankings.FindAll()
-    //                      .OrderByDescending(r => r.Score)
-    //                      .ToList();
+        var ordered = _db.Rankings.FindAll()
+                         .OrderByDescending(r => r.Score)
+                         .ToList();
 
-    //     Assert.AreEqual(ordered[0].WeekScore); // 500
-    //     Assert.AreEqual(ordered[1].WeekScore); // 300
-    //     Assert.AreEqual(ordered[2].WeekScore); // 100
-    // }
+        Assert.AreEqual(3, ordered.Count);
+        Assert.AreEqual(500, ordered[0].Score);
+        Assert.AreEqual(300, ordered[1].Score);
+        Assert.AreEqual(100, ordered[2].Score);
+    }
 
     // ═══════════════════════════════════════════════════════
     // UserDataDB — conversão domain ↔ DB
     // ═══════════════════════════════════════════════════════
-
     [Test]
     public void UserDataDB_FromDomain_MapsAllFields()
     {
@@ -682,7 +679,6 @@ public class LiteDBTests
     // ═══════════════════════════════════════════════════════
     // UserDataSyncService — UpdateUserScores
     // ═══════════════════════════════════════════════════════
-
     [UnityTest]
     public IEnumerator UpdateUserScores_UpdatesScoreInLiteDB()
     {
@@ -851,7 +847,6 @@ public class LiteDBTests
     // ═══════════════════════════════════════════════════════
     // QuestionDB — conversão domain ↔ DB
     // ═══════════════════════════════════════════════════════
-
     [Test]
     public void QuestionDB_FromDomain_MapsOldFields()
     {
@@ -967,7 +962,6 @@ public class LiteDBTests
     // ═══════════════════════════════════════════════════════
     // QuestionLocalRepository — integração com FakeLiteDBManager
     // ═══════════════════════════════════════════════════════
-
     [Test]
     public void QuestionLocalRepository_SaveAndGet_CicloCompleto()
     {
@@ -1083,7 +1077,6 @@ public class LiteDBTests
     // ═══════════════════════════════════════════════════════
     // Helper
     // ═══════════════════════════════════════════════════════
-
     private static UserData MakeUser(
         string userId    = "user1",
         int    score     = 0,
