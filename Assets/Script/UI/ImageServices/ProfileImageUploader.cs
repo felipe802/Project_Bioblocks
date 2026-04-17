@@ -12,6 +12,9 @@ public class ProfileImageUploader : MonoBehaviour
     [SerializeField] private Button uploadButton;
     [SerializeField] private bool enableUploadOnStart = true;
 
+    [Header("Avatar Picker")]
+    [SerializeField] private AvatarPickerPanel avatarPickerPanel;
+
     [Header("Validation")]
     [SerializeField] private int maxImageSizeBytes = 1024 * 1024;
 
@@ -40,6 +43,9 @@ public class ProfileImageUploader : MonoBehaviour
         _firestore = AppContext.Firestore;
         _imageUpload = AppContext.ImageUpload;
         currentUserData = UserDataStore.CurrentUserData;
+
+        if (avatarPickerPanel != null)
+            avatarPickerPanel.OnAvatarSelected += OnPresetAvatarSelected;
 
         if (enableUploadOnStart)
         {
@@ -84,15 +90,66 @@ public class ProfileImageUploader : MonoBehaviour
 
     private void OnUploadButtonClick()
     {
-        if (isProcessing || NativeGallery.IsMediaPickerBusy())
+        if (isProcessing)
         {
-            Debug.Log("[ProfileImageUploader] Upload já em andamento ou galeria ocupada");
+            Debug.Log("[ProfileImageUploader] Processamento já em andamento");
             return;
         }
 
-        RequestGalleryPermission();
+        if (avatarPickerPanel != null)
+        {
+            avatarPickerPanel.ShowPanel();
+        }
+        else
+        {
+            Debug.LogError("[ProfileImageUploader] AvatarPickerPanel não atribuído no Inspector");
+        }
     }
 
+    /// <summary>
+    /// Callback chamado pelo AvatarPickerPanel quando o usuário seleciona um preset.
+    /// Carrega a textura de Resources, salva em temp e reutiliza o pipeline de upload.
+    /// </summary>
+    private void OnPresetAvatarSelected(string resourceName)
+    {
+        if (isProcessing)
+        {
+            Debug.Log("[ProfileImageUploader] Processamento já em andamento");
+            return;
+        }
+
+        Debug.Log($"[ProfileImageUploader] Avatar preset selecionado: {resourceName}");
+
+        try
+        {
+            Texture2D texture = Resources.Load<Texture2D>($"AvatarPresets/{resourceName}");
+            if (texture == null)
+            {
+                ShowAlert("Erro ao carregar avatar selecionado.");
+                Debug.LogError($"[ProfileImageUploader] Textura não encontrada: AvatarPresets/{resourceName}");
+                return;
+            }
+
+            byte[] pngBytes = texture.EncodeToPNG();
+            string cacheDir = Path.Combine(Application.persistentDataPath, "ImageTemp");
+            Directory.CreateDirectory(cacheDir);
+            string tempPath = Path.Combine(cacheDir, $"{resourceName}.png");
+            File.WriteAllBytes(tempPath, pngBytes);
+
+            Debug.Log($"[ProfileImageUploader] Avatar preset salvo em: {tempPath}");
+            ProcessSelectedImage(tempPath);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[ProfileImageUploader] Erro ao processar avatar preset: {e.Message}");
+            ShowAlert("Erro ao processar avatar selecionado.");
+        }
+    }
+
+    // -------------------------------------------------------
+    // Galeria nativa (desativado — preservado para uso futuro)
+    // -------------------------------------------------------
+    /*
     private void RequestGalleryPermission()
     {
         NativeGallery.RequestPermissionAsync((permission) =>
@@ -131,8 +188,6 @@ public class ProfileImageUploader : MonoBehaviour
                 return;
             }
 
-            // Copia o arquivo imediatamente no callback — antes do MainThreadDispatcher
-            // O iOS pode limpar o arquivo temporário antes do próximo frame
             string safePath = path;
             try
             {
@@ -148,14 +203,9 @@ public class ProfileImageUploader : MonoBehaviour
                 Debug.LogWarning($"[ProfileImageUploader] Não foi possível copiar arquivo: {e.Message}. Usando path original.");
             }
 
-            Debug.Log("[ProfileImageUploader] Enfileirando ProcessSelectedImage no MainThreadDispatcher");
             string capturedPath = safePath;
             MainThreadDispatcher.Enqueue(() =>
             {
-                Debug.Log($"[ProfileImageUploader] MainThreadDispatcher executando. " +
-                        $"this null={this == null}, " +
-                        $"gameObject active={this != null && gameObject.activeInHierarchy}");
-
                 if (this == null || !gameObject.activeInHierarchy)
                 {
                     Debug.LogWarning("[ProfileImageUploader] Componente destruído antes do processamento");
@@ -167,6 +217,7 @@ public class ProfileImageUploader : MonoBehaviour
         "Selecione uma imagem",
         "image/*");
     }
+    */
 
     private async void ProcessSelectedImage(string imagePath)
     {
@@ -334,9 +385,10 @@ public class ProfileImageUploader : MonoBehaviour
     private void OnDestroy()
     {
         if (uploadButton != null)
-        {
             uploadButton.onClick.RemoveAllListeners();
-        }
+
+        if (avatarPickerPanel != null)
+            avatarPickerPanel.OnAvatarSelected -= OnPresetAvatarSelected;
     }
 
     public ProfileImageLoader ImageLoader => imageLoader;
