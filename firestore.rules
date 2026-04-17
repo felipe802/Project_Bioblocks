@@ -17,11 +17,19 @@ service cloud.firestore {
         && request.resource.data.WeekScore >= 0
         && request.resource.data.UserId == resource.data.UserId
         && request.resource.data.Email  == resource.data.Email;
+
+      // Permite que o próprio usuário delete o documento ao encerrar a conta
+      allow delete: if request.auth != null && request.auth.uid == userId;
     }
 
     match /Rankings/{userId} {
-      allow read:  if request.auth != null;
-      allow write: if false;
+      allow read: if request.auth != null;
+
+      // Clientes não podem criar nem atualizar rankings (evita fraude)
+      allow create, update: if false;
+
+      // Mas o próprio usuário pode remover seu ranking ao deletar a conta
+      allow delete: if request.auth != null && request.auth.uid == userId;
     }
 
     match /QuestionSceneBonus/{userId} {
@@ -30,11 +38,28 @@ service cloud.firestore {
     }
 
     match /Nicknames/{nickname} {
-      allow read:  if true;
+      allow read: if true;
       allow create: if request.auth != null
         && request.resource.data.userId == request.auth.uid;
-    allow delete: if request.auth != null
+      allow delete: if request.auth != null
         && resource.data.userId == request.auth.uid;
+    }
+
+    // Coleções de dados do usuário — leitura e escrita apenas pelo próprio dono
+    match /UserBonus/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /UserFeedback/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /UserLevelProgress/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /UserRetries/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
     match /{document=**} {
