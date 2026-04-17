@@ -16,11 +16,16 @@ public class FakeAuthRepository : IAuthRepository
     private UserData _userDataForSignIn;
 
     // Contadores
-    public int    LogoutCallCount     { get; private set; }
-    public int    ReloadCallCount     { get; private set; }
-    public int    SignInCallCount     { get; private set; }
-    public int    RegisterCallCount   { get; private set; }
-    public string LastSignInEmail     { get; private set; }
+    public int    LogoutCallCount      { get; private set; }
+    public int    ReloadCallCount      { get; private set; }
+    public int    SignInCallCount      { get; private set; }
+    public int    RegisterCallCount    { get; private set; }
+    public int    DeleteUserCallCount  { get; private set; }
+    public string LastSignInEmail      { get; private set; }
+    public string LastDeletedUserId    { get; private set; }
+
+    // Simula falha de reautenticação em DeleteUser
+    public bool ShouldThrowReauthOnDelete { get; set; } = false;
 
     // -------------------------------------------------------
     // Configuração do fake
@@ -151,6 +156,12 @@ public class FakeAuthRepository : IAuthRepository
 
     public Task DeleteUser(string userId)
     {
+        DeleteUserCallCount++;
+        LastDeletedUserId = userId;
+
+        if (ShouldThrowReauthOnDelete)
+            throw new ReauthenticationRequiredException("Reautenticação necessária (simulada)");
+
         _currentUserId   = null;
         _isLoggedIn      = false;
         _hasLocalSession = false;

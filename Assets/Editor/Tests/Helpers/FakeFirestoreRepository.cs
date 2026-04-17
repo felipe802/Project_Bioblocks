@@ -13,6 +13,25 @@ public class FakeFirestoreRepository : IFirestoreRepository
     public object LastUpdatedValue         { get; private set; }
 
     // -------------------------------------------------------
+    // Rastreamento de deleções por coleção
+    // -------------------------------------------------------
+
+    /// <summary>
+    /// Registra todos os documentos deletados: [coleção] → conjunto de documentIds.
+    /// Permite que os testes verifiquem exatamente quais coleções/documentos foram apagados.
+    /// </summary>
+    public Dictionary<string, HashSet<string>> DeletedDocuments { get; } = new();
+
+    /// <summary>
+    /// Retorna true se o documento foi deletado da coleção especificada.
+    /// </summary>
+    public bool WasDocumentDeleted(string collection, string documentId)
+        => DeletedDocuments.TryGetValue(collection, out var ids) && ids.Contains(documentId);
+
+    /// <summary>Total de chamadas a DeleteDocument (qualquer coleção).</summary>
+    public int DeleteDocumentCallCount { get; private set; }
+
+    // -------------------------------------------------------
     // Listener state — fake
     // -------------------------------------------------------
     public bool IsListening { get; private set; }
@@ -141,7 +160,16 @@ public class FakeFirestoreRepository : IFirestoreRepository
 
     public Task DeleteDocument(string collection, string documentId)
     {
-        _users.Remove(documentId);
+        // Rastreia a deleção para verificação nos testes
+        if (!DeletedDocuments.ContainsKey(collection))
+            DeletedDocuments[collection] = new HashSet<string>();
+        DeletedDocuments[collection].Add(documentId);
+        DeleteDocumentCallCount++;
+
+        // Remove do _users apenas quando a coleção for "Users"
+        if (collection == "Users")
+            _users.Remove(documentId);
+
         return Task.CompletedTask;
     }
 
