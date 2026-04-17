@@ -62,6 +62,12 @@ public class AvatarPickerPanel : MonoBehaviour
     /// </summary>
     public event Action<string> OnAvatarSelected;
 
+    /// <summary>
+    /// Callback disparado quando o painel fecha (após animação de hide).
+    /// O ProfileImageUploader usa este evento para disparar o upload para Firebase.
+    /// </summary>
+    public event Action OnPanelClosed;
+
     // -------------------------------------------------------
     // Ciclo de vida
     // -------------------------------------------------------
@@ -216,11 +222,10 @@ public class AvatarPickerPanel : MonoBehaviour
         // Destaque visual no avatar selecionado
         HighlightSelectedAvatar(resourceName);
 
-        // Dispara o callback
+        // Dispara o callback (preview instantâneo — sem fechar o painel)
+        // O usuário pode continuar experimentando outros avatares.
+        // O painel fecha apenas quando o usuário clica no CloseButton.
         OnAvatarSelected?.Invoke(resourceName);
-
-        // Fecha o painel após selecionar
-        HidePanel();
     }
 
     private void HighlightSelectedAvatar(string selectedName)
@@ -311,6 +316,9 @@ public class AvatarPickerPanel : MonoBehaviour
             isVisible = false;
             SetCanvasGroupInteractable(false);
             gameObject.SetActive(false);
+
+            // Notifica que o painel fechou (upload para Firebase é disparado aqui)
+            OnPanelClosed?.Invoke();
         }
 
         isAnimating = false;

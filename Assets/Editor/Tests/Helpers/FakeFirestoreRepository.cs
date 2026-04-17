@@ -7,10 +7,12 @@ public class FakeFirestoreRepository : IFirestoreRepository
     private readonly Dictionary<string, UserData> _users = new();
     private readonly List<UserData> _allUsers = new();
 
-    public int UpdateUserFieldCallCount    { get; private set; }
-    public int UpdateUserScoresCallCount   { get; private set; }
-    public string LastUpdatedField         { get; private set; }
-    public object LastUpdatedValue         { get; private set; }
+    public int UpdateUserFieldCallCount      { get; private set; }
+    public int UpdateUserScoresCallCount     { get; private set; }
+    public string LastUpdatedField           { get; private set; }
+    public object LastUpdatedValue           { get; private set; }
+    public bool UpdateProfileImageUrlCalled  { get; private set; }
+    public string LastProfileImageUrl        { get; private set; }
 
     // -------------------------------------------------------
     // Rastreamento de deleções por coleção
@@ -144,6 +146,8 @@ public class FakeFirestoreRepository : IFirestoreRepository
 
     public Task UpdateUserProfileImageUrl(string userId, string imageUrl)
     {
+        UpdateProfileImageUrlCalled = true;
+        LastProfileImageUrl = imageUrl;
         if (_users.TryGetValue(userId, out var user))
             user.ProfileImageUrl = imageUrl;
         return Task.CompletedTask;

@@ -24,6 +24,10 @@ public class ProfileImageUploader : MonoBehaviour
     private IFirestoreRepository _firestore;
     private IImageUploadService _imageUpload;
 
+    // Estado do picker: rastreia seleção enquanto o painel está aberto
+    private string _oldImageUrlBeforePicker;
+    private string _lastSelectedResourceName;
+
     private void Awake()
     {
         _firestore = AppContext.Firestore;
@@ -45,7 +49,10 @@ public class ProfileImageUploader : MonoBehaviour
         currentUserData = UserDataStore.CurrentUserData;
 
         if (avatarPickerPanel != null)
+        {
             avatarPickerPanel.OnAvatarSelected += OnPresetAvatarSelected;
+            avatarPickerPanel.OnPanelClosed += OnPickerPanelClosed;
+        }
 
         if (enableUploadOnStart)
         {
@@ -98,6 +105,11 @@ public class ProfileImageUploader : MonoBehaviour
 
         if (avatarPickerPanel != null)
         {
+            // Captura a URL atual antes de abrir o picker
+            // (usada como oldImageUrl para deletar a imagem antiga do Storage)
+            _oldImageUrlBeforePicker = currentUserData?.ProfileImageUrl;
+            _lastSelectedResourceName = null;
+
             avatarPickerPanel.ShowPanel();
         }
         else
@@ -107,42 +119,165 @@ public class ProfileImageUploader : MonoBehaviour
     }
 
     /// <summary>
-    /// Callback chamado pelo AvatarPickerPanel quando o usuário seleciona um preset.
-    /// Carrega a textura de Resources, salva em temp e reutiliza o pipeline de upload.
+    /// Callback chamado pelo AvatarPickerPanel a cada clique em um avatar.
+    /// O painel permanece aberto — o usuário pode experimentar vários avatares.
+    ///
+    /// Fluxo 100% instantâneo (mesmo frame, zero I/O):
+    ///   1. Carrega textura de Resources (já em memória)
+    ///   2. Mostra a textura no imageLoader (preview imediato)
+    ///   3. Salva "preset:resourceName" no UserDataStore + LiteDB (apenas string)
+    ///   4. Notifica TopBar para atualizar em todas as cenas
+    ///
+    /// O upload para Firebase só acontece quando o usuário fecha o picker
+    /// (via OnPickerPanelClosed).
     /// </summary>
     private void OnPresetAvatarSelected(string resourceName)
     {
-        if (isProcessing)
+        Debug.Log($"[ProfileImageUploader] Avatar preset selecionado: {resourceName}");
+
+        // 1. Carrega textura de Resources (muito rápido, já em memória/cache do Unity)
+        Texture2D texture = Resources.Load<Texture2D>($"AvatarPresets/{resourceName}");
+        if (texture == null)
         {
-            Debug.Log("[ProfileImageUploader] Processamento já em andamento");
+            ShowAlert("Erro ao carregar avatar selecionado.");
+            Debug.LogError($"[ProfileImageUploader] Textura não encontrada: AvatarPresets/{resourceName}");
             return;
         }
 
-        Debug.Log($"[ProfileImageUploader] Avatar preset selecionado: {resourceName}");
+        // 2. Mostra a textura imediatamente (fromResources: true evita Destroy no asset)
+        imageLoader.SetTexture(texture, fromResources: true);
 
+        // 3. Salva identificador do preset no UserDataStore + LiteDB (zero I/O de disco)
+        string presetUrl = $"preset:{resourceName}";
+        currentUserData.ProfileImageUrl = presetUrl;
+        UserDataStore.CurrentUserData = currentUserData;
+        AppContext.UserDataLocal?.UpdateUser(currentUserData);
+
+        // 4. Notifica TopBar (carregará via "preset:" → Resources, sem I/O)
+        UserAvatarSyncHelper.NotifyAvatarChanged(presetUrl);
+
+        // 5. Rastreia seleção para o upload quando o picker fechar
+        _lastSelectedResourceName = resourceName;
+
+        Debug.Log($"[ProfileImageUploader] Preview instantâneo: {presetUrl}");
+    }
+
+    /// <summary>
+    /// Callback chamado quando o AvatarPickerPanel fecha (CloseButton).
+    /// Dispara o upload para Firebase Storage em background (fire-and-forget).
+    /// Necessário apenas para a RankingScene (compartilhada com outros usuários).
+    /// </summary>
+    private void OnPickerPanelClosed()
+    {
+        // Se o usuário não selecionou nenhum avatar, nada a fazer
+        if (string.IsNullOrEmpty(_lastSelectedResourceName))
+        {
+            Debug.Log("[ProfileImageUploader] Picker fechado sem seleção — nenhum upload necessário");
+            return;
+        }
+
+        Debug.Log($"[ProfileImageUploader] Picker fechado. Iniciando upload do preset: {_lastSelectedResourceName}");
+
+        // Carrega textura para EncodeToPNG (já em cache do Unity, rápido)
+        Texture2D texture = Resources.Load<Texture2D>($"AvatarPresets/{_lastSelectedResourceName}");
+        if (texture == null)
+        {
+            Debug.LogError($"[ProfileImageUploader] Textura não encontrada para upload: {_lastSelectedResourceName}");
+            return;
+        }
+
+        string resourceName = _lastSelectedResourceName;
+        string userId = currentUserData.UserId;
+        string oldImageUrl = _oldImageUrlBeforePicker;
+
+        // Limpa estado do picker
+        _lastSelectedResourceName = null;
+        _oldImageUrlBeforePicker = null;
+
+        // Dispara coroutine para EncodeToPNG + file save + upload (background, não bloqueia)
+        StartCoroutine(DeferredUploadPreset(resourceName, texture, userId, oldImageUrl));
+    }
+
+    /// <summary>
+    /// Coroutine que salva o preset em arquivo e faz upload para Firebase Storage.
+    /// Necessário apenas para a RankingScene (compartilhada com outros usuários).
+    /// Roda em frames separados — nunca trava a UI.
+    /// </summary>
+    private IEnumerator DeferredUploadPreset(string resourceName, Texture2D texture,
+                                              string userId, string oldImageUrl)
+    {
+        isProcessing = true;
+
+        // --- Frame seguinte: EncodeToPNG + WriteAllBytes ---
+        yield return null;
+
+        string localPath = null;
         try
         {
-            Texture2D texture = Resources.Load<Texture2D>($"AvatarPresets/{resourceName}");
-            if (texture == null)
-            {
-                ShowAlert("Erro ao carregar avatar selecionado.");
-                Debug.LogError($"[ProfileImageUploader] Textura não encontrada: AvatarPresets/{resourceName}");
-                return;
-            }
-
             byte[] pngBytes = texture.EncodeToPNG();
-            string cacheDir = Path.Combine(Application.persistentDataPath, "ImageTemp");
-            Directory.CreateDirectory(cacheDir);
-            string tempPath = Path.Combine(cacheDir, $"{resourceName}.png");
-            File.WriteAllBytes(tempPath, pngBytes);
-
-            Debug.Log($"[ProfileImageUploader] Avatar preset salvo em: {tempPath}");
-            ProcessSelectedImage(tempPath);
+            string avatarDir = Path.Combine(Application.persistentDataPath, "AvatarPresets");
+            Directory.CreateDirectory(avatarDir);
+            localPath = Path.Combine(avatarDir, $"{resourceName}.png");
+            File.WriteAllBytes(localPath, pngBytes);
+            Debug.Log($"[ProfileImageUploader] Arquivo temporário salvo para upload: {localPath}");
         }
         catch (Exception e)
         {
-            Debug.LogError($"[ProfileImageUploader] Erro ao processar avatar preset: {e.Message}");
-            ShowAlert("Erro ao processar avatar selecionado.");
+            Debug.LogError($"[ProfileImageUploader] Erro ao salvar arquivo para upload: {e.Message}");
+            isProcessing = false;
+            yield break;
+        }
+
+        // --- Frame seguinte: dispara upload fire-and-forget ---
+        yield return null;
+
+        UploadAvatarInBackground(localPath, userId, oldImageUrl);
+        isProcessing = false;
+    }
+
+    /// <summary>
+    /// Faz upload do avatar para Firebase Storage em background.
+    /// Fire-and-forget — não trava a UI e não afeta a experiência do usuário.
+    /// Necessário apenas para a RankingScene (compartilhada com outros usuários).
+    /// </summary>
+    private async void UploadAvatarInBackground(string imagePath, string userId, string oldImageUrl)
+    {
+        try
+        {
+            var config = new ImageUploadConfig
+            {
+                ImagePath         = imagePath,
+                DestinationFolder = "profile_images",
+                FileNamePrefix    = userId,
+                MaxSizeBytes      = maxImageSizeBytes,
+                OldImageUrl       = oldImageUrl,
+                OnProgress        = msg => Debug.Log($"[ProfileImageUploader] Background: {msg}"),
+                OnCompleted = async url =>
+                {
+                    Debug.Log($"[ProfileImageUploader] Upload background concluído: {url}");
+
+                    try
+                    {
+                        await _firestore.UpdateUserProfileImageUrl(userId, url).ConfigureAwait(false);
+                        Debug.Log("[ProfileImageUploader] Firestore atualizado com URL do Storage");
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogWarning($"[ProfileImageUploader] Firestore falhou: {e.Message}");
+                    }
+                },
+                OnFailed = error =>
+                {
+                    Debug.LogWarning($"[ProfileImageUploader] Upload background falhou: {error}");
+                }
+            };
+
+            await _imageUpload.UploadAsync(config);
+        }
+        catch (Exception e)
+        {
+            // Falha no upload não afeta a experiência local
+            Debug.LogWarning($"[ProfileImageUploader] Erro no upload background: {e.Message}");
         }
     }
 
@@ -388,7 +523,10 @@ public class ProfileImageUploader : MonoBehaviour
             uploadButton.onClick.RemoveAllListeners();
 
         if (avatarPickerPanel != null)
+        {
             avatarPickerPanel.OnAvatarSelected -= OnPresetAvatarSelected;
+            avatarPickerPanel.OnPanelClosed -= OnPickerPanelClosed;
+        }
     }
 
     public ProfileImageLoader ImageLoader => imageLoader;
