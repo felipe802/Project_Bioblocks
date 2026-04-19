@@ -1,10 +1,9 @@
+using System;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using System;
-using System.Threading.Tasks;
 using UnityEngine.SceneManagement;
-using Firebase;
 
 public class InitializationManager : MonoBehaviour
 {
@@ -20,45 +19,16 @@ public class InitializationManager : MonoBehaviour
     [Header("Global Loading Spinner")]
     [SerializeField] private GameObject globalSpinnerPrefab;
 
+    private IFirestoreRepository _firestore;
+    private IAuthRepository _auth;
+    private IUserDataSyncService _userDataSync;
+    private IUserDataLocalRepository _userDataLocal;
+
     private LoadingSpinnerComponent globalSpinner;
 
     private void Awake()
     {
         InitializeGlobalSpinner();
-    }
-
-    private void InitializeGlobalSpinner()
-    {
-        try
-        {
-            // If we already have a spinner instance, use that one
-            globalSpinner = LoadingSpinnerComponent.Instance;
-            
-            // If we're supposed to use a prefab instead of the singleton instance
-            if (globalSpinner == null && globalSpinnerPrefab != null)
-            {
-                Canvas mainCanvas = FindObjectOfType<Canvas>();
-                GameObject spinnerObject;
-                
-                if (mainCanvas != null)
-                {
-                    spinnerObject = Instantiate(globalSpinnerPrefab, mainCanvas.transform);
-                }
-                else
-                {
-                    spinnerObject = Instantiate(globalSpinnerPrefab);
-                }
-                
-                spinnerObject.name = "GlobalLoadingSpinner";
-                DontDestroyOnLoad(spinnerObject);
-                
-                globalSpinner = spinnerObject.GetComponent<LoadingSpinnerComponent>();
-            }
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"Error initializing spinner: {e.Message}");
-        }
     }
 
     private void Start()
@@ -67,46 +37,76 @@ public class InitializationManager : MonoBehaviour
         StartInitialization();
     }
 
+    private void InitializeGlobalSpinner()
+    {
+        try
+        {
+            globalSpinner = LoadingSpinnerComponent.Instance;
+
+            if (globalSpinner == null && globalSpinnerPrefab != null)
+            {
+                Canvas mainCanvas = FindObjectOfType<Canvas>();
+                GameObject spinnerObject = mainCanvas != null
+                    ? Instantiate(globalSpinnerPrefab, mainCanvas.transform)
+                    : Instantiate(globalSpinnerPrefab);
+
+                spinnerObject.name = "GlobalLoadingSpinner";
+                DontDestroyOnLoad(spinnerObject);
+                globalSpinner = spinnerObject.GetComponent<LoadingSpinnerComponent>();
+            }
+            globalSpinner?.ShowSpinner();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[InitializationManager] Erro ao inicializar spinner: {e.Message}");
+        }
+    }
+
     private void SetupUI()
     {
-        if (retryPanel != null)
-            retryPanel.SetActive(false);
-            
-        if (progressBar != null)
-            progressBar.fillAmount = 0f;
+        if (retryPanel != null) retryPanel.SetActive(false);
+        if (progressBar != null) progressBar.fillAmount = 0f;
     }
 
     private async void StartInitialization()
     {
         float startTime = Time.time;
+        Debug.Log("[InitManager] StartInitialization começou");
 
         try
         {
-            try
+            if (!AppContext.IsReady)
             {
-                if (globalSpinner != null)
-                {
-                    globalSpinner.ShowSpinner();
-                }
+                Debug.Log("[InitManager] Aguardando AppContext...");
+                UpdateStatus("Inicializando Firebase...");
+                await WaitForAppContext();
+                Debug.Log("[InitManager] AppContext pronto");
             }
-            catch (Exception e)
+            else
             {
-                Debug.LogWarning($"Error showing spinner: {e.Message}");
+                Debug.Log("[InitManager] AppContext já estava pronto");
             }
 
-            UpdateStatus("Inicializando Firebase...");
-            await InitializeFirebaseServices();
+            _firestore     = AppContext.Firestore;
+            _auth          = AppContext.Auth;
+            _userDataSync  = AppContext.UserDataSync;
+            _userDataLocal = AppContext.UserDataLocal;
+
             UpdateProgress(0.3f);
-
             UpdateStatus("Verificando autenticação...");
+            Debug.Log("[InitManager] Verificando autenticação...");
             bool isAuthenticated = await CheckAuthentication();
+            Debug.Log($"[InitManager] isAuthenticated={isAuthenticated}");
             UpdateProgress(0.5f);
+
             bool userDataLoaded = false;
 
             if (isAuthenticated)
             {
                 UpdateStatus("Carregando dados do usuário...");
+                Debug.Log("[InitManager] Carregando dados...");
                 userDataLoaded = await LoadUserData();
+                Debug.Log($"[InitManager] userDataLoaded={userDataLoaded}");
                 UpdateProgress(0.7f);
 
                 if (userDataLoaded)
@@ -116,233 +116,162 @@ public class InitializationManager : MonoBehaviour
                     UpdateProgress(0.85f);
 
                     UpdateStatus("Configurando sistema de níveis...");
-                    InitializePlayerLevelManager();
+                    InitializePlayerLevelService();
                     UpdateProgress(0.9f);
                 }
             }
 
             float elapsed = Time.time - startTime;
             if (elapsed < minimumLoadingTime)
-            {
                 await Task.Delay(Mathf.RoundToInt((minimumLoadingTime - elapsed) * 1000));
-            }
 
-            try
-            {
-                if (isAuthenticated && userDataLoaded)
-                {
-                    if (globalSpinner != null)
-                    {
-                        globalSpinner.ShowSpinnerUntilSceneLoaded("PathwayScene");
-                    }
-                    SceneManager.LoadScene("PathwayScene");
-                }
-                else
-                {
-                    if (globalSpinner != null)
-                    {
-                        globalSpinner.ShowSpinnerUntilSceneLoaded("LoginView");
-                    }
-                    SceneManager.LoadScene("LoginView");
-                }
-            }
-            catch (Exception)
-            {
-                if (isAuthenticated && userDataLoaded)
-                {
-                    SceneManager.LoadScene("PathwayScene");
-                }
-                else
-                {
-                    SceneManager.LoadScene("LoginView");
-                }
-            }
+            NavigateAfterInit(isAuthenticated && userDataLoaded);
         }
         catch (Exception ex)
         {
-            Debug.LogError($"[InitializationManager] INITIALIZATION FAILED: {ex.GetType().Name}: {ex.Message}");
+            Debug.LogError($"[InitializationManager] Falha: {ex.GetType().Name}: {ex.Message}");
             Debug.LogError($"[InitializationManager] StackTrace: {ex.StackTrace}");
             if (ex.InnerException != null)
-            {
                 Debug.LogError($"[InitializationManager] InnerException: {ex.InnerException.Message}");
-            }
 
-            try
-            {
-                if (globalSpinner != null)
-                {
-                    globalSpinner.HideSpinner();
-                }
-            }
-            catch { }
-
+            try { globalSpinner?.HideSpinner(); } catch { }
             ShowError($"Falha na inicialização: {ex.Message}");
-        }  
+        }
     }
 
-    private async Task InitializeFirebaseServices()
+    private async Task WaitForAppContext()
     {
-        var dependencyStatus = await FirebaseApp.CheckAndFixDependenciesAsync();
-        if (dependencyStatus != DependencyStatus.Available)
+        float timeout = 15f;
+        float elapsed = 0f;
+
+        while (!AppContext.IsReady && elapsed < timeout)
         {
-            throw new System.Exception($"Could not resolve all Firebase dependencies: {dependencyStatus}");
+            await Task.Delay(100);
+            elapsed += 0.1f;
+
+            if (Mathf.RoundToInt(elapsed * 10) % 30 == 0)
+                Debug.Log($"[InitManager] Aguardando AppContext... {elapsed:F1}s");
         }
 
-        await AuthenticationRepository.Instance.InitializeAsync();
-        FirestoreRepository.Instance.Initialize();
-        StorageRepository.Instance.Initialize();
+        if (!AppContext.IsReady)
+            throw new Exception("Sem conexão. Verifique sua internet e tente novamente.");
+    }
+
+    private async Task<bool> CheckAuthentication()
+    {
+        if (!_auth.HasLocalSession()) return false;
+
+        try
+        {
+            await _auth.ReloadCurrentUserAsync();
+            Debug.Log("[InitializationManager] Sessão validada com o servidor.");
+            return true;
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[InitializationManager] Validação online falhou, entrando offline: {e.Message}");
+            return _auth.HasLocalSession();
+        }
     }
 
     private async Task<bool> LoadUserData()
     {
         try
         {
-            var user = AuthenticationRepository.Instance.Auth.CurrentUser;
-            if (user != null)
-            {
-                var userData = await FirestoreRepository.Instance.GetUserData(user.UserId);
-                if (userData == null)
-                {
-                    return false;
-                }
-                else
-                {
-                    UserDataStore.CurrentUserData = userData;
-                    Debug.Log($"[InitializationManager] UserData carregado. UserId: {userData.UserId}, Level: {userData.PlayerLevel}");
-                    await Task.Yield();
+            if (!_auth.HasLocalSession()) return false;
 
-                    if (PlayerLevelManager.Instance != null)
-                    {
-                        Debug.Log("[InitializationManager] Notificando PlayerLevelManager sobre dados carregados");
-                        PlayerLevelManager.Instance.OnUserDataLoaded(userData);
-                    }
+            string userId = _auth.CurrentUserId;
+            if (string.IsNullOrEmpty(userId)) return false;
+
+            // TrySyncPendingData já resolve todos os cenários:
+            //   - sem cache local    → busca Firestore → salva LiteDB
+            //   - cache dirty        → envia ao Firestore → marca synced
+            //   - cache stale        → busca Firestore → atualiza LiteDB
+            //   - cache válido       → carrega LiteDB direto
+            //   - Firestore offline  → usa LiteDB como fallback
+            await _userDataSync.TrySyncPendingData(userId);
+
+            if (UserDataStore.CurrentUserData == null)
+            {
+                Debug.LogError("[InitializationManager] UserData nulo após sync.");
+                return false;
+            }
+
+            Debug.Log($"[InitializationManager] UserData pronto. " +
+                      $"UserId: {UserDataStore.CurrentUserData.UserId}, " +
+                      $"Level: {UserDataStore.CurrentUserData.PlayerLevel}");
+            return true;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[InitializationManager] Erro ao carregar dados: {e.Message}");
+
+            // Último recurso: tenta carregar direto do LiteDB
+            string userId = _auth.CurrentUserId;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var cached = _userDataLocal.GetUser(userId);
+                if (cached != null)
+                {
+                    UserDataStore.CurrentUserData = cached;
+                    Debug.LogWarning("[InitializationManager] UserData carregado do cache de emergência.");
                     return true;
                 }
             }
 
             return false;
         }
-        catch (System.Exception e)
+    }
+
+    private void NavigateAfterInit(bool authenticated)
+    {
+        try
         {
-            Debug.LogError($"Erro ao carregar dados: {e.Message}");
-            throw;
+            string targetScene = authenticated ? "PathwayScene" : "LoginView";
+            globalSpinner?.ShowSpinnerUntilSceneLoaded(targetScene);
+            SceneManager.LoadScene(targetScene);
+        }
+        catch (Exception)
+        {
+            string targetScene = authenticated ? "PathwayScene" : "LoginView";
+            SceneManager.LoadScene(targetScene);
         }
     }
 
-    private async Task<bool> CheckAuthentication()
+    private void InitializePlayerLevelService()
     {
-        var user = AuthenticationRepository.Instance.Auth.CurrentUser;
-        if (user != null)
+        if (AppContext.PlayerLevel == null)
         {
-            try
-            {
-                await user.ReloadAsync();
-                return true;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
+            Debug.LogError("[InitializationManager] PlayerLevelService não encontrado no AppContext.");
+            return;
         }
-
-        return false;
+        Debug.Log("[InitializationManager] PlayerLevelService pronto.");
     }
 
     private void UpdateStatus(string message)
     {
-        if (statusText != null)
-        {
-            statusText.text = message;
-        }
+        if (statusText != null) statusText.text = message;
     }
 
     private void UpdateProgress(float progress)
     {
-        if (progressBar != null)
-        {
-            progressBar.fillAmount = progress;
-        }
+        if (progressBar != null) progressBar.fillAmount = progress;
     }
 
     private void ShowError(string message)
     {
+        // Esconde o spinner explicitamente aqui também
+        try { globalSpinner?.HideSpinner(); } catch { }
+
         if (retryPanel != null)
         {
             retryPanel.SetActive(true);
-
-            if (errorText != null)
-            {
-                errorText.text = message;
-            }
-        }
-    }
-
-    private void InitializePlayerLevelManager()
-    {
-        try
-        {
-            if (PlayerLevelManager.Instance == null)
-            {
-                Debug.LogError("[InitializationManager] PlayerLevelManager não encontrado na cena!");
-                return;
-            }
-            
-            Debug.Log("[InitializationManager] PlayerLevelManager encontrado. Aguardando verificação...");
-            
-            // Aguardar para garantir que tudo foi carregado
-            StartCoroutine(WaitAndCheckPlayerLevel());
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"[InitializationManager] Erro ao inicializar PlayerLevelManager: {e.Message}");
-        }
-    }
-
-    private System.Collections.IEnumerator WaitAndCheckPlayerLevel()
-    {
-        // Aguardar 2 segundos para garantir que TUDO foi inicializado
-        yield return new WaitForSeconds(2f);
-        
-        Debug.Log("[InitializationManager] Verificando estado do PlayerLevelManager...");
-        
-        if (UserDataStore.CurrentUserData != null)
-        {
-            Debug.Log($"[InitializationManager] UserData disponível. UserId: {UserDataStore.CurrentUserData.UserId}, Level: {UserDataStore.CurrentUserData.PlayerLevel}");
-            
-            if (UserDataStore.CurrentUserData.PlayerLevel == 0)
-            {
-                Debug.LogWarning("[InitializationManager] Level ainda está em 0 após 2 segundos. Forçando recálculo...");
-                
-                if (PlayerLevelManager.Instance != null)
-                {
-                    _ = ForceRecalculatePlayerLevel();
-                }
-            }
-            else
-            {
-                Debug.Log($"[InitializationManager] Level carregado corretamente: {UserDataStore.CurrentUserData.PlayerLevel}");
-            }
+            if (errorText != null) errorText.text = message;
         }
         else
         {
-            Debug.LogError("[InitializationManager] UserData ainda é null após 2 segundos!");
-        }
-    }
-
-    private async Task ForceRecalculatePlayerLevel()
-    {
-        try
-        {
-            if (PlayerLevelManager.Instance != null)
-            {
-                await PlayerLevelManager.Instance.RecalculateTotalAnswered();
-                await PlayerLevelManager.Instance.CheckAndHandleLevelUp();
-                Debug.Log("[InitializationManager] Recálculo de level forçado completado");
-            }
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"[InitializationManager] Erro ao forçar recálculo: {e.Message}");
+            // retryPanel não configurado — loga para identificar no Xcode
+            Debug.LogError($"[InitManager] retryPanel é null. Mensagem de erro: {message}");
         }
     }
 }

@@ -10,30 +10,36 @@ using UnityEngine.UI;
 public class RankingManager : MonoBehaviour
 {
     [Header("References")]
-    [SerializeField] protected GameObject rankingRowPrefab;
+    [SerializeField] protected GameObject    rankingRowPrefab;
     [SerializeField] protected RectTransform rankingTableContent;
-    [SerializeField] protected ScrollRect scrollRect;
+    [SerializeField] protected ScrollRect    scrollRect;
 
     [Header("Week Reset Information")]
     [SerializeField] private TMP_Text weekResetCountdownText;
-    private WeekResetCountdown resetCountdown;
+    private WeekResetCountdown _resetCountdown;
 
     [Header("Loading Status")]
     [SerializeField] private GameObject loadingIndicator;
-    [SerializeField] private TMP_Text lastUpdateText;
+    [SerializeField] private TMP_Text   lastUpdateText;
 
-    protected UserData currentUserData;
-    protected List<Ranking> rankings;
-    protected IRankingRepository rankingRepository;
+    // ─── Estado interno ───────────────────────────────────────
+    protected IRankingRepository _rankingRepository;
+    protected List<Ranking>      _rankings;
 
-    private DateTime lastFetchTime = DateTime.MinValue;
-    private bool isFetching = false;
+    private INavigationService _navigation;
+    private DateTime           _lastFetchTime = DateTime.MinValue;
+    private bool               _isFetching    = false;
 
+    // ─────────────────────────────────────────────────────────
+    // Unity lifecycle
+    // ─────────────────────────────────────────────────────────
     protected virtual void Start()
     {
+        _navigation = AppContext.Navigation;
+
         if (rankingRowPrefab == null || rankingTableContent == null || scrollRect == null)
         {
-            Debug.LogError("RankingManager: Referências obrigatórias não configuradas!");
+            Debug.LogError("[RankingManager] Referências obrigatórias não configuradas!");
             return;
         }
 
@@ -41,230 +47,169 @@ public class RankingManager : MonoBehaviour
         InitializeWeekResetCountdown();
     }
 
+    // ─────────────────────────────────────────────────────────
+    // Inicialização
+    // ─────────────────────────────────────────────────────────
     private void InitializeWeekResetCountdown()
     {
         if (weekResetCountdownText != null)
         {
-            resetCountdown = gameObject.AddComponent<WeekResetCountdown>();
-            resetCountdown.Initialize(weekResetCountdownText);
+            _resetCountdown = gameObject.AddComponent<WeekResetCountdown>();
+            _resetCountdown.Initialize(weekResetCountdownText);
         }
     }
 
     protected virtual void InitializeRepository()
     {
-        if (BioBlocksSettings.Instance.IsDebugMode())
+        bool debugMode = BioBlocksSettings.Instance != null
+                    && BioBlocksSettings.Instance.IsDebugMode();
+
+        _rankingRepository = debugMode
+            ? (IRankingRepository) new FakeRankingRepository()
+            : new RankingRepository();
+
+        // Popula a tabela imediatamente com o cache — sem await, sem flash
+        var syncService = AppContext.RankingSync;
+        if (syncService != null)
         {
-            rankingRepository = new MockRankingRepository();
-            _ = InitializeRankingManager();
-            return;
+            _rankings = syncService.GetCachedRankings();
+            if (_rankings != null && _rankings.Count > 0)
+                UpdateRankingTable();
         }
 
-        if (!FirestoreRepository.Instance.IsInitialized)
-        {
-            Debug.LogError("FirestoreRepository não está inicializado");
-            return;
-        }
-
-        rankingRepository = new RankingRepository();
-        _ = InitializeRankingManager();
+        // Verifica staleness e atualiza em background
+        _ = InitializeAsync();
     }
 
-    protected virtual async Task InitializeRankingManager()
+    protected virtual async Task InitializeAsync()
     {
-        currentUserData = await rankingRepository.GetCurrentUserDataAsync();
-        if (currentUserData != null)
+        try
         {
-            UserDataStore.OnUserDataChanged += OnUserDataChanged;
-            await FetchRankings();
+            var syncService = AppContext.RankingSync;
+            if (syncService != null)
+            {
+                var fresh = await syncService.GetRankingsWithFallback();
+                if (fresh != null && fresh.Count > 0)
+                {
+                    _rankings = fresh;
+                    UpdateRankingTable();
+                }
+            }
+            else
+                await FetchRankings();
         }
-        else
+        catch (Exception e)
         {
-            Debug.LogError("User data not loaded.");
+            Debug.LogError($"[RankingManager] Falha na inicialização: {e.Message}");
+        }
+        finally
+        {
+            ShowLoadingIndicator(false);
         }
     }
 
-    protected virtual void OnDestroy()
-    {
-        UserDataStore.OnUserDataChanged -= OnUserDataChanged;
-    }
-
-    protected virtual void OnUserDataChanged(UserData userData)
-    {
-        currentUserData = userData;
-        _ = FetchRankings();
-    }
-
+    // ─────────────────────────────────────────────────────────
+    // Fetch
+    // ─────────────────────────────────────────────────────────
     public virtual async Task FetchRankings()
     {
-        if (isFetching)
+        if (_isFetching)
         {
-            Debug.LogWarning("Já existe uma busca de rankings em andamento.");
+            Debug.LogWarning("[RankingManager] Busca de rankings já em andamento.");
             return;
         }
 
         try
         {
-            isFetching = true;
+            _isFetching    = true;
             ShowLoadingIndicator(true);
-            
-            rankings = await rankingRepository.GetRankingsAsync();
-            lastFetchTime = DateTime.UtcNow;
 
-            if (rankings != null && rankings.Count > 0)
-            {
-                rankings = rankings
-                    .OrderByDescending(r => r.userScore)
-                    .ThenByDescending(r => r.userWeekScore)
-                    .ToList();
+            _rankings      = await _rankingRepository.GetRankingsAsync(limit: 50);
+            _lastFetchTime = DateTime.UtcNow;
 
+            if (_rankings != null && _rankings.Count > 0)
                 UpdateRankingTable();
-                UpdateLastFetchTime();
-            }
             else
-            {
-                Debug.LogWarning("Nenhum ranking foi obtido!");
-            }
+                Debug.LogWarning("[RankingManager] Ranking retornou vazio.");
         }
         catch (Exception e)
         {
-            Debug.LogError($"Erro ao buscar rankings: {e.Message}\n{e.StackTrace}");
-            rankings = new List<Ranking>();
+            Debug.LogError($"[RankingManager] Erro ao buscar rankings: {e.Message}\n{e.StackTrace}");
+            _rankings = new List<Ranking>();
         }
         finally
         {
-            isFetching = false;
+            _isFetching = false;
             ShowLoadingIndicator(false);
+            UpdateLastFetchLabel();
         }
     }
 
-    private void ShowLoadingIndicator(bool show)
-    {
-        if (loadingIndicator != null)
-        {
-            loadingIndicator.SetActive(show);
-        }
-    }
-
-    private void UpdateLastFetchTime()
-    {
-        if (lastUpdateText != null)
-        {
-            if (lastFetchTime == DateTime.MinValue)
-            {
-                lastUpdateText.text = "Nunca atualizado";
-            }
-            else
-            {
-                var timeSince = DateTime.UtcNow - lastFetchTime;
-                
-                if (timeSince.TotalMinutes < 1)
-                {
-                    lastUpdateText.text = "Atualizado agora";
-                }
-                else if (timeSince.TotalMinutes < 60)
-                {
-                    lastUpdateText.text = $"Atualizado há {(int)timeSince.TotalMinutes} min";
-                }
-                else if (timeSince.TotalHours < 24)
-                {
-                    lastUpdateText.text = $"Atualizado há {(int)timeSince.TotalHours}h";
-                }
-                else
-                {
-                    lastUpdateText.text = $"Atualizado há {(int)timeSince.TotalDays}d";
-                }
-            }
-        }
-    }
-
+    // ─────────────────────────────────────────────────────────
+    // UI
+    // ─────────────────────────────────────────────────────────
     protected virtual void UpdateRankingTable()
     {
-        if (rankingTableContent == null)
-        {
-            Debug.LogError("rankingTableContent é null!");
-            return;
-        }
+        if (rankingTableContent == null) return;
 
         foreach (Transform child in rankingTableContent)
-        {
             Destroy(child.gameObject);
-        }
 
-        var top20Rankings = rankings.Take(20).ToList();
+        var top20 = _rankings.Take(20).ToList();
 
-        for (int i = 0; i < top20Rankings.Count; i++)
+        for (int i = 0; i < top20.Count; i++)
         {
-            var ranking = top20Rankings[i];
-            bool isCurrentUser = ranking.userName == currentUserData.NickName;
-            bool applyCurrentUserStyle = isCurrentUser && (i + 1) > 3;
-            CreateRankingRow(i + 1, ranking, applyCurrentUserStyle);
-        }
-
-        if (!top20Rankings.Any(r => r.userName == currentUserData.NickName))
-        {
-            int currentUserRank = rankings.FindIndex(r => r.userName == currentUserData.NickName) + 1;
-            var currentUserRanking = rankings.Find(r => r.userName == currentUserData.NickName);
-
-            if (currentUserRanking != null && currentUserRank > 20)
-            {
-                GameObject separatorGO = Instantiate(rankingRowPrefab, rankingTableContent);
-                var separatorUI = separatorGO.GetComponent<RankingRowUI>();
-                if (separatorUI != null)
-                {
-                    separatorUI.SetupAsExtraRow(currentUserRank, currentUserRanking.userName,
-                        currentUserRanking.userScore, currentUserRanking.userWeekScore,
-                        currentUserRanking.profileImageUrl);
-                }
-            }
+            CreateRankingRow(i + 1, top20[i], false);
         }
 
         Canvas.ForceUpdateCanvases();
         LayoutRebuilder.ForceRebuildLayoutImmediate(rankingTableContent);
 
-        if (scrollRect != null)
-        {
-            StartCoroutine(ScrollToCurrentUser());
-        }
-    }
-
-    protected virtual IEnumerator ScrollToCurrentUser()
-    {
-        yield return new WaitForEndOfFrame();
-
-        int currentUserRank = rankings.FindIndex(r => r.userName == currentUserData.NickName) + 1;
-        if (currentUserRank > 15)
-        {
-            scrollRect.verticalNormalizedPosition = 0f;
-        }
-    }
-
+    }    
+    
     protected virtual void CreateRankingRow(int rank, Ranking ranking, bool isCurrentUser)
     {
         GameObject rowGO = Instantiate(rankingRowPrefab, rankingTableContent);
         var rowUI = rowGO.GetComponent<RankingRowUI>();
+
         if (rowUI != null)
-        {
-            rowUI.Setup(rank, ranking.userName, ranking.userScore,
-                        ranking.userWeekScore, ranking.profileImageUrl, isCurrentUser);
-        }
+            rowUI.Setup(rank, ranking.userName,
+                        ranking.userScore, ranking.userWeekScore,
+                        ranking.profileImageUrl);
         else
-        {
-            Debug.LogError("RankingRowUI component not found on prefab!");
-        }
+            Debug.LogError("[RankingManager] RankingRowUI não encontrado no prefab!");
+    }    private void ShowLoadingIndicator(bool show)
+    {
+        if (loadingIndicator != null)
+            loadingIndicator.SetActive(show);
     }
 
-    protected virtual void OnRankingRowClicked(Ranking ranking)
+    private void UpdateLastFetchLabel()
     {
-        Debug.Log($"Clicked on ranking for user: {ranking.userName}");
+        if (lastUpdateText == null) return;
+
+        lastUpdateText.text = _lastFetchTime == DateTime.MinValue
+            ? "Nunca atualizado"
+            : FormatElapsedTime(DateTime.UtcNow - _lastFetchTime);
+    }
+
+    private string FormatElapsedTime(TimeSpan elapsed)
+    {
+        if (elapsed.TotalMinutes < 1)  return "Atualizado agora";
+        if (elapsed.TotalMinutes < 60) return $"Atualizado há {(int)elapsed.TotalMinutes} min";
+        if (elapsed.TotalHours   < 24) return $"Atualizado há {(int)elapsed.TotalHours}h";
+        return                                $"Atualizado há {(int)elapsed.TotalDays}d";
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // Botões / navegação
+    // ─────────────────────────────────────────────────────────
+    public async void OnRefreshButtonClicked()
+    {
+        try   { await FetchRankings(); }
+        catch (Exception e) { Debug.LogError($"[RankingManager] Refresh falhou: {e.Message}"); }
     }
 
     public virtual void Navigate(string sceneName)
-    {
-        NavigationManager.Instance.NavigateTo(sceneName);
-    }
-
-    public async void OnRefreshButtonClicked()
-    {
-        await FetchRankings();
-    }
+        => _navigation.NavigateTo(sceneName);
 }

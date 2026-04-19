@@ -4,141 +4,77 @@ using System.Threading.Tasks;
 using QuestionSystem;
 using System;
 using System.Linq;
-
+ 
 public class QuestionLoadManager : MonoBehaviour
 {
     private List<Question> questions;
     public string databankName;
     private bool isInitialized = false;
     public string DatabankName => databankName;
-
+ 
     private async void Start()
     {
         await Initialize();
     }
-
+ 
     private async Task Initialize()
     {
         if (isInitialized) return;
-
+ 
         try
         {
             await WaitForAnsweredQuestionsManager();
             isInitialized = true;
-            Debug.Log("QuestionLoadManager inicializado com sucesso");
+            Debug.Log("[QuestionLoadManager] Inicializado com sucesso");
         }
         catch (Exception e)
         {
-            Debug.LogError($"Erro ao inicializar QuestionLoadManager: {e.Message}");
+            Debug.LogError($"[QuestionLoadManager] Erro ao inicializar: {e.Message}");
         }
     }
-
+ 
     private async Task WaitForAnsweredQuestionsManager()
     {
+        if (AppContext.AnsweredQuestions == null)
+            throw new Exception("[QuestionLoadManager] AnsweredQuestionsManager não registrado no AppContext.");
+ 
         int maxAttempts = 10;
         int currentAttempt = 0;
-
-        while (currentAttempt < maxAttempts)
+ 
+        while (!AppContext.AnsweredQuestions.IsManagerInitialized && currentAttempt < maxAttempts)
         {
-            if (AnsweredQuestionsManager.Instance != null &&
-                AnsweredQuestionsManager.Instance.IsManagerInitialized)
-            {
-                Debug.Log("AnsweredQuestionsManager encontrado e inicializado");
-                return;
-            }
-
-            Debug.Log($"Tentativa {currentAttempt + 1} de {maxAttempts} para encontrar AnsweredQuestionsManager inicializado");
+            Debug.Log($"[QuestionLoadManager] Aguardando AnsweredQuestionsManager... tentativa {currentAttempt + 1}/{maxAttempts}");
             await Task.Delay(500);
             currentAttempt++;
         }
-
-        throw new Exception("AnsweredQuestionsManager não foi inicializado após várias tentativas");
+ 
+        if (!AppContext.AnsweredQuestions.IsManagerInitialized)
+            throw new Exception("[QuestionLoadManager] AnsweredQuestionsManager não inicializou a tempo.");
+ 
+        Debug.Log("[QuestionLoadManager] AnsweredQuestionsManager pronto.");
     }
-
+ 
     public async Task<List<Question>> LoadQuestionsForSet(QuestionSet targetSet)
     {
         try
         {
             if (!isInitialized)
-            {
                 await Initialize();
-            }
 
-            IQuestionDatabase database = FindQuestionDatabase(targetSet);
-
-            if (database == null)
-            {
-                Debug.LogError($"❌ Nenhum database encontrado para o QuestionSet: {targetSet}");
-                return new List<Question>();
-            }
-
-            return await LoadQuestionsFromDatabase(database);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"❌ Erro em LoadQuestionsForSet: {e.Message}\n{e.StackTrace}");
-            return new List<Question>();
-        }
-    }
-
-    private IQuestionDatabase FindQuestionDatabase(QuestionSet targetSet)
-    {
-        try
-        {
-            MonoBehaviour[] allBehaviours = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
-
-            foreach (MonoBehaviour behaviour in allBehaviours)
-            {
-                if (behaviour is IQuestionDatabase database)
-                {
-                    if (database.GetQuestionSetType() == targetSet)
-                    {
-                        return database;
-                    }
-                }
-            }
-
-            return null;
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"Erro ao procurar database: {e.Message}");
-            return null;
-        }
-    }
-
-    private async Task<List<Question>> LoadQuestionsFromDatabase(IQuestionDatabase database)
-    {
-        if (database == null)
-        {
-            Debug.LogError("Database é null em LoadQuestionsFromDatabase");
-            return new List<Question>();
-        }
-
-        try
-        {
-            if (!AnsweredQuestionsManager.Instance.IsManagerInitialized)
-            {
-                Debug.LogError("AnsweredQuestionsManager não está inicializado");
-                return new List<Question>();
-            }
-
-            List<Question> allQuestions = QuestionFilterService.FilterQuestions(database);
+            // Lê do LiteDB via QuestionSyncService —
+            // não depende mais de GameObjects de banco na cena
+            List<Question> allQuestions = AppContext.QuestionSync?
+                                              .GetQuestionsForDatabankName(databankName)
+                                          ?? new List<Question>();
 
             if (allQuestions == null || allQuestions.Count == 0)
             {
-                Debug.LogError("❌ Database retornou lista nula ou vazia de questões");
+                Debug.LogError($"[QuestionLoadManager] ❌ Nenhuma questão no LiteDB para: {databankName}");
                 return new List<Question>();
             }
 
-            Debug.Log($"\n📚 PASSO 1: BANCO LOCAL");
-            Debug.Log($"  Total de questões: {allQuestions.Count}");
-
-            if (string.IsNullOrEmpty(databankName))
-            {
-                databankName = database.GetDatabankName();
-                Debug.Log($"  Nome do banco: {databankName}");
-            }
+            Debug.Log($"\n📚 PASSO 1: LITEDB");
+            Debug.Log($"  Banco: {databankName} | Total: {allQuestions.Count}");
 
             int totalQuestions = allQuestions.Count;
             QuestionBankStatistics.SetTotalQuestions(databankName, totalQuestions);
@@ -147,36 +83,30 @@ public class QuestionLoadManager : MonoBehaviour
             QuestionBankStatistics.SetQuestionsPerLevel(databankName, questionsByLevel);
 
             foreach (var kvp in questionsByLevel.OrderBy(x => x.Key))
-            {
                 Debug.Log($"    Nível {kvp.Key}: {kvp.Value} questões");
-            }
 
             string userId = UserDataStore.CurrentUserData?.UserId;
 
             if (string.IsNullOrEmpty(userId))
             {
-                Debug.LogWarning("⚠️ UserId não disponível, carregando apenas questões de nível 1");
-                allQuestions = allQuestions.Where(q => GetQuestionLevel(q) == 1).ToList();
-                questions = allQuestions;
+                Debug.LogWarning("[QuestionLoadManager] ⚠️ UserId não disponível — carregando nível 1");
+                questions = allQuestions.Where(q => GetQuestionLevel(q) == 1).ToList();
                 return questions;
             }
 
-            List<string> answeredQuestionsFromFirebase = await SafeAnsweredQuestionsManager.Instance
-                .FetchUserAnsweredQuestionsInTargetDatabase(database);
+            List<string> answeredQuestionsFromFirebase = await AppContext.AnsweredQuestions
+                .FetchUserAnsweredQuestionsInTargetDatabase(databankName);
 
-            Debug.Log($"\n🔥 PASSO 2: FIREBASE (AnsweredQuestions)");
-            Debug.Log($"  Questões respondidas corretamente: {answeredQuestionsFromFirebase.Count}");
+            Debug.Log($"\n🔥 PASSO 2: QUESTÕES RESPONDIDAS");
+            Debug.Log($"  Respondidas corretamente: {answeredQuestionsFromFirebase.Count}");
+
             if (answeredQuestionsFromFirebase.Count > 0 && answeredQuestionsFromFirebase.Count <= 20)
-            {
                 Debug.Log($"  IDs: [{string.Join(", ", answeredQuestionsFromFirebase)}]");
-            }
 
             Debug.Log($"\n🔢 PASSO 3: CÁLCULO DO NÍVEL ATUAL");
 
             int currentLevel = LevelCalculator.CalculateCurrentLevel(
-                allQuestions,
-                answeredQuestionsFromFirebase
-            );
+                allQuestions, answeredQuestionsFromFirebase);
 
             HashSet<string> answeredSet = new HashSet<string>(answeredQuestionsFromFirebase);
 
@@ -202,13 +132,9 @@ public class QuestionLoadManager : MonoBehaviour
                     .ToList();
 
                 if (questionNumbers.Count <= 20)
-                {
-                    Debug.Log($"  IDs que serão mostradas: [{string.Join(", ", questionNumbers)}]");
-                }
+                    Debug.Log($"  IDs: [{string.Join(", ", questionNumbers)}]");
                 else
-                {
-                    Debug.Log($"  IDs que serão mostradas: [{string.Join(", ", questionNumbers.Take(10))}... +{questionNumbers.Count - 10} mais]");
-                }
+                    Debug.Log($"  IDs: [{string.Join(", ", questionNumbers.Take(10))}... +{questionNumbers.Count - 10} mais]");
             }
             else
             {
@@ -217,9 +143,7 @@ public class QuestionLoadManager : MonoBehaviour
                 var stats = LevelCalculator.GetLevelStats(allQuestions, answeredQuestionsFromFirebase);
                 Debug.Log($"\n📊 ESTATÍSTICAS:");
                 foreach (var stat in stats.Values.OrderBy(s => s.Level))
-                {
                     Debug.Log($"  {stat}");
-                }
             }
 
             Debug.Log($"╚══════════════════════════════════════════════════════╝\n");
@@ -229,40 +153,31 @@ public class QuestionLoadManager : MonoBehaviour
         }
         catch (Exception e)
         {
-            Debug.LogError($"❌ Erro em LoadQuestionsFromDatabase: {e.Message}\n{e.StackTrace}");
+            Debug.LogError($"[QuestionLoadManager] ❌ Erro em LoadQuestionsForSet: {e.Message}\n{e.StackTrace}");
             return new List<Question>();
         }
     }
-
+ 
     private int GetQuestionLevel(Question question)
     {
-        if (question.questionLevel <= 0)
-        {
-            return 1;
-        }
-        return question.questionLevel;
+        return question.questionLevel <= 0 ? 1 : question.questionLevel;
     }
-
+ 
     private Dictionary<int, int> GetQuestionCountByLevel(List<Question> allQuestions)
     {
         var stats = new Dictionary<int, int>();
-
+ 
         if (allQuestions == null || allQuestions.Count == 0)
-        {
             return stats;
-        }
-
+ 
         foreach (var question in allQuestions)
         {
             int level = GetQuestionLevel(question);
-
             if (!stats.ContainsKey(level))
-            {
                 stats[level] = 0;
-            }
             stats[level]++;
         }
-
+ 
         return stats;
     }
 }

@@ -27,10 +27,17 @@ public class QuestionManager : MonoBehaviour
     private Question nextQuestionToShow;
     private List<Question> allDatabaseQuestions;
     private int maxLevelInDatabase = 1;
-    private bool isCheckingLevelCompletion = false;
+    private INavigationService _navigation;
+    private ISceneDataService _sceneData;
 
+    // -------------------------------------------------------
+    // Ciclo de vida
+    // -------------------------------------------------------
     private void Start()
     {
+        _navigation = AppContext.Navigation;
+        _sceneData  = AppContext.SceneData;
+
         if (!ValidateManagers())
         {
             Debug.LogError("Falha na validação dos managers necessários.");
@@ -55,74 +62,93 @@ public class QuestionManager : MonoBehaviour
         }
     }
 
+    private void OnDestroy()
+    {
+        if (timerManager != null)
+            timerManager.OnTimerComplete -= HandleTimeUp;
+
+        if (answerManager != null)
+            answerManager.OnAnswerSelected -= CheckAnswer;
+
+        if (transitionManager != null)
+        {
+            transitionManager.OnBeforeTransitionStart -= PrepareNextQuestion;
+            transitionManager.OnTransitionMidpoint    -= ApplyPreparedQuestion;
+        }
+    }
+
+    // -------------------------------------------------------
+    // Validação
+    // -------------------------------------------------------
     private bool ValidateManagers()
     {
         if (questionBottomBarManager == null)
             Debug.LogError("QuestionManager: questionBottomBarManager é null");
-
         if (questionUIManager == null)
             Debug.LogError("QuestionManager: questionUIManager é null");
-
         if (questionCanvasGroupManager == null)
             Debug.LogError("QuestionManager: questionCanvasGroupManager é null");
-
         if (timerManager == null)
             Debug.LogError("QuestionManager: timerManager é null");
-
         if (loadManager == null)
             Debug.LogError("QuestionManager: loadManager é null");
-
         if (answerManager == null)
             Debug.LogError("QuestionManager: answerManager é null");
-
         if (scoreManager == null)
             Debug.LogError("QuestionManager: scoreManager é null");
-
         if (feedbackElements == null)
             Debug.LogError("QuestionManager: feedbackElements é null");
-
         if (transitionManager == null)
             Debug.LogError("QuestionManager: transitionManager é null");
-
         if (counterManager == null)
-            Debug.LogWarning("QuestionManager: counterManager é null (opcional, mas recomendado)");
+            Debug.LogWarning("QuestionManager: counterManager é null (opcional)");
 
-        bool isValid = questionBottomBarManager != null &&
-               questionUIManager != null &&
+        return questionBottomBarManager != null &&
+               questionUIManager        != null &&
                questionCanvasGroupManager != null &&
-               timerManager != null &&
-               loadManager != null &&
-               answerManager != null &&
-               scoreManager != null &&
-               feedbackElements != null &&
-               transitionManager != null &&
-               counterManager != null;
-
-        return isValid;
+               timerManager             != null &&
+               loadManager              != null &&
+               answerManager            != null &&
+               scoreManager             != null &&
+               feedbackElements         != null &&
+               transitionManager        != null &&
+               counterManager           != null;
     }
 
+    // -------------------------------------------------------
+    // Inicialização da sessão
+    // -------------------------------------------------------
     private async Task InitializeSession()
     {
         try
         {
-            QuestionSet currentSet = QuestionSetManager.GetCurrentQuestionSet();
-            IQuestionDatabase database = FindQuestionDatabase(currentSet);
-            if (database == null)
+            QuestionSet currentSet      = QuestionSetManager.GetCurrentQuestionSet();
+            string currentDatabaseName  = TopicToDatabankName(currentSet);
+            loadManager.databankName    = currentDatabaseName;
+
+            // Lê as questões do LiteDB via QuestionSyncService —
+            // não depende mais de GameObjects de banco na cena
+            allDatabaseQuestions = AppContext.QuestionSync?
+                                       .GetQuestionsForDatabankName(currentDatabaseName)
+                                   ?? new List<Question>();
+
+            if (allDatabaseQuestions.Count == 0)
             {
-                Debug.LogError($"Nenhum database encontrado para o QuestionSet: {currentSet}");
+                Debug.LogError($"[QuestionManager] Nenhuma questão no LiteDB para: {currentDatabaseName}");
+                _sceneData.SetData(new Dictionary<string, object>
+                    { { "databankName", currentDatabaseName } });
+                SceneManager.LoadScene("ResetDatabaseView");
                 return;
             }
 
-            string currentDatabaseName = database.GetDatabankName();
-            loadManager.databankName = currentDatabaseName;
-
-            allDatabaseQuestions = QuestionFilterService.FilterQuestions(database);
             maxLevelInDatabase = LevelCalculator.GetMaxLevel(allDatabaseQuestions);
-            Debug.Log($"📚 Banco {currentDatabaseName} possui {maxLevelInDatabase} níveis");
+            Debug.Log($"[QuestionManager] Banco: {currentDatabaseName} | " +
+                      $"Questões: {allDatabaseQuestions.Count} | Níveis: {maxLevelInDatabase}");
 
-            List<string> answeredQuestions = await AnsweredQuestionsManager.Instance
+            List<string> answeredQuestions = await AppContext.AnsweredQuestions?
                 .FetchUserAnsweredQuestionsInTargetDatabase(currentDatabaseName);
-            int answeredCount = answeredQuestions.Count;
+
+            int answeredCount  = answeredQuestions?.Count ?? 0;
             int totalQuestions = QuestionBankStatistics.GetTotalQuestions(currentDatabaseName);
 
             if (totalQuestions <= 0)
@@ -131,11 +157,13 @@ public class QuestionManager : MonoBehaviour
                 QuestionBankStatistics.SetTotalQuestions(currentDatabaseName, totalQuestions);
             }
 
-            bool allQuestionsAnswered = QuestionBankStatistics.AreAllQuestionsAnswered(currentDatabaseName, answeredCount);
+            bool allQuestionsAnswered =
+                QuestionBankStatistics.AreAllQuestionsAnswered(currentDatabaseName, answeredCount);
 
             if (allQuestionsAnswered)
             {
-                SceneDataManager.Instance.SetData(new Dictionary<string, object> { { "databankName", currentDatabaseName } });
+                _sceneData.SetData(new Dictionary<string, object>
+                    { { "databankName", currentDatabaseName } });
                 SceneManager.LoadScene("ResetDatabaseView");
                 return;
             }
@@ -143,8 +171,9 @@ public class QuestionManager : MonoBehaviour
             var questions = await loadManager.LoadQuestionsForSet(currentSet);
             if (questions == null || questions.Count == 0)
             {
-                Debug.LogError("QuestionManager: Nenhuma questão disponível");
-                SceneDataManager.Instance.SetData(new Dictionary<string, object> { { "databankName", currentDatabaseName } });
+                Debug.LogError("[QuestionManager] Nenhuma questão disponível após LoadQuestionsForSet");
+                _sceneData.SetData(new Dictionary<string, object>
+                    { { "databankName", currentDatabaseName } });
                 SceneManager.LoadScene("ResetDatabaseView");
                 return;
             }
@@ -154,94 +183,80 @@ public class QuestionManager : MonoBehaviour
             if (counterManager != null)
             {
                 counterManager.Initialize(allDatabaseQuestions, answeredQuestions);
-                Debug.Log("QuestionCounterManager inicializado");
-            }
-            else
-            {
-                Debug.LogWarning("QuestionCounterManager não está atribuído - contador não será exibido");
+                Debug.Log("[QuestionManager] QuestionCounterManager inicializado");
             }
         }
         catch (Exception e)
         {
-            Debug.LogError($"QuestionManager: Erro em InitializeSession: {e.Message}\n{e.StackTrace}");
+            Debug.LogError($"[QuestionManager] Erro em InitializeSession: {e.Message}\n{e.StackTrace}");
             string currentDatabaseName = loadManager.DatabankName;
-            SceneDataManager.Instance.SetData(new Dictionary<string, object> { { "databankName", currentDatabaseName } });
+            _sceneData.SetData(new Dictionary<string, object>
+                { { "databankName", currentDatabaseName } });
             SceneManager.LoadScene("ResetDatabaseView");
         }
     }
 
-    private IQuestionDatabase FindQuestionDatabase(QuestionSet targetSet)
+    // Converte QuestionSet → databankName para manter compatibilidade com AnsweredQuestions
+    private static string TopicToDatabankName(QuestionSet set) => set switch
     {
-        try
-        {
-            MonoBehaviour[] allBehaviours = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
-            
-            foreach (MonoBehaviour behaviour in allBehaviours)
-            {
-                if (behaviour is IQuestionDatabase database)
-                {
-                    if (database.GetQuestionSetType() == targetSet)
-                    {
-                        return database;
-                    }
-                }
-            }
+        QuestionSet.acidsBase      => "AcidBaseBufferQuestionDatabase",
+        QuestionSet.aminoacids     => "AminoacidQuestionDatabase",
+        QuestionSet.biochem        => "BiochemistryIntroductionQuestionDatabase",
+        QuestionSet.carbohydrates  => "CarbohydratesQuestionDatabase",
+        QuestionSet.enzymes        => "EnzymeQuestionDatabase",
+        QuestionSet.lipids         => "LipidsQuestionDatabase",
+        QuestionSet.membranes      => "MembranesQuestionDatabase",
+        QuestionSet.nucleicAcids   => "NucleicAcidsQuestionDatabase",
+        QuestionSet.proteins       => "ProteinQuestionDatabase",
+        QuestionSet.water          => "WaterQuestionDatabase",
+        _                          => set.ToString()
+    };
 
-            Debug.LogError($"QuestionManager: Nenhum database encontrado para o set: {targetSet}");
-            return null;
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"Erro ao procurar database: {e.Message}\n{e.StackTrace}");
-            return null;
-        }
-    }
+    // -------------------------------------------------------
+    // Event handlers
+    // -------------------------------------------------------
 
     private void SetupEventHandlers()
     {
-        timerManager.OnTimerComplete += HandleTimeUp;
-        answerManager.OnAnswerSelected += CheckAnswer;
+        timerManager.OnTimerComplete             += HandleTimeUp;
+        answerManager.OnAnswerSelected           += CheckAnswer;
         transitionManager.OnBeforeTransitionStart += PrepareNextQuestion;
-        transitionManager.OnTransitionMidpoint += ApplyPreparedQuestion;
+        transitionManager.OnTransitionMidpoint   += ApplyPreparedQuestion;
     }
 
+    // -------------------------------------------------------
+    // Resposta
+    // -------------------------------------------------------
     private async void CheckAnswer(int selectedAnswerIndex)
     {
         timerManager.StopTimer();
         answerManager.DisableAllButtons();
+
         var currentQuestion = currentSession.GetCurrentQuestion();
-        bool isCorrect = selectedAnswerIndex == currentQuestion.correctIndex;
+        bool isCorrect      = selectedAnswerIndex == currentQuestion.correctIndex;
         answerManager.MarkSelectedButton(selectedAnswerIndex, isCorrect);
 
         try
         {
             if (isCorrect)
             {
-                int baseScore = 5;
-                int actualScore = baseScore;
-                bool bonusActive = false;
-
-                if (scoreManager.HasBonusActive())
-                {
-                    bonusActive = true;
-                    actualScore = scoreManager.CalculateBonusScore(baseScore);
-                }
+                int baseScore   = 5;
+                bool bonusActive = scoreManager.HasBonusActive();
 
                 feedbackElements.ShowCorrectAnswer(bonusActive);
+
                 await scoreManager.UpdateScore(baseScore, true, currentQuestion);
 
                 if (counterManager != null)
                 {
                     counterManager.MarkQuestionAsAnswered(currentQuestion.questionNumber);
                     counterManager.UpdateCounter(currentQuestion);
-                    Debug.Log($"Questão {currentQuestion.questionNumber} marcada no contador");
                 }
 
                 await CheckLevelCompletionAfterCorrectAnswer(currentQuestion);
             }
             else
             {
-                Debug.Log($"Q{currentQuestion.questionNumber} (Nível {currentQuestion.questionLevel}) - ERRADA");
                 feedbackElements.ShowWrongAnswer();
                 await scoreManager.UpdateScore(-2, false, currentQuestion);
             }
@@ -259,45 +274,27 @@ public class QuestionManager : MonoBehaviour
     {
         try
         {
-            string userId = UserDataStore.CurrentUserData?.UserId;
+            string userId      = UserDataStore.CurrentUserData?.UserId;
             string databankName = loadManager.DatabankName;
 
-            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(databankName))
-            {
-                return;
-            }
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(databankName)) return;
 
-            await Task.Delay(1000);
+            int questionLevel = answeredQuestion.questionLevel > 0
+                ? answeredQuestion.questionLevel : 1;
 
-            int questionLevel = answeredQuestion.questionLevel > 0 ? answeredQuestion.questionLevel : 1;
-
-            Debug.Log($"\n Verificando se nível {questionLevel} foi completado...");
-
-            List<string> answeredQuestions = await AnsweredQuestionsManager.Instance
+            // FetchUserAnsweredQuestionsInTargetDatabase agora lê do UserDataStore
+            // — sem rede, sem delay necessário
+            List<string> answeredQuestions = await AppContext.AnsweredQuestions?
                 .FetchUserAnsweredQuestionsInTargetDatabase(databankName);
 
             bool isComplete = LevelCalculator.IsLevelComplete(
-                allDatabaseQuestions,
-                answeredQuestions,
-                questionLevel
-            );
+                allDatabaseQuestions, answeredQuestions, questionLevel);
 
             if (isComplete)
             {
                 Debug.Log($"Nível {questionLevel} COMPLETO!");
-
-                if (questionLevel >= maxLevelInDatabase)
-                {
-                    ShowLevelCompletionFeedback(questionLevel, isLastLevel: true);
-                }
-                else
-                {
-                    ShowLevelCompletionFeedback(questionLevel, isLastLevel: false);
-                }
-            }
-            else
-            {
-                Debug.Log($"Nível {questionLevel} ainda não completo");
+                ShowLevelCompletionFeedback(questionLevel,
+                    isLastLevel: questionLevel >= maxLevelInDatabase);
             }
         }
         catch (Exception e)
@@ -306,6 +303,9 @@ public class QuestionManager : MonoBehaviour
         }
     }
 
+    // -------------------------------------------------------
+    // Feedback de nível
+    // -------------------------------------------------------
     private void ShowLevelCompletionFeedback(int completedLevel, bool isLastLevel)
     {
         string levelName = GetLevelName(completedLevel);
@@ -314,33 +314,28 @@ public class QuestionManager : MonoBehaviour
 
         if (isLastLevel)
         {
-            title = "INCRÍVEL!";
+            title    = "INCRÍVEL!";
             bodyText = $"Você completou o Nível {levelName}. Este é o nível mais difícil.";
         }
         else
         {
-            int nextLevel = completedLevel + 1;
-            string nextLevelName = GetLevelName(nextLevel);
-
-            title = "PARABÉNS!";
+            string nextLevelName = GetLevelName(completedLevel + 1);
+            title    = "PARABÉNS!";
             bodyText = $"Você completou o Nível {levelName}. O Nível {nextLevelName} foi desbloqueado.";
         }
 
         feedbackElements.ShowLevelCompletionFeedback(title, bodyText, true);
     }
 
-    private string GetLevelName(int level)
+    private string GetLevelName(int level) => level switch
     {
-        return level switch
-        {
-            1 => "Básico",
-            2 => "Intermediário",
-            3 => "Difícil",
-            4 => "Avançado",
-            5 => "Expert",
-            _ => $"Nível {level}"
-        };
-    }
+        1 => "Básico",
+        2 => "Intermediário",
+        3 => "Difícil",
+        4 => "Avançado",
+        5 => "Expert",
+        _ => $"Nível {level}"
+    };
 
     private void ShowAnswerFeedback(string message, bool isCorrect, bool isCompleted = false)
     {
@@ -349,12 +344,13 @@ public class QuestionManager : MonoBehaviour
             feedbackElements.QuestionsCompletedFeedbackText.text = message;
             questionCanvasGroupManager.ShowCompletionFeedback();
             questionBottomBarManager.SetupNavigationButtons(
-                () => NavigationManager.Instance.NavigateTo("PathwayScene"),
-                null
-            );
+                () => _navigation.NavigateTo("PathwayScene"), null);
         }
     }
 
+    // -------------------------------------------------------
+    // Navegação entre questões
+    // -------------------------------------------------------
     private async void PrepareNextQuestion()
     {
         if (!currentSession.IsLastQuestion())
@@ -372,13 +368,7 @@ public class QuestionManager : MonoBehaviour
     private async Task PreloadQuestionResources(Question question)
     {
         if (question.isImageQuestion)
-        {
             await questionUIManager.PreloadQuestionImage(question);
-        }
-
-        if (question.isImageAnswer)
-        {
-        }
     }
 
     private void ApplyPreparedQuestion()
@@ -388,16 +378,13 @@ public class QuestionManager : MonoBehaviour
             answerManager.ResetButtonBackgrounds();
             answerManager.SetupAnswerButtons(nextQuestionToShow);
             questionCanvasGroupManager.ShowQuestion(
-                isImageQuestion: nextQuestionToShow.isImageQuestion,
-                isImageAnswer: nextQuestionToShow.isImageAnswer,
-                questionLevel: nextQuestionToShow.questionLevel
-            );
+                nextQuestionToShow.isImageQuestion,
+                nextQuestionToShow.isImageAnswer,
+                nextQuestionToShow.questionLevel);
             questionUIManager.ShowQuestion(nextQuestionToShow);
 
             if (counterManager != null)
-            {
                 counterManager.UpdateCounter(nextQuestionToShow);
-            }
 
             nextQuestionToShow = null;
         }
@@ -412,21 +399,18 @@ public class QuestionManager : MonoBehaviour
         var task = CheckAndLoadMoreQuestions();
         yield return new WaitUntil(() => task.IsCompleted);
 
-        if (currentSession != null && currentSession.GetCurrentQuestion() != null)
+        if (currentSession?.GetCurrentQuestion() != null)
         {
             var newQuestion = currentSession.GetCurrentQuestion();
             answerManager.SetupAnswerButtons(newQuestion);
             questionCanvasGroupManager.ShowQuestion(
-                isImageQuestion: newQuestion.isImageQuestion,
-                isImageAnswer: newQuestion.isImageAnswer,
-                questionLevel: newQuestion.questionLevel
-            );
+                newQuestion.isImageQuestion,
+                newQuestion.isImageAnswer,
+                newQuestion.questionLevel);
             questionUIManager.ShowQuestion(newQuestion);
 
             if (counterManager != null)
-            {
                 counterManager.UpdateCounter(newQuestion);
-            }
         }
     }
 
@@ -438,17 +422,13 @@ public class QuestionManager : MonoBehaviour
             answerManager.ResetButtonBackgrounds();
             answerManager.SetupAnswerButtons(currentQuestion);
             questionCanvasGroupManager.ShowQuestion(
-                isImageQuestion: currentQuestion.isImageQuestion,
-                isImageAnswer: currentQuestion.isImageAnswer,
-                questionLevel: currentQuestion.questionLevel
-            );
+                currentQuestion.isImageQuestion,
+                currentQuestion.isImageAnswer,
+                currentQuestion.questionLevel);
             questionUIManager.ShowQuestion(currentQuestion);
 
             if (counterManager != null)
-            {
                 counterManager.UpdateCounter(currentQuestion);
-                Debug.Log($"Contador atualizado para questão {currentQuestion.questionNumber}");
-            }
 
             timerManager.StartTimer();
         }
@@ -470,28 +450,14 @@ public class QuestionManager : MonoBehaviour
     private void SetupNavigationButtons()
     {
         questionBottomBarManager.SetupNavigationButtons(
-            () =>
-            {
-                HideAnswerFeedback();
-                NavigationManager.Instance.NavigateTo("PathwayScene");
-            },
-            async () =>
-            {
-                HideAnswerFeedback();
-                await HandleNextQuestion();
-            }
+            () => { HideAnswerFeedback(); _navigation.NavigateTo("PathwayScene"); },
+            async () => { HideAnswerFeedback(); await HandleNextQuestion(); }
         );
     }
 
-    public void ReturnToPathway()
-    {
-        NavigationManager.Instance.NavigateTo("PathwayScene");
-    }
+    public void ReturnToPathway() => _navigation.NavigateTo("PathwayScene");
 
-    private void HideAnswerFeedback()
-    {
-        questionCanvasGroupManager.HideAnswerFeedback();
-    }
+    private void HideAnswerFeedback() => questionCanvasGroupManager.HideAnswerFeedback();
 
     private async Task HandleNextQuestion()
     {
@@ -499,67 +465,55 @@ public class QuestionManager : MonoBehaviour
 
         if (currentSession.IsLastQuestion())
         {
-            string userId = UserDataStore.CurrentUserData?.UserId;
+            string userId              = UserDataStore.CurrentUserData?.UserId;
             string currentDatabaseName = loadManager.DatabankName;
 
-            if (string.IsNullOrEmpty(userId))
-            {
-                Debug.LogError("UserId não disponível");
-                return;
-            }
+            if (string.IsNullOrEmpty(userId)) return;
 
-            List<string> answeredQuestions = await AnsweredQuestionsManager.Instance
+            // Lê do UserDataStore — sem rede
+            List<string> answeredQuestions = await AppContext.AnsweredQuestions?
                 .FetchUserAnsweredQuestionsInTargetDatabase(currentDatabaseName);
 
             int currentLevel = LevelCalculator.CalculateCurrentLevel(
-                allDatabaseQuestions,
-                answeredQuestions
-            );
+                allDatabaseQuestions, answeredQuestions);
 
-            var stats = LevelCalculator.GetLevelStats(
-                allDatabaseQuestions,
-                answeredQuestions
-            );
+            var stats = LevelCalculator.GetLevelStats(allDatabaseQuestions, answeredQuestions);
 
             bool currentLevelComplete = stats.ContainsKey(currentLevel) &&
-                                       stats[currentLevel].IsComplete;
+                                        stats[currentLevel].IsComplete;
 
             if (currentLevelComplete)
             {
                 if (currentLevel < maxLevelInDatabase)
                 {
-                    string message = $"Nível {GetLevelName(currentLevel)} Completo!\n" +
-                        $"Volte ao menu para acessar as questões do {GetLevelName(currentLevel + 1)}!";
-
-                    ShowAnswerFeedback(message, true, true);
+                    ShowAnswerFeedback(
+                        $"Nível {GetLevelName(currentLevel)} Completo!\n" +
+                        $"Volte ao menu para acessar as questões do {GetLevelName(currentLevel + 1)}!",
+                        true, true);
                     return;
                 }
-                else
+
+                int totalAnswered  = stats.Values.Sum(s => s.AnsweredQuestions);
+                int totalQuestions = stats.Values.Sum(s => s.TotalQuestions);
+
+                if (totalAnswered >= totalQuestions)
                 {
-                    int totalAnswered = stats.Values.Sum(s => s.AnsweredQuestions);
-                    int totalQuestions = stats.Values.Sum(s => s.TotalQuestions);
-
-                    if (totalAnswered >= totalQuestions)
+                    try
                     {
-                        try
-                        {
-                            await HandleDatabaseCompletion(currentDatabaseName);
-
-                            string completionMessage = $"CONQUISTA DESBLOQUEADA!\n" +
-                                $"Você completou TODAS as {totalQuestions} questões!\n" +
-                                $"Todos os {maxLevelInDatabase} níveis foram dominados!\n" +
-                                $"Bônus das Listas desbloqueado!";
-
-                            ShowAnswerFeedback(completionMessage, true, true);
-                        }
-                        catch (Exception bonusEx)
-                        {
-                            Debug.LogError($"Erro ao processar bônus: {bonusEx.Message}");
-                            ShowAnswerFeedback($"Parabéns! Você completou todos os níveis!", true, true);
-                        }
-
-                        return;
+                        await HandleDatabaseCompletion(currentDatabaseName);
+                        ShowAnswerFeedback(
+                            $"CONQUISTA DESBLOQUEADA!\n" +
+                            $"Você completou TODAS as {totalQuestions} questões!\n" +
+                            $"Todos os {maxLevelInDatabase} níveis foram dominados!\n" +
+                            $"Bônus das Listas desbloqueado!",
+                            true, true);
                     }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError($"Erro ao processar bônus: {ex.Message}");
+                        ShowAnswerFeedback("Parabéns! Você completou todos os níveis!", true, true);
+                    }
+                    return;
                 }
             }
         }
@@ -568,36 +522,25 @@ public class QuestionManager : MonoBehaviour
         timerManager.StartTimer();
     }
 
-    private void OnDestroy()
-    {
-        if (timerManager != null)
-            timerManager.OnTimerComplete -= HandleTimeUp;
-
-        if (answerManager != null)
-            answerManager.OnAnswerSelected -= CheckAnswer;
-
-        if (transitionManager != null)
-        {
-            transitionManager.OnBeforeTransitionStart -= PrepareNextQuestion;
-            transitionManager.OnTransitionMidpoint -= ApplyPreparedQuestion;
-        }
-    }
-
     private async Task CheckAndLoadMoreQuestions()
     {
         try
         {
-            QuestionSet currentSet = QuestionSetManager.GetCurrentQuestionSet();
-            string currentDatabaseName = loadManager.DatabankName;
-            var newQuestions = await loadManager.LoadQuestionsForSet(currentSet);
+            QuestionSet currentSet         = QuestionSetManager.GetCurrentQuestionSet();
+            string currentDatabaseName     = loadManager.DatabankName;
+            var newQuestions               = await loadManager.LoadQuestionsForSet(currentSet);
 
             if (newQuestions == null || newQuestions.Count == 0)
             {
-                ShowAnswerFeedback("Não há mais questões disponíveis. Volte ao menu principal.", false, true);
+                ShowAnswerFeedback("Não há mais questões disponíveis. Volte ao menu principal.",
+                    false, true);
                 return;
             }
 
-            List<string> answeredQuestionsIds = await AnsweredQuestionsManager.Instance.FetchUserAnsweredQuestionsInTargetDatabase(currentDatabaseName);
+            // Lê do UserDataStore — sem rede
+            List<string> answeredQuestionsIds = await AppContext.AnsweredQuestions?
+                .FetchUserAnsweredQuestionsInTargetDatabase(currentDatabaseName);
+
             var unansweredQuestions = newQuestions
                 .Where(q => !answeredQuestionsIds.Contains(q.questionNumber.ToString()))
                 .ToList();
@@ -609,36 +552,49 @@ public class QuestionManager : MonoBehaviour
             }
             else
             {
-                ShowAnswerFeedback("Não há mais questões não respondidas disponíveis. Volte ao menu principal.", false, true);
+                ShowAnswerFeedback(
+                    "Não há mais questões não respondidas. Volte ao menu principal.",
+                    false, true);
             }
         }
         catch (Exception)
         {
-            ShowAnswerFeedback("Ocorreu um erro ao buscar mais questões. Volte ao menu principal.", false, true);
+            ShowAnswerFeedback(
+                "Ocorreu um erro ao buscar mais questões. Volte ao menu principal.",
+                false, true);
         }
     }
 
+    // -------------------------------------------------------
+    // Conclusão de banco de questões
+    // Operação rara — só acontece quando todas as questões são respondidas
+    // -------------------------------------------------------
     private async Task HandleDatabaseCompletion(string databankName)
     {
         try
         {
-            if (string.IsNullOrEmpty(databankName) || string.IsNullOrEmpty(UserDataStore.CurrentUserData?.UserId))
+            string userId = UserDataStore.CurrentUserData?.UserId;
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(databankName)) return;
+
+            // Sem internet — registra localmente e sincroniza depois
+            if (Application.internetReachability == NetworkReachability.NotReachable)
             {
+                Debug.LogWarning("[QuestionManager] Offline — conclusão de banco registrada localmente.");
+                AppContext.UserDataLocal?.MarkAsDirty(userId);
                 return;
             }
 
-            string userId = UserDataStore.CurrentUserData.UserId;
-            UserBonusManager userBonusManager = new UserBonusManager();
             bool isEligible = await CheckIfDatabankEligibleForBonus(userId, databankName);
 
             if (isEligible)
             {
                 await MarkDatabankAsCompleted(userId, databankName);
+                var userBonusManager = new UserBonusManager();
                 await userBonusManager.IncrementBonusCount(userId, "listCompletionBonus", 1, true);
             }
             else
             {
-                Debug.LogWarning($"Databank {databankName} já foi marcado como completado anteriormente");
+                Debug.LogWarning($"Databank {databankName} já foi completado anteriormente");
             }
         }
         catch (Exception e)
@@ -649,31 +605,19 @@ public class QuestionManager : MonoBehaviour
 
     private async Task<bool> CheckIfDatabankEligibleForBonus(string userId, string databankName)
     {
-        UserBonusManager userBonusManager = new UserBonusManager();
-
         try
         {
-            var docRef = Firebase.Firestore.FirebaseFirestore.DefaultInstance
-                .Collection("UserBonus").Document(userId);
-            var snapshot = await docRef.GetSnapshotAsync();
+            var docRef   = Firebase.Firestore.FirebaseFirestore.DefaultInstance
+                               .Collection("UserBonus").Document(userId);
+            var snapshot = await docRef.GetSnapshotAsync().ConfigureAwait(false);
 
-            if (snapshot.Exists)
-            {
-                Dictionary<string, object> data = snapshot.ToDictionary();
+            if (!snapshot.Exists) return true;
 
-                if (data.ContainsKey("CompletedDatabanks"))
-                {
-                    List<object> completedDatabanks = data["CompletedDatabanks"] as List<object>;
+            var data = snapshot.ToDictionary();
+            if (!data.ContainsKey("CompletedDatabanks")) return true;
 
-                    if (completedDatabanks != null && completedDatabanks.Contains(databankName))
-                    {
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            return true;
+            var completedDatabanks = data["CompletedDatabanks"] as List<object>;
+            return completedDatabanks == null || !completedDatabanks.Contains(databankName);
         }
         catch (Exception e)
         {
@@ -686,48 +630,33 @@ public class QuestionManager : MonoBehaviour
     {
         try
         {
-            var docRef = Firebase.Firestore.FirebaseFirestore.DefaultInstance
-                .Collection("UserBonus").Document(userId);
-            var snapshot = await docRef.GetSnapshotAsync();
+            var docRef   = Firebase.Firestore.FirebaseFirestore.DefaultInstance
+                               .Collection("UserBonus").Document(userId);
+            var snapshot = await docRef.GetSnapshotAsync().ConfigureAwait(false);
 
-            List<string> completedDatabanks = new List<string>();
+            var completedDatabanks = new List<string>();
 
             if (snapshot.Exists)
             {
-                Dictionary<string, object> data = snapshot.ToDictionary();
-
-                if (data.ContainsKey("CompletedDatabanks"))
+                var data = snapshot.ToDictionary();
+                if (data.ContainsKey("CompletedDatabanks") &&
+                    data["CompletedDatabanks"] is List<object> existingList)
                 {
-                    List<object> existingList = data["CompletedDatabanks"] as List<object>;
-
-                    if (existingList != null)
-                    {
-                        completedDatabanks = existingList.Select(item => item.ToString()).ToList();
-                    }
+                    completedDatabanks = existingList.Select(i => i.ToString()).ToList();
                 }
             }
 
-            if (!completedDatabanks.Contains(databankName))
-            {
-                completedDatabanks.Add(databankName);
-                Dictionary<string, object> updateData = new Dictionary<string, object>
-                {
-                    { "CompletedDatabanks", completedDatabanks }
-                };
+            if (completedDatabanks.Contains(databankName)) return;
 
-                await docRef.UpdateAsync(updateData);
-            }
+            completedDatabanks.Add(databankName);
+            await docRef.UpdateAsync(new Dictionary<string, object>
+            {
+                { "CompletedDatabanks", completedDatabanks }
+            }).ConfigureAwait(false);
         }
         catch (Exception e)
         {
             Debug.LogError($"Erro ao marcar databank como completo: {e.Message}");
         }
-    }
-
-    private Color HexToColor(string hex)
-    {
-        Color color = new Color();
-        ColorUtility.TryParseHtmlString(hex, out color);
-        return color;
     }
 }

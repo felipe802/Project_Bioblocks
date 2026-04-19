@@ -5,13 +5,11 @@ using System.Threading.Tasks;
 using QuestionSystem;
 using UnityEngine;
 
-public class DatabaseStatisticsManager : MonoBehaviour
+public class DatabaseStatisticsManager : MonoBehaviour, IStatisticsProvider
 {
     private static DatabaseStatisticsManager instance;
     private bool isInitialized = false;
     private bool isInitializing = false;
-
-    // Evento para notificar quando as estatísticas estiverem prontas
     public delegate void StatisticsReadyHandler();
     public static event StatisticsReadyHandler OnStatisticsReady;
 
@@ -163,7 +161,7 @@ public class DatabaseStatisticsManager : MonoBehaviour
         {
             UserDataStore.UpdateTotalQuestionsInAllDatabanks(totalQuestions);
             
-            await FirestoreRepository.Instance.UpdateUserField(
+            await AppContext.Firestore.UpdateUserField(
                 UserDataStore.CurrentUserData.UserId,
                 "TotalQuestionsInAllDatabanks",
                 totalQuestions

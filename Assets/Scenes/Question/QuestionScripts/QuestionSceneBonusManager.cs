@@ -103,6 +103,7 @@ public class QuestionSceneBonusManager
 
     public async Task<List<Dictionary<string, object>>> GetActiveBonuses(string userId)
     {
+        userId = GetValidUserId(userId);
         if (string.IsNullOrEmpty(userId))
         {
             Debug.LogError("QuestionSceneBonusManager: UserId é nulo ou vazio");
@@ -454,4 +455,43 @@ public class QuestionSceneBonusManager
             Debug.LogError($"QuestionSceneBonusManager: Erro ao conceder SpecialBonus: {e.Message}");
         }
     }
+
+    private string GetValidUserId(string userId)
+    {
+        if (AppContext.IsReady && AppContext.Auth != null)
+        {
+            string appContextUserId = AppContext.Auth.CurrentUserId;
+            if (!string.IsNullOrEmpty(appContextUserId))
+            {
+                Debug.Log($"[QuestionSceneBonusManager] Usando userId do AppContext: {appContextUserId}");
+                return appContextUserId;
+            }
+        }
+
+        if (UserDataStore.CurrentUserData != null && 
+            !string.IsNullOrEmpty(UserDataStore.CurrentUserData.UserId))
+        {
+            Debug.Log($"[QuestionSceneBonusManager] Usando userId do UserDataStore: {UserDataStore.CurrentUserData.UserId}");
+            return UserDataStore.CurrentUserData.UserId;
+        }
+
+        if (!string.IsNullOrEmpty(userId))
+        {
+            Debug.LogWarning($"[QuestionSceneBonusManager] Nenhuma outra fonte disponível, usando parâmetro: {userId}");
+            return userId;
+        }
+
+        Debug.LogError("[QuestionSceneBonusManager] ❌ NENHUM userId válido disponível! Verificar:");
+        Debug.LogError("  - AppContext.IsReady?");
+        Debug.LogError("  - AppContext.Auth.CurrentUserId?");
+        Debug.LogError("  - UserDataStore.CurrentUserData?");
+        return null;
+    }
+
+
+
+    
+
+
+
 }

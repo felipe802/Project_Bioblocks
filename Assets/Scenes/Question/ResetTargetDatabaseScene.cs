@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using QuestionSystem;
+using System.Linq;
 
 public class ResetTargetDatabaseScene : MonoBehaviour
 {
@@ -14,10 +15,17 @@ public class ResetTargetDatabaseScene : MonoBehaviour
     public TextMeshProUGUI databankNameText;
     private string databankName;
     private UserData currentUserData;
+    private INavigationService _navigation;
+    private ISceneDataService _sceneData;
+    private IFirestoreRepository _firestore;
 
     private void Start()
     {
-        var sceneData = SceneDataManager.Instance.GetData();
+        _navigation = AppContext.Navigation;
+        _sceneData  = AppContext.SceneData;
+        _firestore  = AppContext.Firestore;
+
+        var sceneData = _sceneData.GetData();
         if (sceneData != null && sceneData.TryGetValue("databankName", out object value))
         {
             databankName = value as string;
@@ -33,7 +41,7 @@ public class ResetTargetDatabaseScene : MonoBehaviour
 
                 UpdateDatabankNameText();
                 currentUserData = UserDataStore.CurrentUserData;
-                SceneDataManager.Instance.ClearData();
+                _sceneData.ClearData();
 
                 if (isDatabaseInDevelopment)
                 {
@@ -67,31 +75,27 @@ public class ResetTargetDatabaseScene : MonoBehaviour
             return;
         }
 
-        Dictionary<string, string> databankNameMap = new Dictionary<string, string>()
-        {
-            {"AcidBaseBufferQuestionDatabase", "Ácidos, bases e tampões"},
-            {"AminoacidQuestionDatabase", "Aminoácidos e peptídeos"},
-            {"BiochemistryIntroductionQuestionDatabase", "Introdução à Bioquímica"},
-            {"CarbohydratesQuestionDatabase", "Carboidratos"},
-            {"EnzymeQuestionDatabase", "Enzimas"},
-            {"LipidsQuestionDatabase", "Lipídeos"},
-            {"MembranesQuestionDatabase", "Mambranas Biológicas"},
-            {"NucleicAcidsQuestionDatabase", "Ácidos nucleicos"},
-            {"ProteinQuestionDatabase", "Proteínas"},
-            {"WaterQuestionDatabase", "Água"}
-        };
+        IQuestionDatabase database = FindDatabaseByName(databankName);                                                                                              
+        string displayName = database != null
+        ? database.GetDisplayName()
+        : databankName; // fallback para o nome técnico
 
-        string displayName;
-        bool found = databankNameMap.TryGetValue(databankName, out displayName);
+        databankNameText.text = $"Tópico: {displayName}";
+    }
 
-        if (found)
+    private IQuestionDatabase FindDatabaseByName(string name)
+    {
+        // Busca entre todos os bancos registrados na cena
+        var databases = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None)
+            .OfType<IQuestionDatabase>();
+
+        foreach (var db in databases)
         {
-            databankNameText.text = $"Tópico: {displayName}";
+            if (db.GetDatabankName() == name)
+                return db;
         }
-        else
-        {
-            databankNameText.text = $"Tópico: {databankName}";
-        }
+
+        return null;
     }
 
     public async void ResetAnsweredQuestions()
@@ -102,26 +106,26 @@ public class ResetTargetDatabaseScene : MonoBehaviour
             if (resetButtonText != null) resetButtonText.text = "Resetando...";
 
             string userId = currentUserData.UserId;
-            Debug.Log($"Resetando questões respondidas - UserId: {userId}, databankName: {databankName}");
-
-            await FirestoreRepository.Instance.ResetAnsweredQuestions(userId, databankName);
-            Debug.Log("Questões resetadas com sucesso");
-            await FirestoreRepository.Instance.UpdateUserField(userId, $"ResetDatabankFlags.{databankName}", true);
+            await _firestore.ResetAnsweredQuestions(userId, databankName).ConfigureAwait(false);
+            await _firestore.UpdateUserField(userId, $"ResetDatabankFlags.{databankName}", true).ConfigureAwait(false);
+            await Task.Yield();
             UserDataStore.MarkDatabankAsReset(databankName, true);
-            
-            if (PlayerLevelManager.Instance != null)
-            {
-                await PlayerLevelManager.Instance.RecalculateTotalAnswered();
-            }
-
-            Debug.Log($"[ResetDatabase] Banco {databankName} marcado como resetado. Level recalculado.");
+            AnsweredQuestionsListStore.UpdateAnsweredQuestionsCount(userId, databankName, 0);
 
             if (resetButtonText != null) resetButtonText.text = "Sucesso!";
-
-            AnsweredQuestionsListStore.UpdateAnsweredQuestionsCount(userId, databankName, 0);
             UpdateUIAfterReset(databankName);
-            await Task.Delay(500);
 
+            try
+            {
+              if (AppContext.PlayerLevel != null)
+                await AppContext.PlayerLevel.RecalculateTotalAnswered();   
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[ResetDatabase] Erro ao recalcular level (não crítico): {e.Message}");
+            }
+
+            await Task.Delay(500);
             NavigateToPathway();
         }
         catch (Exception e)
@@ -155,7 +159,7 @@ public class ResetTargetDatabaseScene : MonoBehaviour
     public void NavigateToPathway()
     {
         Debug.Log("Navegando para PathwayScene");
-        NavigationManager.Instance.NavigateTo("PathwayScene");
+        _navigation.NavigateTo("PathwayScene");
     }
 
     private void ShowDevModeMessage()
