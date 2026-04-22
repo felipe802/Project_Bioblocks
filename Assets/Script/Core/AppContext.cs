@@ -11,18 +11,15 @@ public class AppContext : MonoBehaviour
     // ── Serviços existentes ────────────────────────────────────────────────────
     public static IFirestoreRepository          Firestore         { get; private set; }
     public static IAuthRepository               Auth              { get; private set; }
-    public static IStorageRepository            Storage           { get; private set; }
     public static IStatisticsProvider           Statistics        { get; private set; }
     public static INavigationService            Navigation        { get; private set; }
     public static ISceneDataService             SceneData         { get; private set; }
     public static ILiteDBManager                LocalDatabase     { get; private set; }
     public static IImageCacheService            ImageCache        { get; private set; }
-    public static IImageUploadService           ImageUpload       { get; private set; }
     public static IAnsweredQuestionsManager     AnsweredQuestions { get; private set; }
     public static IPlayerLevelService           PlayerLevel       { get; private set; }
     public static IUserDataLocalRepository      UserDataLocal     { get; private set; }
     public static IUserDataSyncService          UserDataSync      { get; private set; }
-    public static PendingUploadSyncService      PendingUploadSync { get; private set; }
     public static RankingSyncService            RankingSync       { get; private set; }
     public static ConnectivityMonitor           Connectivity      { get; private set; }
     public static IFirestoreQuestionRepository  QuestionFirestore { get; private set; }
@@ -87,18 +84,15 @@ public class AppContext : MonoBehaviour
             // ── Obtenção dos componentes ───────────────────────────────────────
             var authRepo              = GetComponent<AuthenticationRepository>();
             var firestoreRepo         = GetComponent<FirestoreRepository>();
-            var storageRepo           = GetComponent<StorageRepository>();
             var statsManager          = GetComponent<DatabaseStatisticsManager>();
             var navigationMgr         = GetComponent<NavigationManager>();
             var sceneDataMgr          = GetComponent<SceneDataManager>();
             var liteDBMgr             = GetComponent<LiteDBManager>();
             var imageCacheSvc         = GetComponent<ImageCacheService>();
-            var imageUploadSvc        = GetComponent<ImageUploadService>();
             var answeredQuestionsMgr  = GetComponent<AnsweredQuestionsManager>();
             var playerLevelMgr        = GetComponent<PlayerLevelService>();
             var userDataLocalRepo     = GetComponent<UserDataLocalRepository>();
             var userDataSyncSvc       = GetComponent<UserDataSyncService>();
-            var pendingUploadSync     = GetComponent<PendingUploadSyncService>();
             var rankingSyncSvc        = GetComponent<RankingSyncService>();
             var connectivityMonitor   = GetComponent<ConnectivityMonitor>();
             var questionFirestoreRepo = GetComponent<FirestoreQuestionRepository>();
@@ -113,13 +107,10 @@ public class AppContext : MonoBehaviour
             if (navigationMgr       == null) throw new Exception("[AppContext] NavigationManager não encontrado.");
             if (sceneDataMgr        == null) throw new Exception("[AppContext] SceneDataManager não encontrado.");
             if (statsManager        == null) throw new Exception("[AppContext] DatabaseStatisticsManager não encontrado.");
-            if (storageRepo         == null) throw new Exception("[AppContext] StorageRepository não encontrado.");
-            if (imageUploadSvc      == null) throw new Exception("[AppContext] ImageUploadService não encontrado.");
             if (answeredQuestionsMgr== null) throw new Exception("[AppContext] AnsweredQuestionsManager não encontrado.");
             if (playerLevelMgr      == null) throw new Exception("[AppContext] PlayerLevelService não encontrado.");
             if (userDataLocalRepo   == null) throw new Exception("[AppContext] UserDataLocalRepository não encontrado.");
             if (userDataSyncSvc     == null) throw new Exception("[AppContext] UserDataSyncService não encontrado.");
-            if (pendingUploadSync   == null) throw new Exception("[AppContext] PendingUploadSyncService não encontrado.");
             if (rankingSyncSvc      == null) throw new Exception("[AppContext] RankingSyncService não encontrado.");
             if (connectivityMonitor == null) throw new Exception("[AppContext] ConnectivityMonitor não encontrado.");
             if (questionFirestoreRepo == null) throw new Exception("[AppContext] FirestoreQuestionRepository não encontrado.");
@@ -132,12 +123,9 @@ public class AppContext : MonoBehaviour
             // ── 2. Firebase ────────────────────────────────────────────────────
             await authRepo.InitializeAsync();
             firestoreRepo.Initialize();
-            storageRepo.Initialize();
 
             // ── 3. Dependências cruzadas Firebase ─────────────────────────────
             authRepo.InjectDependencies(firestoreRepo);
-            storageRepo.InjectDependencies(authRepo);
-            imageUploadSvc.InjectDependencies(storageRepo);
 
             // ── 4. Dependências LiteDB (usuário) ───────────────────────────────
             userDataLocalRepo.InjectDependencies(liteDBMgr);
@@ -167,18 +155,15 @@ public class AppContext : MonoBehaviour
             // ── 9. Expõe serviços existentes ───────────────────────────────────
             Auth              = authRepo;
             Firestore         = firestoreRepo;
-            Storage           = storageRepo;
             Statistics        = statsManager;
             Navigation        = navigationMgr;
             SceneData         = sceneDataMgr;
             LocalDatabase     = liteDBMgr;
             ImageCache        = imageCacheSvc;
-            ImageUpload       = imageUploadSvc;
             AnsweredQuestions = answeredQuestionsMgr;
             PlayerLevel       = playerLevelMgr;
             UserDataLocal     = userDataLocalRepo;
             UserDataSync      = userDataSyncSvc;
-            PendingUploadSync = pendingUploadSync;
             RankingSync       = rankingSyncSvc;
             Connectivity      = connectivityMonitor;
             QuestionFirestore = questionFirestoreRepo;
@@ -200,13 +185,11 @@ public class AppContext : MonoBehaviour
     public static void OverrideForTests(
         IFirestoreRepository            firestore            = null,
         IAuthRepository                 auth                 = null,
-        IStorageRepository              storage              = null,
         IStatisticsProvider             statistics           = null,
         INavigationService              navigation           = null,
         ISceneDataService               sceneData            = null,
         ILiteDBManager                  localDatabase        = null,
         IImageCacheService              imageCache           = null,
-        IImageUploadService             imageUpload          = null,
         IAnsweredQuestionsManager       answeredQuestions    = null,
         IPlayerLevelService             playerLevel          = null,
         IUserDataLocalRepository        userDataLocal        = null,
@@ -217,13 +200,11 @@ public class AppContext : MonoBehaviour
     {
         if (firestore         != null) Firestore         = firestore;
         if (auth              != null) Auth              = auth;
-        if (storage           != null) Storage           = storage;
         if (statistics        != null) Statistics        = statistics;
         if (navigation        != null) Navigation        = navigation;
         if (sceneData         != null) SceneData         = sceneData;
         if (localDatabase     != null) LocalDatabase     = localDatabase;
         if (imageCache        != null) ImageCache        = imageCache;
-        if (imageUpload       != null) ImageUpload       = imageUpload;
         if (answeredQuestions != null) AnsweredQuestions = answeredQuestions;
         if (playerLevel       != null) PlayerLevel       = playerLevel;
         if (userDataLocal     != null) UserDataLocal     = userDataLocal;

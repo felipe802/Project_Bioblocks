@@ -39,7 +39,6 @@ public class AuthFlowTests
     // ── Fixtures comuns ────────────────────────────────────────────────────────
     private FakeAuthRepository                       _fakeAuth;
     private FakeFirestoreRepository                  _fakeFirestore;
-    private FakeImageUploadService                   _fakeImageUpload;
     private FakeAnsweredQuestionsManagerForAuth      _fakeAnswered;
     private FakeStatisticsProvider                   _fakeStatistics;
     private FakeQuestionSyncService                  _fakeSync;
@@ -50,7 +49,6 @@ public class AuthFlowTests
     {
         _fakeAuth        = new FakeAuthRepository();
         _fakeFirestore   = new FakeFirestoreRepository();
-        _fakeImageUpload = new FakeImageUploadService();
         _fakeAnswered    = new FakeAnsweredQuestionsManagerForAuth();
         _fakeStatistics  = new FakeStatisticsProvider();
         _fakeSync        = new FakeQuestionSyncService { IsCacheReady = true };
@@ -59,7 +57,6 @@ public class AuthFlowTests
         AppContext.OverrideForTests(
             auth:              _fakeAuth,
             firestore:         _fakeFirestore,
-            imageUpload:       _fakeImageUpload,
             answeredQuestions: _fakeAnswered,
             statistics:        _fakeStatistics,
             questionSync:      _fakeSync,
@@ -97,7 +94,6 @@ public class AuthFlowTests
         SetField(manager, "_auth",             _fakeAuth);
         SetField(manager, "_firestore",        _fakeFirestore);
         SetField(manager, "_navigation",       _fakeNavigation);
-        SetField(manager, "_imageUpload",      _fakeImageUpload);
         SetField(manager, "feedbackManager",   spy);
         SetField(manager, "registerButton",    registerBtn);
         SetField(manager, "backButton",        backBtn);

@@ -41,7 +41,6 @@ public class FakeLiteDBManager : ILiteDBManager
     public ILiteCollection<UserDataDB>      Users          => _db.GetCollection<UserDataDB>("users");
     public ILiteCollection<CachedImageDB>   CachedImages   => _db.GetCollection<CachedImageDB>("cached_images");
     public ILiteCollection<RankingDB>       Rankings       => _db.GetCollection<RankingDB>("rankings");
-    public ILiteCollection<PendingUploadDB> PendingUploads => _db.GetCollection<PendingUploadDB>("pending_uploads");
 
     // ── Collection nova: questões ──────────────────────────────────────────────
     public ILiteCollection<QuestionDB>      Questions      => _db.GetCollection<QuestionDB>("questions");
