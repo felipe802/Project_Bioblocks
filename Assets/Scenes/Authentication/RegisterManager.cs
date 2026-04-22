@@ -166,7 +166,7 @@ public class RegisterManager : MonoBehaviour
 
             // Persiste no Firestore — string curta, sem Storage envolvido.
             // Falha aqui não impede atualização local; o usuário vê o avatar correto
-            // e o PendingUploadSyncService (ou o próximo login) reconciliará.
+            // e o próximo login reconciliará via GetUserData.
             try
             {
                 await _firestore.UpdateUserProfileImageUrl(userData.UserId, presetUrl).ConfigureAwait(false);

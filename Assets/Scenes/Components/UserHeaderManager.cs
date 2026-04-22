@@ -65,7 +65,6 @@ public class UserHeaderManager : BarsManager
     [SerializeField]
     private List<string> scenesWithUserTopBar = new List<string>()
     {
-        "ProfileScene",
         "QuestionScene",
         "HomeScene"
     };
