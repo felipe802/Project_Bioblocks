@@ -4,7 +4,6 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
 using System;
-using System.IO;
 using System.Threading.Tasks;
 
 public class RegisterManager : MonoBehaviour
@@ -22,30 +21,19 @@ public class RegisterManager : MonoBehaviour
     private IAuthRepository    _auth;
     private IFirestoreRepository _firestore;
     private INavigationService _navigation;
-    private IImageUploadService _imageUpload;
 
     private bool isProcessing = false;
 
-    private static readonly string[] AvatarPresetNames =
-    {
-        "avatar_dna",
-        "avatar_cell",
-        "avatar_bacteria",
-        "avatar_virus",
-        "avatar_protein",
-        "avatar_mitochondria",
-        "avatar_ribosome",
-        "avatar_sugar",
-        "avatar_neuron",
-        "avatar_plant_cell"
-    };
+    // Usado apenas em AssignRandomDefaultAvatar. System.Random em vez de UnityEngine.Random
+    // porque o sorteio roda em background thread (após a cadeia de ConfigureAwait(false)
+    // em HandleRegistration), e APIs da Unity — incluindo Random.Range — exigem main thread.
+    private static readonly System.Random _avatarRng = new System.Random();
 
     private void Start()
     {
         _auth        = AppContext.Auth;
         _firestore   = AppContext.Firestore;
         _navigation  = AppContext.Navigation;
-        _imageUpload = AppContext.ImageUpload;
 
         nickNameInput.contentType    = TMP_InputField.ContentType.Standard;
         nickNameInput.characterLimit = 15;
@@ -155,65 +143,49 @@ public class RegisterManager : MonoBehaviour
     // -------------------------------------------------------
 
     /// <summary>
-    /// Escolhe um avatar preset aleatório, salva em temp e faz upload via pipeline existente.
+    /// Sorteia um avatar preset default (um por classe biológica) e associa ao usuário.
+    /// Fluxo 100% por referência: persiste apenas a string "preset:&lt;id&gt;" no Firestore
+    /// e no UserData local. O PNG físico já está bundled em Resources — nenhum upload
+    /// para Storage, nenhum arquivo temporário em disco.
     /// Roda em background — não bloqueia a navegação para PathwayScene.
     /// </summary>
     private async void AssignRandomDefaultAvatar(UserData userData)
     {
         try
         {
-            string randomName = AvatarPresetNames[UnityEngine.Random.Range(0, AvatarPresetNames.Length)];
-            Debug.Log($"[RegisterManager] Avatar padrão selecionado: {randomName}");
-
-            Texture2D texture = Resources.Load<Texture2D>($"AvatarPresets/{randomName}");
-            if (texture == null)
+            var defaults = AvatarCatalog.Defaults;
+            if (defaults.Count == 0)
             {
-                Debug.LogWarning($"[RegisterManager] Textura não encontrada: AvatarPresets/{randomName}");
+                Debug.LogWarning("[RegisterManager] AvatarCatalog.Defaults vazio — avatar padrão não atribuído.");
                 return;
             }
 
-            byte[] pngBytes = texture.EncodeToPNG();
-            string cacheDir = Path.Combine(Application.persistentDataPath, "ImageTemp");
-            Directory.CreateDirectory(cacheDir);
-            string tempPath = Path.Combine(cacheDir, $"{randomName}.png");
-            File.WriteAllBytes(tempPath, pngBytes);
+            var chosen    = defaults[_avatarRng.Next(defaults.Count)];
+            string presetUrl = $"preset:{chosen.Id}";
+            Debug.Log($"[RegisterManager] Avatar padrão sorteado: {chosen.Id} ({chosen.DisplayName})");
 
-            var config = new ImageUploadConfig
+            // Persiste no Firestore — string curta, sem Storage envolvido.
+            // Falha aqui não impede atualização local; o usuário vê o avatar correto
+            // e o PendingUploadSyncService (ou o próximo login) reconciliará.
+            try
             {
-                ImagePath         = tempPath,
-                DestinationFolder = "profile_images",
-                FileNamePrefix    = userData.UserId,
-                MaxSizeBytes      = 1024 * 1024,
-                OldImageUrl       = null,
-                OnProgress        = msg => Debug.Log($"[RegisterManager] Avatar upload: {msg}"),
-                OnCompleted = async url =>
-                {
-                    Debug.Log($"[RegisterManager] Avatar padrão enviado: {url}");
+                await _firestore.UpdateUserProfileImageUrl(userData.UserId, presetUrl).ConfigureAwait(false);
+                Debug.Log("[RegisterManager] Firestore atualizado com preset:id");
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[RegisterManager] Firestore update falhou: {e.Message}");
+            }
 
-                    try
-                    {
-                        await _firestore.UpdateUserProfileImageUrl(userData.UserId, url).ConfigureAwait(false);
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogWarning($"[RegisterManager] Firestore update falhou: {e.Message}");
-                    }
-
-                    MainThreadDispatcher.Enqueue(() =>
-                    {
-                        userData.ProfileImageUrl = url;
-                        UserDataStore.CurrentUserData = userData;
-                        UserAvatarSyncHelper.NotifyAvatarChanged(url);
-                        Debug.Log("[RegisterManager] Avatar padrão aplicado com sucesso");
-                    });
-                },
-                OnFailed = error =>
-                {
-                    Debug.LogWarning($"[RegisterManager] Falha no upload do avatar padrão: {error}");
-                }
-            };
-
-            await _imageUpload.UploadAsync(config);
+            // Volta à main thread para mexer em stores e notificar UI (TopBar, etc).
+            MainThreadDispatcher.Enqueue(() =>
+            {
+                userData.ProfileImageUrl      = presetUrl;
+                UserDataStore.CurrentUserData = userData;
+                AppContext.UserDataLocal?.UpdateUser(userData);
+                UserAvatarSyncHelper.NotifyAvatarChanged(presetUrl);
+                Debug.Log("[RegisterManager] Avatar padrão aplicado com sucesso");
+            });
         }
         catch (Exception e)
         {

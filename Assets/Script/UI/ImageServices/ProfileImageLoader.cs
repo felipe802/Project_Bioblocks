@@ -190,19 +190,29 @@ public class ProfileImageLoader : MonoBehaviour
 
     private IEnumerator LoadImageFromUrl(string url)
     {
-        // Avatares preset — carrega direto de Resources (zero I/O de disco)
+        // Avatares preset — carrega direto de Resources (zero I/O de disco).
+        // Path resolvido via AvatarCatalog: o url persistido é "preset:<id>" (id lógico),
+        // e o catálogo traduz para o ResourcePath físico ("Avatars/<Classe>/avatar_<classe>_<NN>").
         if (url.StartsWith("preset:"))
         {
             string resourceName = url.Substring(7); // "preset:".Length
-            Texture2D presetTexture = Resources.Load<Texture2D>($"AvatarPresets/{resourceName}");
+            var def = AvatarCatalog.GetById(resourceName);
+            if (def == null)
+            {
+                Debug.LogWarning($"[ProfileImageLoader] Preset id desconhecido no catálogo: {resourceName}");
+                LoadStandardProfileImage();
+                yield break;
+            }
+
+            Texture2D presetTexture = Resources.Load<Texture2D>(def.ResourcePath);
             if (presetTexture != null)
             {
                 SetTexture(presetTexture, fromResources: true);
-                Debug.Log($"[ProfileImageLoader] Preset carregado de Resources: {resourceName}");
+                Debug.Log($"[ProfileImageLoader] Preset carregado de Resources: {def.ResourcePath}");
             }
             else
             {
-                Debug.LogWarning($"[ProfileImageLoader] Preset não encontrado: AvatarPresets/{resourceName}");
+                Debug.LogWarning($"[ProfileImageLoader] Preset não encontrado em disco: {def.ResourcePath}");
                 LoadStandardProfileImage();
             }
             yield break;

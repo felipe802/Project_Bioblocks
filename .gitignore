@@ -107,6 +107,7 @@ sysinfo.txt
 crashlytics-build.properties
 ~UnityDirMonSyncFile~*
 mono_crash.*.json
+mono_crash.mem.*
 
 # ===========================
 # Specific Firebase binaries / plugins that can be regenerated
