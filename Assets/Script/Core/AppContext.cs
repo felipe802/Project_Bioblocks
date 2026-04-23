@@ -25,6 +25,7 @@ public class AppContext : MonoBehaviour
     public static IFirestoreQuestionRepository  QuestionFirestore { get; private set; }
     public static IQuestionLocalRepository      QuestionLocal     { get; private set; }
     public static IQuestionSyncService          QuestionSync      { get; private set; }
+    public static IAvatarSelectionService       AvatarSelection   { get; private set; }
 
     public static bool IsReady { get; private set; }
 
@@ -98,6 +99,7 @@ public class AppContext : MonoBehaviour
             var questionFirestoreRepo = GetComponent<FirestoreQuestionRepository>();
             var questionLocalRepo     = GetComponent<QuestionLocalRepository>();
             var questionSyncSvc       = GetComponent<QuestionSyncService>();
+            var avatarSelectionSvc    = GetComponent<AvatarSelectionService>();
 
             // ── Validações existentes ──────────────────────────────────────────
             if (authRepo            == null) throw new Exception("[AppContext] AuthenticationRepository não encontrado.");
@@ -116,6 +118,7 @@ public class AppContext : MonoBehaviour
             if (questionFirestoreRepo == null) throw new Exception("[AppContext] FirestoreQuestionRepository não encontrado.");
             if (questionLocalRepo     == null) throw new Exception("[AppContext] QuestionLocalRepository não encontrado.");
             if (questionSyncSvc       == null) throw new Exception("[AppContext] QuestionSyncService não encontrado.");
+            if (avatarSelectionSvc    == null) throw new Exception("[AppContext] AvatarSelectionService não encontrado.");
 
             // ── 1. LiteDB ──────────────────────────────────────────────────────
             liteDBMgr.Initialize();
@@ -131,6 +134,7 @@ public class AppContext : MonoBehaviour
             userDataLocalRepo.InjectDependencies(liteDBMgr);
             userDataSyncSvc.InjectDependencies(userDataLocalRepo, firestoreRepo);
             imageCacheSvc.InjectDependencies(liteDBMgr);
+            avatarSelectionSvc.InjectDependencies(firestoreRepo, userDataLocalRepo);
 
             // ── 5. Dependências LiteDB (questões) ──────────────────────────────
             questionFirestoreRepo.Initialize();
@@ -169,6 +173,7 @@ public class AppContext : MonoBehaviour
             QuestionFirestore = questionFirestoreRepo;
             QuestionLocal     = questionLocalRepo;
             QuestionSync      = questionSyncSvc;
+            AvatarSelection   = avatarSelectionSvc;
 
             IsReady = true;
             OnReady?.Invoke();
@@ -196,7 +201,8 @@ public class AppContext : MonoBehaviour
         IUserDataSyncService            userDataSync         = null,
         IFirestoreQuestionRepository    questionFirestore    = null,
         IQuestionLocalRepository        questionLocal        = null,
-        IQuestionSyncService            questionSync         = null)
+        IQuestionSyncService            questionSync         = null,
+        IAvatarSelectionService         avatarSelection      = null)
     {
         if (firestore         != null) Firestore         = firestore;
         if (auth              != null) Auth              = auth;
@@ -212,6 +218,7 @@ public class AppContext : MonoBehaviour
         if (questionFirestore != null) QuestionFirestore = questionFirestore;
         if (questionLocal     != null) QuestionLocal     = questionLocal;
         if (questionSync      != null) QuestionSync      = questionSync;
+        if (avatarSelection   != null) AvatarSelection   = avatarSelection;
         IsReady = true;
     }
 }

@@ -21,6 +21,9 @@ public class UserHeaderManager : BarsManager
     [SerializeField] private Image fireIcon;
     [SerializeField] private TMP_Text bonusText;
 
+    [Header("Avatar Catalog")]
+    [SerializeField] private AvatarCatalogPanelController avatarCatalogPanel;
+
     [Header("Player Level UI")]
     [SerializeField] private Image playerLevelContainer;
     [SerializeField] private TextMeshProUGUI playerLevelText;
@@ -758,6 +761,23 @@ public class UserHeaderManager : BarsManager
         if (avatarManager != null)
         {
             avatarManager.LoadFromCurrentUser();
+        }
+    }
+
+    /// <summary>
+    /// Abre o modal de seleção de avatar. Chamado pelo OnClick do botão que
+    /// envolve o avatar no PersistentUserTopBar (configurado no Inspector).
+    /// </summary>
+    public void OpenAvatarCatalog()
+    {
+        if (avatarCatalogPanel != null)
+        {
+            avatarCatalogPanel.Show();
+        }
+        else
+        {
+            Debug.LogWarning("[UserHeaderManager] avatarCatalogPanel não atribuído no Inspector. " +
+                             "Arraste o GameObject do modal para o campo 'Avatar Catalog Panel'.");
         }
     }
 
