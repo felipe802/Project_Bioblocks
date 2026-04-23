@@ -11,6 +11,8 @@ using UnityEngine.UI;
 ///   - Renderizar o sprite do avatar a partir de <see cref="AvatarDefinition.ResourcePath"/>.
 ///   - Capturar tap e propagar para o callback fornecido no Bind.
 ///   - Exibir estado visual "selecionado" via <see cref="selectedIndicator"/>.
+///   - Exibir estado visual "bloqueado" via <see cref="lockOverlay"/>, desabilitando
+///     clique quando o avatar não está disponível para seleção.
 /// </summary>
 public class AvatarCellController : MonoBehaviour
 {
@@ -19,8 +21,16 @@ public class AvatarCellController : MonoBehaviour
     [SerializeField] private Button     button;
     [SerializeField] private GameObject selectedIndicator;
 
+    [Tooltip("Overlay exibido quando o avatar está bloqueado (desfoque/escurecimento). " +
+             "Deve ser um GameObject filho do AvatarCell — tipicamente uma Image semi-transparente " +
+             "sobre o AvatarImage.")]
+    [SerializeField] private GameObject lockOverlay;
+
     /// <summary>Id do avatar que esta célula representa (ex.: <c>avatar_dna_03</c>).</summary>
     public string AvatarId { get; private set; }
+
+    /// <summary><c>true</c> quando a célula está bloqueada para seleção.</summary>
+    public bool IsLocked { get; private set; }
 
     private AvatarDefinition         _definition;
     private Action<AvatarDefinition> _onTapped;
@@ -62,6 +72,7 @@ public class AvatarCellController : MonoBehaviour
         }
 
         SetSelected(false);
+        SetLocked(false);
     }
 
     /// <summary>Liga/desliga o indicador visual de seleção.</summary>
@@ -71,8 +82,33 @@ public class AvatarCellController : MonoBehaviour
             selectedIndicator.SetActive(selected);
     }
 
+    /// <summary>
+    /// Define o estado de bloqueio da célula.
+    /// Quando <paramref name="locked"/> é <c>true</c>:
+    ///   - O botão fica não-interativo (não dispara <c>onClick</c>).
+    ///   - O <see cref="lockOverlay"/> é ativado (desfoque/escurecimento).
+    ///   - O indicador de seleção é desligado (célula bloqueada não pode estar selecionada).
+    /// </summary>
+    public void SetLocked(bool locked)
+    {
+        IsLocked = locked;
+
+        if (button != null)
+            button.interactable = !locked;
+
+        if (lockOverlay != null)
+            lockOverlay.SetActive(locked);
+
+        if (locked)
+            SetSelected(false);
+    }
+
     private void HandleClick()
     {
+        // Guard extra: mesmo que o Button.interactable falhe por alguma razão,
+        // não propagamos cliques em células bloqueadas.
+        if (IsLocked) return;
+
         _onTapped?.Invoke(_definition);
     }
 }
