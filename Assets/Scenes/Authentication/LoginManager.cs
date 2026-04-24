@@ -3,7 +3,6 @@ using Firebase;
 using UnityEngine;
 using UnityEngine.UI;
 using System;
-using UnityEngine.SceneManagement;
 using TMPro;
 using System.Collections.Generic;
 
@@ -16,15 +15,19 @@ public class LoginManager : MonoBehaviour
     [SerializeField] private Button registerButton;
     [SerializeField] private FeedbackManager feedbackManager;
     [SerializeField] private LoadingSpinnerComponent loadingSpinner;
-    private IAuthRepository _auth;
+
+    private IAuthRepository   _auth;
+    private INavigationService _navigation;
+
     private Dictionary<string, LoginAttempt> loginAttempts = new Dictionary<string, LoginAttempt>();
-    private const int MAX_ATTEMPTS = 5;
+    private const int MAX_ATTEMPTS    = 5;
     private const int LOCKOUT_MINUTES = 15;
     private bool isProcessing = false;
 
     private void Start()
     {
-        _auth = AppContext.Auth;
+        _auth       = AppContext.Auth;
+        _navigation = AppContext.Navigation;
 
         loginButton.onClick.AddListener(HandleLogin);
         registerButton.onClick.AddListener(HandleRegisterNavigation);
@@ -67,7 +70,7 @@ public class LoginManager : MonoBehaviour
             UserDataStore.CurrentUserData = userData;
             await AppContext.AnsweredQuestions?.ForceUpdate();
             loadingSpinner?.ShowSpinnerUntilSceneLoaded("PathwayScene");
-            SceneManager.LoadScene("PathwayScene");
+            _navigation.NavigateTo("PathwayScene");
         }
         catch (FirebaseException e)
         {
@@ -76,7 +79,7 @@ public class LoginManager : MonoBehaviour
 
             loginAttempts[email].IncrementAttempt();
             feedbackManager.ShowFeedback(GetFirebaseAuthErrorMessage(e), true);
-            Debug.LogError($"{e.ErrorCode}, Message: {e.Message}");
+            Debug.LogWarning($"[LoginManager] Auth error: {e.ErrorCode} - {e.Message}");
             loadingSpinner?.HideSpinner();
             SetButtonsInteractable(true);
             isProcessing = false;
@@ -84,7 +87,7 @@ public class LoginManager : MonoBehaviour
         catch (Exception e)
         {
             feedbackManager.ShowFeedback(e.Message, true);
-            Debug.LogError(e.Message);
+            Debug.LogWarning($"[LoginManager] {e.Message}");
             loadingSpinner?.HideSpinner();
             SetButtonsInteractable(true);
             isProcessing = false;
@@ -98,7 +101,7 @@ public class LoginManager : MonoBehaviour
     public void HandleRegisterNavigation()
     {
         loadingSpinner?.ShowSpinnerUntilSceneLoaded("RegisterView");
-        SceneManager.LoadScene("RegisterView");
+        _navigation.NavigateTo("RegisterView");
     }
 
     // -------------------------------------------------------

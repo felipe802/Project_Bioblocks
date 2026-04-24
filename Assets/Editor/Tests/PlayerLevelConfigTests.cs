@@ -280,4 +280,83 @@ public class PlayerLevelConfigTests
             Assert.AreEqual(i + 1, PlayerLevelConfig.LEVEL_THRESHOLDS[i].Level,
                 $"Threshold[{i}] deve ser o nível {i + 1}");
     }
+
+    [Test]
+    public void MaxLevel_RetornaDez()
+    {
+        Assert.AreEqual(10, PlayerLevelConfig.MaxLevel);
+    }
+
+    // =======================================================
+    // CalculateLevel — proteção contra denominador encolhido
+    //
+    // REGRESSION GUARD: reproduz o cenário do bug reportado onde o
+    // jogador pulou do nível 6 direto ao 10 porque o TOTAL de questões
+    // foi gravado menor que o real — a porcentagem passou de 100% e o
+    // loop caía no `return 10` final, sem validar intermediários.
+    // =======================================================
+
+    [Test]
+    public void CalculateLevel_MuitoAcimaDeTotal_RetornaDezEstavelmente()
+    {
+        // percentage = 500% → clamp(1.0) → MaxLevel deterministicamente
+        Assert.AreEqual(10, PlayerLevelConfig.CalculateLevel(500, 100));
+    }
+
+    [Test]
+    public void CalculateLevel_DenominadorEncolhidoParaBaixo_NaoQuebra()
+    {
+        // Cenário: usuário tinha 60 respondidas em 100 totais (nível 7).
+        // Denominador cai para 50. O método retorna MaxLevel por clamp,
+        // mas o caller (PlayerLevelService) deve usar snapshot para ignorar
+        // esse efeito. Teste confirma que o valor retornado é previsível.
+        Assert.AreEqual(10, PlayerLevelConfig.CalculateLevel(60, 50));
+    }
+
+    // =======================================================
+    // CanLevelUp — novo helper (monotônico, um passo por vez)
+    // =======================================================
+
+    [Test]
+    public void CanLevelUp_SemQuestoesSuficientes_RetornaFalse()
+    {
+        // Nível 1, 5 respondidas, 100 totais → pct=5% < 10% do nível 2
+        Assert.IsFalse(PlayerLevelConfig.CanLevelUp(1, 5, 100));
+    }
+
+    [Test]
+    public void CanLevelUp_AtingiuMinimoDoProximoNivel_RetornaTrue()
+    {
+        // Nível 1 → precisa de 10% de 100 = 10 para subir
+        Assert.IsTrue(PlayerLevelConfig.CanLevelUp(1, 10, 100));
+    }
+
+    [Test]
+    public void CanLevelUp_NivelMaximo_RetornaFalse()
+    {
+        // Já no nível 10 — não existe próximo
+        Assert.IsFalse(PlayerLevelConfig.CanLevelUp(10, 100, 100));
+    }
+
+    [Test]
+    public void CanLevelUp_TotalZero_RetornaFalse()
+    {
+        Assert.IsFalse(PlayerLevelConfig.CanLevelUp(1, 50, 0));
+    }
+
+    [Test]
+    public void CanLevelUp_CadaNivel_RequerProximoThreshold()
+    {
+        // Verifica cada nível de 1 a 9: precisa exatamente do min do próximo
+        for (int level = 1; level < PlayerLevelConfig.MaxLevel; level++)
+        {
+            int required = PlayerLevelConfig.GetThresholdForLevel(level + 1)
+                                             .GetMinRequiredQuestions(100);
+
+            Assert.IsFalse(PlayerLevelConfig.CanLevelUp(level, required - 1, 100),
+                $"Nível {level}: {required - 1}/100 NÃO deve permitir subir");
+            Assert.IsTrue(PlayerLevelConfig.CanLevelUp(level, required, 100),
+                $"Nível {level}: {required}/100 DEVE permitir subir");
+        }
+    }
 }

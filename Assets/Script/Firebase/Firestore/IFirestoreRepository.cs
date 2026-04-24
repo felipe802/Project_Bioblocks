@@ -20,6 +20,14 @@ public interface IFirestoreRepository
     Task DeleteDocument(string collection, string documentId);
     Task<bool> AreNicknameTaken(string nickName);
     Task<List<UserData>> GetAllUsersData();
+
+    /// <summary>
+    /// Lê Config/QuestionStats — fonte única de verdade do total de questões.
+    /// Mantido pelo Cloud Function <c>syncQuestionStats</c>. Cliente NUNCA escreve.
+    /// Retorna null se o documento não existir ou se houver falha de rede.
+    /// </summary>
+    Task<QuestionStats> GetQuestionStats();
+
     IDisposable ListenToScore(string userId, Action<int> onScoreChanged, Action<int> onWeekScoreChanged);
     IDisposable ListenToAnsweredQuestions(string userId, Action<Dictionary<string, List<int>>> onChanged);
     void StopListening();

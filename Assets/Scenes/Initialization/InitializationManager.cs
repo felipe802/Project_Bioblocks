@@ -112,7 +112,7 @@ public class InitializationManager : MonoBehaviour
                 if (userDataLoaded)
                 {
                     UpdateStatus("Carregando bancos de questões...");
-                    await DatabaseStatisticsManager.Instance.Initialize();
+                    await (AppContext.Statistics as DatabaseStatisticsManager)?.Initialize();
                     UpdateProgress(0.85f);
 
                     UpdateStatus("Configurando sistema de níveis...");

@@ -116,8 +116,6 @@ public class QuestionScoreManager : MonoBehaviour
                         if (answeredQuestionsManager != null && answeredQuestionsManager.IsManagerInitialized)
                             await answeredQuestionsManager.ForceUpdate();
 
-                        bool isDatabankReset = UserDataStore.IsDatabankReset(databankName);
-
                         if (_playerLevel != null)
                         {
                             await _playerLevel.IncrementTotalAnswered();

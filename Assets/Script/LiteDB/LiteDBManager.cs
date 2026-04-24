@@ -21,7 +21,6 @@ public class LiteDBManager : MonoBehaviour, ILiteDBManager
     public ILiteCollection<UserDataDB>      Users          => Database.GetCollection<UserDataDB>("users");
     public ILiteCollection<RankingDB>       Rankings       => Database.GetCollection<RankingDB>("rankings");
     public ILiteCollection<CachedImageDB>   CachedImages   => Database.GetCollection<CachedImageDB>("cached_images");
-    public ILiteCollection<PendingUploadDB> PendingUploads => Database.GetCollection<PendingUploadDB>("pending_uploads");
 
     // ── Collection nova: questões ──────────────────────────────────────────────
     public ILiteCollection<QuestionDB>      Questions      => Database.GetCollection<QuestionDB>("questions");

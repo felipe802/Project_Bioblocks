@@ -7,10 +7,31 @@ public class FakeFirestoreRepository : IFirestoreRepository
     private readonly Dictionary<string, UserData> _users = new();
     private readonly List<UserData> _allUsers = new();
 
-    public int UpdateUserFieldCallCount    { get; private set; }
-    public int UpdateUserScoresCallCount   { get; private set; }
-    public string LastUpdatedField         { get; private set; }
-    public object LastUpdatedValue         { get; private set; }
+    public int UpdateUserFieldCallCount      { get; private set; }
+    public int UpdateUserScoresCallCount     { get; private set; }
+    public string LastUpdatedField           { get; private set; }
+    public object LastUpdatedValue           { get; private set; }
+    public bool UpdateProfileImageUrlCalled  { get; private set; }
+    public string LastProfileImageUrl        { get; private set; }
+
+    // -------------------------------------------------------
+    // Rastreamento de deleções por coleção
+    // -------------------------------------------------------
+
+    /// <summary>
+    /// Registra todos os documentos deletados: [coleção] → conjunto de documentIds.
+    /// Permite que os testes verifiquem exatamente quais coleções/documentos foram apagados.
+    /// </summary>
+    public Dictionary<string, HashSet<string>> DeletedDocuments { get; } = new();
+
+    /// <summary>
+    /// Retorna true se o documento foi deletado da coleção especificada.
+    /// </summary>
+    public bool WasDocumentDeleted(string collection, string documentId)
+        => DeletedDocuments.TryGetValue(collection, out var ids) && ids.Contains(documentId);
+
+    /// <summary>Total de chamadas a DeleteDocument (qualquer coleção).</summary>
+    public int DeleteDocumentCallCount { get; private set; }
 
     // -------------------------------------------------------
     // Listener state — fake
@@ -20,11 +41,28 @@ public class FakeFirestoreRepository : IFirestoreRepository
     // -------------------------------------------------------
     // Configuração
     // -------------------------------------------------------
+
+    /// <summary>
+    /// Adiciona usuário ao _users E ao _allUsers.
+    /// AreNicknameTaken retornará true para o nickname desse usuário.
+    /// Use quando quiser simular um nickname já existente.
+    /// </summary>
     public void SetFakeUser(UserData user)
     {
         _users[user.UserId] = user;
         if (!_allUsers.Exists(u => u.UserId == user.UserId))
             _allUsers.Add(user);
+    }
+
+    /// <summary>
+    /// Adiciona usuário apenas ao _users (para GetUserData).
+    /// NÃO adiciona ao _allUsers — AreNicknameTaken retornará false.
+    /// Use nos testes de registro bem-sucedido, onde o usuário
+    /// ainda não existe e será criado pelo RegisterUserAsync.
+    /// </summary>
+    public void SetFakeUserForGetUserData(UserData user)
+    {
+        _users[user.UserId] = user;
     }
 
     // -------------------------------------------------------
@@ -108,6 +146,8 @@ public class FakeFirestoreRepository : IFirestoreRepository
 
     public Task UpdateUserProfileImageUrl(string userId, string imageUrl)
     {
+        UpdateProfileImageUrlCalled = true;
+        LastProfileImageUrl = imageUrl;
         if (_users.TryGetValue(userId, out var user))
             user.ProfileImageUrl = imageUrl;
         return Task.CompletedTask;
@@ -124,7 +164,16 @@ public class FakeFirestoreRepository : IFirestoreRepository
 
     public Task DeleteDocument(string collection, string documentId)
     {
-        _users.Remove(documentId);
+        // Rastreia a deleção para verificação nos testes
+        if (!DeletedDocuments.ContainsKey(collection))
+            DeletedDocuments[collection] = new HashSet<string>();
+        DeletedDocuments[collection].Add(documentId);
+        DeleteDocumentCallCount++;
+
+        // Remove do _users apenas quando a coleção for "Users"
+        if (collection == "Users")
+            _users.Remove(documentId);
+
         return Task.CompletedTask;
     }
 
@@ -136,6 +185,24 @@ public class FakeFirestoreRepository : IFirestoreRepository
 
     public Task<List<UserData>> GetAllUsersData()
         => Task.FromResult(new List<UserData>(_allUsers));
+
+    // -------------------------------------------------------
+    // Config/QuestionStats — fake injetável
+    // -------------------------------------------------------
+
+    /// <summary>
+    /// Stats retornados por GetQuestionStats. Testes podem setar para
+    /// simular o documento Config/QuestionStats.
+    /// </summary>
+    public QuestionStats FakeQuestionStats { get; set; }
+
+    public int GetQuestionStatsCallCount { get; private set; }
+
+    public Task<QuestionStats> GetQuestionStats()
+    {
+        GetQuestionStatsCallCount++;
+        return Task.FromResult(FakeQuestionStats);
+    }
 
     // -------------------------------------------------------
     // Listeners — fake dispara callbacks imediatamente

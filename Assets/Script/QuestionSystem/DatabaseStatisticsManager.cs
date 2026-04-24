@@ -1,197 +1,203 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using QuestionSystem;
 using UnityEngine;
 
+/// <summary>
+/// Lê o total de questões a partir da fonte única de verdade
+/// (Firestore: Config/QuestionStats), mantida pelo Cloud Function
+/// <c>syncQuestionStats</c>. O cliente NUNCA escreve nesse documento.
+///
+/// Preenche o cache estático <see cref="QuestionBankStatistics"/>
+/// para manter compatibilidade com a UI existente
+/// (CircularProgressIndicator, ProfileManager, PathwayManager etc.).
+///
+/// Fallback: se Config/QuestionStats estiver indisponível (documento ausente
+/// ou erro de rede), conta localmente via QuestionSyncService apenas para a UI.
+/// Esse fallback NÃO escreve em Firestore — evita o bug de "denominador
+/// encolhido" causado por dispositivos com cache LiteDB desatualizado.
+/// </summary>
 public class DatabaseStatisticsManager : MonoBehaviour, IStatisticsProvider
 {
-    private static DatabaseStatisticsManager instance;
-    private bool isInitialized = false;
+    private bool isInitialized  = false;
     private bool isInitializing = false;
-    public delegate void StatisticsReadyHandler();
-    public static event StatisticsReadyHandler OnStatisticsReady;
 
-    public static DatabaseStatisticsManager Instance
-    {
-        get
-        {
-            if (instance == null)
-            {
-                var go = GameObject.Find("FirebaseManager");
-                if (go == null)
-                {
-                    go = new GameObject("FirebaseManager");
-                }
-                
-                instance = go.GetComponent<DatabaseStatisticsManager>();
-                if (instance == null)
-                {
-                    instance = go.AddComponent<DatabaseStatisticsManager>();
-                }
-                DontDestroyOnLoad(go);
-            }
-            return instance;
-        }
-    }
-
-    private void Awake()
-    {
-        if (instance != null && instance != this)
-        {
-            Destroy(this);
-            return;
-        }
-
-        instance = this;
-        DontDestroyOnLoad(gameObject);
-    }
+    /// <summary>
+    /// Último snapshot canônico lido de Config/QuestionStats. Pode ser null
+    /// caso o documento esteja indisponível — nesse caso o GetTotalQuestionsCount
+    /// cai no cache local (QuestionBankStatistics).
+    /// </summary>
+    private QuestionStats _canonicalStats;
 
     public bool IsInitialized => isInitialized;
+
+    /// <summary>
+    /// Versão do documento Config/QuestionStats que foi aplicada.
+    /// Permite que observers detectem invalidação de cache.
+    /// </summary>
+    public long LastAppliedVersion => _canonicalStats?.Version ?? 0;
+
+    // Mapeamento QuestionSet → databankName.
+    // Usado para semear QuestionBankStatistics com zero caso o Cloud Function
+    // ainda não tenha populado o banco no documento canônico (UI não quebra).
+    private static readonly Dictionary<QuestionSet, string> TopicToDatabankName =
+        new Dictionary<QuestionSet, string>
+        {
+            { QuestionSet.acidsBase,      "AcidBaseBufferQuestionDatabase" },
+            { QuestionSet.aminoacids,     "AminoacidQuestionDatabase" },
+            { QuestionSet.biochem,        "BiochemistryIntroductionQuestionDatabase" },
+            { QuestionSet.carbohydrates,  "CarbohydratesQuestionDatabase" },
+            { QuestionSet.enzymes,        "EnzymeQuestionDatabase" },
+            { QuestionSet.lipids,         "LipidsQuestionDatabase" },
+            { QuestionSet.membranes,      "MembranesQuestionDatabase" },
+            { QuestionSet.nucleicAcids,   "NucleicAcidsQuestionDatabase" },
+            { QuestionSet.proteins,       "ProteinQuestionDatabase" },
+            { QuestionSet.water,          "WaterQuestionDatabase" },
+        };
 
     public async Task Initialize()
     {
         if (isInitialized || isInitializing) return;
-        
+
         isInitializing = true;
-        Debug.Log("Inicializando DatabaseStatisticsManager...");
+        Debug.Log("[DatabaseStatisticsManager] Inicializando...");
 
         try
         {
-            // Espera um frame para garantir que outros managers foram inicializados
             await Task.Yield();
+            await LoadCanonicalStats();
 
-            // Carrega estatísticas de todos os bancos de dados
-            await LoadAllDatabaseStatistics();
-
-            isInitialized = true;
+            isInitialized  = true;
             isInitializing = false;
-            
-            // Notifica que as estatísticas estão prontas
-            OnStatisticsReady?.Invoke();
-            
-            Debug.Log("DatabaseStatisticsManager inicializado com sucesso");
+
+            Debug.Log("[DatabaseStatisticsManager] Inicializado com sucesso.");
         }
         catch (Exception e)
         {
-            Debug.LogError($"Erro na inicialização do DatabaseStatisticsManager: {e.Message}");
+            Debug.LogError($"[DatabaseStatisticsManager] Erro na inicialização: {e.Message}");
             isInitializing = false;
-            isInitialized = false;
+            isInitialized  = false;
         }
     }
 
-    private async Task LoadAllDatabaseStatistics()
+    /// <summary>
+    /// Recarrega Config/QuestionStats sob demanda (ex.: após level-up do jogador
+    /// ou ao detectar versão nova). Atualiza o cache estático
+    /// <see cref="QuestionBankStatistics"/> com os novos contadores por banco.
+    /// </summary>
+    public async Task ReloadCanonicalStats()
     {
-        string[] allDatabases = new string[]
-        {
-            "AcidBaseBufferQuestionDatabase",
-            "AminoacidQuestionDatabase",
-            "BiochemistryIntroductionQuestionDatabase",
-            "CarbohydratesQuestionDatabase",
-            "EnzymeQuestionDatabase",
-            "LipidsQuestionDatabase",
-            "MembranesQuestionDatabase",
-            "NucleicAcidsQuestionDatabase",
-            "ProteinQuestionDatabase",
-            "WaterQuestionDatabase"
-        };
+        await LoadCanonicalStats();
+    }
 
-        Dictionary<string, int> questionCounts = new Dictionary<string, int>();
-
-        foreach (string databankName in allDatabases)
+    private async Task LoadCanonicalStats()
+    {
+        // 1) Lê a fonte única de verdade
+        QuestionStats stats = null;
+        try
         {
+            stats = await AppContext.Firestore.GetQuestionStats();
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[DatabaseStatisticsManager] Falha ao ler Config/QuestionStats: {e.Message}");
+        }
+
+        if (stats != null && stats.TotalQuestions > 0)
+        {
+            _canonicalStats = stats;
+            ApplyStatsToCache(stats);
+
+            // Espelha no UserDataStore apenas para UI compat — NÃO escreve no Firestore.
+            // O campo UserData.TotalQuestionsInAllDatabanks deixa de ser fonte de verdade.
+            if (UserDataStore.CurrentUserData != null)
+                UserDataStore.UpdateTotalQuestionsInAllDatabanks(stats.TotalQuestions);
+
+            Debug.Log($"[DatabaseStatisticsManager] Stats canônicas aplicadas: " +
+                      $"Total={stats.TotalQuestions}, Version={stats.Version}, " +
+                      $"Bancos={stats.PerBank?.Count ?? 0}");
+            return;
+        }
+
+        // 2) Fallback local — Config/QuestionStats indisponível.
+        //    Conta via QuestionSyncService apenas para popular a UI.
+        //    ATENÇÃO: esse valor NÃO é gravado no Firestore — evita o bug
+        //    onde um dispositivo com cache defasado sobrescrevia o total canônico.
+        Debug.LogWarning("[DatabaseStatisticsManager] Config/QuestionStats indisponível — usando fallback local (somente UI).");
+        LoadFromLocalCacheFallback();
+    }
+
+    private void ApplyStatsToCache(QuestionStats stats)
+    {
+        // Garante uma entrada por banco conhecido (mesmo que zero),
+        // para que GetTotalQuestions não retorne "não encontrado".
+        foreach (var kvp in TopicToDatabankName)
+        {
+            string databankName = kvp.Value;
+            int count = (stats.PerBank != null &&
+                         stats.PerBank.TryGetValue(databankName, out int c)) ? c : 0;
+            QuestionBankStatistics.SetTotalQuestions(databankName, count);
+        }
+
+        // Bancos extras presentes em PerBank que não estão no enum local
+        // (ex.: novo banco liberado server-side) — também ficam cacheados.
+        if (stats.PerBank != null)
+        {
+            foreach (var kvp in stats.PerBank)
+            {
+                if (!QuestionBankStatistics.HasStatistics(kvp.Key))
+                    QuestionBankStatistics.SetTotalQuestions(kvp.Key, kvp.Value);
+            }
+        }
+    }
+
+    private void LoadFromLocalCacheFallback()
+    {
+        if (AppContext.QuestionSync == null || !AppContext.QuestionSync.IsCacheReady)
+        {
+            Debug.LogWarning("[DatabaseStatisticsManager] QuestionSyncService não está pronto — nada a fazer.");
+            return;
+        }
+
+        int totalQuestions = 0;
+        foreach (var kvp in TopicToDatabankName)
+        {
+            string databankName = kvp.Value;
             try
             {
-                Type databaseType = Type.GetType(databankName);
-                if (databaseType == null)
-                {
-                    foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-                    {
-                        databaseType = assembly.GetType(databankName);
-                        if (databaseType != null) break;
-                    }
-                }
-
-                if (databaseType != null)
-                {
-                    GameObject tempGO = new GameObject($"Temp_{databankName}");
-                    var database = tempGO.AddComponent(databaseType) as IQuestionDatabase;
-
-                    if (database != null)
-                    {
-                        var questions = QuestionFilterService.FilterQuestions(database);
-                        int count = questions != null ? questions.Count : 0;
-
-                        QuestionBankStatistics.SetTotalQuestions(databankName, count);
-                        questionCounts[databankName] = count;
-
-                        Debug.Log($"Carregado banco {databankName}: {count} questões");
-                    }
-
-                    Destroy(tempGO);
-                }
-                else
-                {
-                    Debug.LogWarning($"Não foi possível encontrar o tipo para {databankName}");
-                    QuestionBankStatistics.SetTotalQuestions(databankName, 50);
-                    questionCounts[databankName] = 50;
-                }
+                var questions = AppContext.QuestionSync.GetQuestionsForDatabankName(databankName);
+                int count = questions?.Count ?? 0;
+                QuestionBankStatistics.SetTotalQuestions(databankName, count);
+                totalQuestions += count;
             }
             catch (Exception e)
             {
-                Debug.LogError($"Erro ao carregar estatísticas para {databankName}: {e.Message}");
-                QuestionBankStatistics.SetTotalQuestions(databankName, 50);
-                questionCounts[databankName] = 50;
+                Debug.LogError($"[DatabaseStatisticsManager] Erro ao carregar {databankName}: {e.Message}");
+                QuestionBankStatistics.SetTotalQuestions(databankName, 0);
             }
         }
 
-        await Task.Delay(100);
-
-        int totalQuestions = 0;
-        foreach (var kvp in questionCounts)
-        {
-            totalQuestions += kvp.Value;
-            Debug.Log($"Estatísticas: {kvp.Key} tem {kvp.Value} questões");
-        }
-
-        Debug.Log($"[DatabaseStatisticsManager] Total geral: {totalQuestions} questões");
-
+        // Somente UI — UserDataStore reflete, Firestore NÃO.
         if (totalQuestions > 0 && UserDataStore.CurrentUserData != null)
-        {
             UserDataStore.UpdateTotalQuestionsInAllDatabanks(totalQuestions);
-            
-            await AppContext.Firestore.UpdateUserField(
-                UserDataStore.CurrentUserData.UserId,
-                "TotalQuestionsInAllDatabanks",
-                totalQuestions
-            );
-            
-            Debug.Log($"[DatabaseStatisticsManager] Total salvo no UserData e Firebase");
-        }
+
+        Debug.Log($"[DatabaseStatisticsManager] Fallback local aplicado: Total={totalQuestions}");
     }
-    
+
+    /// <summary>
+    /// Total canônico de questões — consumido pelo PlayerLevelService e pela UI.
+    /// Prioriza o valor canônico lido de Config/QuestionStats; se ausente,
+    /// soma o cache local como fallback para não quebrar a UI.
+    /// </summary>
     public int GetTotalQuestionsCount()
     {
-        string[] allDatabases = new string[]
-        {
-            "AcidBaseBufferQuestionDatabase",
-            "AminoacidQuestionDatabase",
-            "BiochemistryIntroductionQuestionDatabase",
-            "CarbohydratesQuestionDatabase",
-            "EnzymeQuestionDatabase",
-            "LipidsQuestionDatabase",
-            "MembranesQuestionDatabase",
-            "NucleicAcidsQuestionDatabase",
-            "ProteinQuestionDatabase",
-            "WaterQuestionDatabase"
-        };
+        if (_canonicalStats != null && _canonicalStats.TotalQuestions > 0)
+            return _canonicalStats.TotalQuestions;
 
         int total = 0;
-        foreach (string databankName in allDatabases)
-        {
-            total += QuestionBankStatistics.GetTotalQuestions(databankName);
-        }
+        foreach (var kvp in TopicToDatabankName)
+            total += QuestionBankStatistics.GetTotalQuestions(kvp.Value);
 
         return total;
     }
