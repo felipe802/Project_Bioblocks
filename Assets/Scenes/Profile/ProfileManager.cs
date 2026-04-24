@@ -37,13 +37,11 @@ public class ProfileManager : MonoBehaviour
     // Dependências — obtidas do AppContext no Start()
     // -------------------------------------------------------
     private IFirestoreRepository _firestore;
-    private IStorageRepository _storage;
     private IAuthRepository _auth;
     private IStatisticsProvider _statistics;
 
     private UserData currentUserData;
     private bool firestoreDeleted = false;
-    private bool storageDeleted = false;
 
     // -------------------------------------------------------
     // Ciclo de vida
@@ -51,7 +49,6 @@ public class ProfileManager : MonoBehaviour
     private void Start()
     {
         _firestore    = AppContext.Firestore;
-        _storage      = AppContext.Storage;
         _auth         = AppContext.Auth;
         _statistics   = AppContext.Statistics;
         _navigation   = AppContext.Navigation;
@@ -255,7 +252,7 @@ public class ProfileManager : MonoBehaviour
             {
                 Debug.Log("[ProfileManager] Sincronizando dados pendentes antes do logout...");
 
-                // 1. Score, questões respondidas, dados gerais — via SyncService
+                // Score, questões respondidas, dados gerais — via SyncService
                 try
                 {
                     await AppContext.UserDataSync.TrySyncPendingData(currentUserId);
@@ -264,17 +261,6 @@ public class ProfileManager : MonoBehaviour
                 catch (Exception e)
                 {
                     Debug.LogWarning($"[ProfileManager] Falha ao sincronizar dados: {e.Message}");
-                }
-
-                // 2. Upload de imagem pendente — via PendingUploadSyncService
-                try
-                {
-                    if (AppContext.PendingUploadSync != null)
-                        await AppContext.PendingUploadSync.TrySyncPendingUploads();
-                }
-                catch (Exception e)
-                {
-                    Debug.LogWarning($"[ProfileManager] Falha ao sincronizar uploads: {e.Message}");
                 }
             }
 
@@ -412,7 +398,7 @@ public class ProfileManager : MonoBehaviour
             SetDeleteFeedback("Verificando...");
 
             // ----------------------------------------------------------------
-            // Fase 1 — Deleção de dados no Firestore e Storage
+            // Fase 1 — Deleção de dados no Firestore
             //
             // IMPORTANTE: deve ocorrer ANTES do DeleteUser porque o
             // FirestoreRepository real exige usuário autenticado no Firebase.
@@ -463,22 +449,7 @@ public class ProfileManager : MonoBehaviour
                 }
             }
 
-            // 1d. Deletar imagem do Storage (flag evita re-upload em retry)
-            if (!storageDeleted && !string.IsNullOrEmpty(currentUserData.ProfileImageUrl))
-            {
-                try
-                {
-                    await _storage.DeleteProfileImageAsync(currentUserData.ProfileImageUrl);
-                    Debug.Log("[DeleteAccount] Storage: imagem deletada com sucesso");
-                    storageDeleted = true;
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogWarning($"[DeleteAccount] Storage: {ex.Message}");
-                }
-            }
-
-            // 1e. Deletar o usuário de demais coleções onde ele possa existir
+            // 1d. Deletar o usuário de demais coleções onde ele possa existir
             //     (operações idempotentes — safe em retry)
             string[] additionalCollections =
             {

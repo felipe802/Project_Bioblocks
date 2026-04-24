@@ -14,7 +14,6 @@ using QuestionSystem;
 /// Cobre:
 ///   - UserDataLocalRepository  (CRUD, dirty/synced, score, answered questions, SavedAt)
 ///   - UserDataSyncService      (TrySyncPendingData, MergeWithFirestore via SavedAt)
-///   - PendingUploadDB          (upsert, delete, findAll)
 ///   - RankingDB                (FromDomain, ToDomain, ordenação)
 ///   - UserDataDB               (FromDomain, ToDomain, mapeamento de campos)
 ///   - UserDataStore            (mutations, Clear)
@@ -316,65 +315,6 @@ public class LiteDBTests
         _repo.UpdateUser(MakeUser("u1", score: 200));
 
         Assert.GreaterOrEqual(_repo.GetUser("u1").SavedAt, firstSavedAt);
-    }
-
-    // ═══════════════════════════════════════════════════════
-    // PendingUploadDB
-    // ═══════════════════════════════════════════════════════
-    [Test]
-    public void PendingUploads_UpsertAndFindById_Works()
-    {
-        var pending = new PendingUploadDB
-        {
-            Id          = "u1",
-            UserId      = "u1",
-            LocalPath   = "/tmp/image.jpg",
-            OldImageUrl = "https://old.url",
-            CreatedAt   = DateTime.Now
-        };
-
-        _db.PendingUploads.Upsert(pending);
-
-        var loaded = _db.PendingUploads.FindById("u1");
-        Assert.IsNotNull(loaded);
-        Assert.AreEqual("/tmp/image.jpg", loaded.LocalPath);
-        Assert.AreEqual("https://old.url", loaded.OldImageUrl);
-    }
-
-    [Test]
-    public void PendingUploads_Delete_RemovesEntry()
-    {
-        _db.PendingUploads.Upsert(new PendingUploadDB { Id = "u1", UserId = "u1" });
-
-        _db.PendingUploads.Delete("u1");
-
-        Assert.IsNull(_db.PendingUploads.FindById("u1"));
-    }
-
-    [Test]
-    public void PendingUploads_Upsert_OverwritesExistingEntry()
-    {
-        _db.PendingUploads.Upsert(new PendingUploadDB { Id = "u1", UserId = "u1", LocalPath = "/tmp/old.jpg" });
-        _db.PendingUploads.Upsert(new PendingUploadDB { Id = "u1", UserId = "u1", LocalPath = "/tmp/new.jpg" });
-
-        Assert.AreEqual("/tmp/new.jpg", _db.PendingUploads.FindById("u1").LocalPath);
-    }
-
-    [Test]
-    public void PendingUploads_FindAll_ReturnsAllEntries()
-    {
-        _db.PendingUploads.Upsert(new PendingUploadDB { Id = "u1", UserId = "u1" });
-        _db.PendingUploads.Upsert(new PendingUploadDB { Id = "u2", UserId = "u2" });
-
-        var all = _db.PendingUploads.FindAll().ToList();
-
-        Assert.AreEqual(2, all.Count);
-    }
-
-    [Test]
-    public void PendingUploads_FindById_WhenNotExists_ReturnsNull()
-    {
-        Assert.IsNull(_db.PendingUploads.FindById("nonexistent"));
     }
 
     // ═══════════════════════════════════════════════════════

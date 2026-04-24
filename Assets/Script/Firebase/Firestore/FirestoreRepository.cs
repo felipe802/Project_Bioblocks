@@ -448,37 +448,20 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
                 if (data.ContainsKey("ProfileImageUrl") && currentUserData != null)
                 {
                     string incomingUrl = data["ProfileImageUrl"] as string ?? "";
-                    
+
                     // Ignora se a URL incoming é vazia ou igual à atual
                     if (string.IsNullOrEmpty(incomingUrl)) return;
                     if (currentUserData.ProfileImageUrl == incomingUrl) return;
-                    
-                    // Ignora se há upload pendente — o path local deve ser preservado
-                    var pendingUpload = AppContext.LocalDatabase?.PendingUploads
-                                                .FindById(currentUserData.UserId);
-                    if (pendingUpload != null)
-                    {
-                        Debug.Log("[FirestoreRepository] ProfileImageUrl ignorado — upload pendente.");
-                        return;
-                    }
 
-                    // Ignora se a URL incoming é um path local (não começa com http)
-                    if (!incomingUrl.StartsWith("http"))
-                    {
-                        Debug.Log("[FirestoreRepository] ProfileImageUrl ignorado — path local.");
-                        return;
-                    }
-
+                    // Fluxo 100% preset: qualquer string não-vazia é válida
+                    // ("preset:<id>" ou URL http legada). O ProfileImageLoader
+                    // decide como resolver.
                     var capturedUrl = incomingUrl;
                     MainThreadDispatcher.Enqueue(() =>
                     {
                         var local = UserDataStore.CurrentUserData;
                         if (local == null) return;
-                        
-                        // Verifica novamente se não há upload pendente no main thread
-                        var pending = AppContext.LocalDatabase?.PendingUploads.FindById(local.UserId);
-                        if (pending != null) return;
-                        
+
                         local.ProfileImageUrl = capturedUrl;
                         UserDataStore.CurrentUserData = local;
                         UserAvatarSyncHelper.NotifyAvatarChanged(capturedUrl);

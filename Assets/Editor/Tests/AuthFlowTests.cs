@@ -47,12 +47,12 @@ public class AuthFlowTests
     [SetUp]
     public void Setup()
     {
-        _fakeAuth       = new FakeAuthRepository();
-        _fakeFirestore  = new FakeFirestoreRepository();
-        _fakeAnswered   = new FakeAnsweredQuestionsManagerForAuth();
-        _fakeStatistics = new FakeStatisticsProvider();
-        _fakeSync       = new FakeQuestionSyncService { IsCacheReady = true };
-        _fakeNavigation = new FakeNavigationService();
+        _fakeAuth        = new FakeAuthRepository();
+        _fakeFirestore   = new FakeFirestoreRepository();
+        _fakeAnswered    = new FakeAnsweredQuestionsManagerForAuth();
+        _fakeStatistics  = new FakeStatisticsProvider();
+        _fakeSync        = new FakeQuestionSyncService { IsCacheReady = true };
+        _fakeNavigation  = new FakeNavigationService();
 
         AppContext.OverrideForTests(
             auth:              _fakeAuth,

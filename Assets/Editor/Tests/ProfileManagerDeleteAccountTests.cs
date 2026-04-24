@@ -6,21 +6,22 @@
 //   ✅ 1a — Deleta documento na coleção Users
 //   ✅ 1b — Deleta entrada na coleção Rankings
 //   ✅ 1c — Deleta nickname na coleção Nicknames
-//   ✅ 1d — Deleta imagem no Storage quando ProfileImageUrl está preenchida
-//   ✅ 1d — Não tenta deletar Storage quando ProfileImageUrl está vazia
-//   ✅ 1e — Deleta de todas as coleções adicionais (UserBonus, UserFeedback, etc.)
+//   ✅ 1d — Deleta de todas as coleções adicionais (UserBonus, UserFeedback, etc.)
 //   ✅ Navega para LoginView após deleção completa bem-sucedida
 //   ✅ Limpa UserDataStore.CurrentUserData após deleção
 //   ✅ Reautenticação necessária → exibe ReAuthUI e interrompe navegação
 //   ✅ Após retry com isRetry=true → navega para LoginView
 //   ✅ Falha no Firestore (Users) não impede deleção do Auth nem a navegação
-//   ✅ Falha no Storage não impede deleção do Auth nem a navegação
 //   ✅ Segundo Delete com firestoreDeleted=true → não chama DeleteDocument("Users") de novo
 //
 // O que NÃO é testado:
 //   - SceneManager.LoadScene (requer cena real carregada)
 //   - UI visual (panels, overlays, animações)
 //   - Integração real com Firebase SDK
+//
+// Removido no refactor de avatar-preset (abril/2026): tudo que envolvia
+// Storage (IStorageRepository). Avatares agora são presets estáticos
+// do AvatarCatalog; DeleteAccountAsync não mais deleta imagens no Storage.
 
 using System.Collections;
 using System.Collections.Generic;
@@ -35,13 +36,12 @@ public class ProfileManagerDeleteAccountTests
     // ── Fixtures ────────────────────────────────────────────────────────────
     private FakeAuthRepository       _fakeAuth;
     private FakeFirestoreRepository  _fakeFirestore;
-    private FakeStorageRepository    _fakeStorage;
     private FakeNavigationService    _fakeNavigation;
     private FakeStatisticsProvider   _fakeStatistics;
 
     private const string UserId   = "test-user-id";
     private const string NickName = "TestNick";
-    private const string ImageUrl = "https://fake-storage.com/profile.png";
+    private const string ImageUrl = "preset:amino_default";
 
     // ── Setup / TearDown ────────────────────────────────────────────────────
 
@@ -50,14 +50,12 @@ public class ProfileManagerDeleteAccountTests
     {
         _fakeAuth       = new FakeAuthRepository();
         _fakeFirestore  = new FakeFirestoreRepository();
-        _fakeStorage    = new FakeStorageRepository();
         _fakeNavigation = new FakeNavigationService();
         _fakeStatistics = new FakeStatisticsProvider();
 
         AppContext.OverrideForTests(
             auth:       _fakeAuth,
             firestore:  _fakeFirestore,
-            storage:    _fakeStorage,
             statistics: _fakeStatistics,
             navigation: _fakeNavigation
         );
@@ -94,12 +92,10 @@ public class ProfileManagerDeleteAccountTests
 
         SetField(manager, "_auth",            _fakeAuth);
         SetField(manager, "_firestore",       _fakeFirestore);
-        SetField(manager, "_storage",         _fakeStorage);
         SetField(manager, "_navigation",      _fakeNavigation);
         SetField(manager, "_statistics",      _fakeStatistics);
         SetField(manager, "currentUserData",  userData);
         SetField(manager, "firestoreDeleted", false);
-        SetField(manager, "storageDeleted",   false);
 
         return (manager, go);
     }
@@ -218,45 +214,6 @@ public class ProfileManagerDeleteAccountTests
     }
 
     // =======================================================================
-    // DELEÇÃO STORAGE — imagem de perfil
-    // =======================================================================
-
-    [UnityTest]
-    public IEnumerator Delete_1d_DeletaImagemNoStorageQuandoUrlPreenchida()
-    {
-        var (manager, go) = CreateProfileManager();
-
-        var task = manager.DeleteAccountAsync();
-        yield return new WaitUntil(() => task.IsCompleted);
-
-        Assert.AreEqual(1, _fakeStorage.DeleteCallCount,
-            "Deve chamar DeleteProfileImageAsync exatamente uma vez.");
-        Assert.AreEqual(ImageUrl, _fakeStorage.LastDeletedUrl,
-            "Deve deletar a URL correta da imagem.");
-
-        Object.DestroyImmediate(go);
-    }
-
-    [UnityTest]
-    public IEnumerator Delete_1d_NãoDeletaStorageQuandoSemImagem()
-    {
-        var userData = new UserData(UserId, NickName, "Test User", "test@test.com")
-        {
-            ProfileImageUrl = null
-        };
-        UserDataStore.CurrentUserData = userData;
-        var (manager, go) = CreateProfileManager(userData);
-
-        var task = manager.DeleteAccountAsync();
-        yield return new WaitUntil(() => task.IsCompleted);
-
-        Assert.AreEqual(0, _fakeStorage.DeleteCallCount,
-            "Não deve chamar DeleteProfileImageAsync quando ProfileImageUrl está vazio.");
-
-        Object.DestroyImmediate(go);
-    }
-
-    // =======================================================================
     // NAVEGAÇÃO
     // =======================================================================
 
@@ -350,9 +307,8 @@ public class ProfileManagerDeleteAccountTests
         _fakeAuth.ShouldThrowReauthOnDelete = false; // reauth já concluída
         var (manager, go) = CreateProfileManager();
 
-        // Simula que Users e Storage JÁ foram deletados antes do reauth
+        // Simula que Users JÁ foi deletado antes do reauth
         SetField(manager, "firestoreDeleted", true);
-        SetField(manager, "storageDeleted",   true);
 
         var task = manager.DeleteAccountAsync(isRetry: true);
         yield return new WaitUntil(() => task.IsCompleted);
@@ -367,15 +323,14 @@ public class ProfileManagerDeleteAccountTests
     }
 
     [UnityTest]
-    public IEnumerator Delete_Retry_NãoDuplicaUsersNemStorageSeJáDeletados()
+    public IEnumerator Delete_Retry_NãoDuplicaUsersSeJáDeletado()
     {
-        // flags firestoreDeleted=true e storageDeleted=true simulam que Users e Storage
-        // já foram deletados com sucesso na primeira tentativa.
-        // Em retry, somente as operações idempotentes (Rankings, Nicknames, etc.)
-        // devem ser chamadas — Users e Storage devem ser puladas.
+        // A flag firestoreDeleted=true simula que Users já foi deletado com
+        // sucesso na primeira tentativa. Em retry, somente as operações
+        // idempotentes (Rankings, Nicknames, etc.) devem ser chamadas — Users
+        // deve ser pulada.
         var (manager, go) = CreateProfileManager();
         SetField(manager, "firestoreDeleted", true);
-        SetField(manager, "storageDeleted",   true);
 
         var task = manager.DeleteAccountAsync(isRetry: true);
         yield return new WaitUntil(() => task.IsCompleted);
@@ -385,10 +340,6 @@ public class ProfileManagerDeleteAccountTests
         Assert.IsFalse(
             _fakeFirestore.WasDocumentDeleted("Users", UserId),
             "Com firestoreDeleted=true, não deve chamar DeleteDocument('Users') novamente.");
-
-        // Storage não deve ter sido deletado novamente (guarda storageDeleted)
-        Assert.AreEqual(0, _fakeStorage.DeleteCallCount,
-            "Com storageDeleted=true, não deve chamar DeleteProfileImageAsync novamente.");
 
         // Mas Rankings, Nicknames e outras coleções idempotentes devem ter sido tentadas
         Assert.IsTrue(
@@ -420,25 +371,6 @@ public class ProfileManagerDeleteAccountTests
         // E a navegação deve ter ocorrido
         Assert.AreEqual("LoginView", _fakeNavigation.LastScene,
             "Deve navegar para LoginView mesmo com falha parcial no Firestore.");
-
-        Object.DestroyImmediate(go);
-    }
-
-    [UnityTest]
-    public IEnumerator Delete_FalhaNoStorage_AindaDeletaAuthENa()
-    {
-        _fakeStorage.ShouldThrowOnDelete = true;
-        var (manager, go) = CreateProfileManager();
-
-        var task = manager.DeleteAccountAsync();
-        yield return new WaitUntil(() => task.IsCompleted);
-        yield return new WaitForSeconds(0.2f);
-
-        Assert.AreEqual(1, _fakeAuth.DeleteUserCallCount,
-            "DeleteUser deve ser chamado mesmo com falha no Storage.");
-
-        Assert.AreEqual("LoginView", _fakeNavigation.LastScene,
-            "Deve navegar para LoginView mesmo com falha no Storage.");
 
         Object.DestroyImmediate(go);
     }
