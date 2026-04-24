@@ -116,6 +116,15 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
 
     // -------------------------------------------------------
     // Migração de dados legados
+    //
+    // Duas migrações possíveis (idempotentes):
+    //   1. TotalValidQuestionsAnswered desacoplado de AnsweredQuestions
+    //      — recalcula via CalculateValidAnsweredQuestionsFromData.
+    //   2. LevelSnapshotDenominator ausente (==0) — cliente pré-fix do bug
+    //      de "pulo de nível". Deriva snapshot que preserva o PlayerLevel
+    //      atual do usuário; a partir desse ponto o nível só muda quando
+    //      o jogador responde questões suficientes para cruzar o threshold
+    //      no snapshot congelado.
     // -------------------------------------------------------
     private async void PerformMigrationIfNeeded()
     {
@@ -127,22 +136,41 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
         int realTotal  = CalculateValidAnsweredQuestionsFromData(_currentUserData);
         int savedTotal = _currentUserData.TotalValidQuestionsAnswered;
 
-        if (realTotal == savedTotal)
+        bool answeredMismatch = (realTotal != savedTotal);
+        bool snapshotMissing  = (_currentUserData.LevelSnapshotDenominator <= 0);
+
+        if (!answeredMismatch && !snapshotMissing)
         {
-            Debug.Log($"[PlayerLevelService] Dados consistentes: {savedTotal}. Nenhuma migração necessária.");
+            Debug.Log($"[PlayerLevelService] Dados consistentes: {savedTotal}, snapshot={_currentUserData.LevelSnapshotDenominator}. Nenhuma migração necessária.");
             return;
         }
 
-        Debug.Log($"[PlayerLevelService] Inconsistência: salvo={savedTotal}, real={realTotal}. Corrigindo...");
+        Debug.Log($"[PlayerLevelService] Migração necessária: answeredMismatch={answeredMismatch}, snapshotMissing={snapshotMissing}. Corrigindo...");
 
         _isMigrating = true;
         try
         {
-            int totalQuestions = GetTotalQuestionsCount();
-            int newLevel       = PlayerLevelConfig.CalculateLevel(realTotal, totalQuestions);
+            int correctedTotal = answeredMismatch ? realTotal : savedTotal;
+            int storedLevel    = _currentUserData.PlayerLevel;
 
-            _currentUserData.TotalValidQuestionsAnswered = realTotal;
-            _currentUserData.PlayerLevel                 = newLevel;
+            _currentUserData.TotalValidQuestionsAnswered = correctedTotal;
+
+            // --- Snapshot: preserva o nível atual se o campo ainda não existe.
+            //     Nunca diminui o nível (regra de produto).
+            int snapshot = _currentUserData.LevelSnapshotDenominator;
+            if (snapshot <= 0)
+            {
+                int currentTotal = GetTotalQuestionsCount();
+                snapshot = ComputeInitialSnapshotForLevel(storedLevel, correctedTotal, currentTotal);
+                _currentUserData.LevelSnapshotDenominator = snapshot;
+                Debug.Log($"[PlayerLevelService] Snapshot inicial derivado: storedLevel={storedLevel}, answered={correctedTotal}, currentTotal={currentTotal} → snapshot={snapshot}");
+            }
+
+            // --- PlayerLevel: monotônico. Nunca desce.
+            //     Usa snapshot como denominador — comportamento correto pós-fix.
+            int computedLevel = PlayerLevelConfig.CalculateLevel(correctedTotal, snapshot);
+            int newLevel      = Mathf.Max(storedLevel, computedLevel);
+            _currentUserData.PlayerLevel = newLevel;
 
             // Persiste no LiteDB imediatamente — funciona offline
             AppContext.UserDataLocal?.UpdateUser(_currentUserData);
@@ -152,10 +180,21 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
             {
                 try
                 {
-                    await _firestore.UpdateUserField(_currentUserData.UserId,
-                        "TotalValidQuestionsAnswered", realTotal).ConfigureAwait(false);
-                    await _firestore.UpdateUserField(_currentUserData.UserId,
-                        "PlayerLevel", newLevel).ConfigureAwait(false);
+                    if (answeredMismatch)
+                    {
+                        await _firestore.UpdateUserField(_currentUserData.UserId,
+                            "TotalValidQuestionsAnswered", correctedTotal).ConfigureAwait(false);
+                    }
+                    if (newLevel != storedLevel)
+                    {
+                        await _firestore.UpdateUserField(_currentUserData.UserId,
+                            "PlayerLevel", newLevel).ConfigureAwait(false);
+                    }
+                    if (snapshotMissing)
+                    {
+                        await _firestore.UpdateUserField(_currentUserData.UserId,
+                            "LevelSnapshotDenominator", snapshot).ConfigureAwait(false);
+                    }
                     AppContext.UserDataLocal?.MarkAsSynced(_currentUserData.UserId);
                 }
                 catch (Exception e)
@@ -174,7 +213,7 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
             MainThreadDispatcher.Enqueue(() =>
             {
                 UserDataStore.CurrentUserData = captured;
-                Debug.Log($"[PlayerLevelService] Migração concluída. Level: {newLevel}, Questões: {realTotal}");
+                Debug.Log($"[PlayerLevelService] Migração concluída. Level: {newLevel}, Questões: {correctedTotal}, Snapshot: {snapshot}");
             });
         }
         catch (Exception e)
@@ -185,6 +224,39 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
         {
             _isMigrating = false;
         }
+    }
+
+    /// <summary>
+    /// Calcula um <c>LevelSnapshotDenominator</c> inicial que preserva
+    /// o nível atual do usuário. Usado exclusivamente na migração de
+    /// clientes pré-fix (onde o campo ainda não existia).
+    ///
+    /// Estratégia: escolhe o MAIOR entre:
+    ///   - snapshotFromLevel: denominador que coloca o usuário na base
+    ///     do seu nível atual (<c>answered / minPct(level)</c>).
+    ///   - currentTotal: total atual canônico do app.
+    ///
+    /// Dessa forma o snapshot nunca encolhe o nível do usuário e respeita
+    /// o total canônico quando maior. Para nível 1 ou dados degenerados,
+    /// cai no total atual com piso de 1 para evitar divisão por zero.
+    /// </summary>
+    private int ComputeInitialSnapshotForLevel(int storedLevel, int answered, int currentTotal)
+    {
+        int safeCurrentTotal = Mathf.Max(1, currentTotal);
+
+        if (storedLevel <= 1 || answered <= 0)
+            return safeCurrentTotal;
+
+        var threshold = PlayerLevelConfig.GetThresholdForLevel(storedLevel);
+        float minPct  = threshold.MinPercentage;
+
+        if (minPct <= 0f)
+            return safeCurrentTotal;
+
+        // snapshot que coloca o jogador na base do nível atual
+        int snapshotFromLevel = Mathf.CeilToInt(answered / minPct);
+
+        return Mathf.Max(snapshotFromLevel, safeCurrentTotal);
     }
 
     private int CalculateValidAnsweredQuestionsFromData(UserData userData)
@@ -251,19 +323,44 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
     {
         if (!_isInitialized || _currentUserData == null) return;
 
-        int totalQuestions = GetTotalQuestionsCount();
-        int oldLevel       = _currentUserData.PlayerLevel;
-        int newLevel       = PlayerLevelConfig.CalculateLevel(
-            _currentUserData.TotalValidQuestionsAnswered, totalQuestions);
+        int answered    = _currentUserData.TotalValidQuestionsAnswered;
+        int oldLevel    = _currentUserData.PlayerLevel;
+        int snapshot    = GetEffectiveSnapshotDenominator();
+        if (snapshot <= 0) return;
 
-        if (newLevel <= oldLevel) return;
+        // Level-up em passos — um nível por vez — e refresca o snapshot
+        // no momento EXATO do level-up (fonte única de verdade).
+        //
+        // Regras:
+        //   - Snapshot é monotonicamente não-decrescente: newSnapshot = max(currentTotal, oldSnapshot).
+        //     Assim, se o total do app encolher depois, o jogador mantém o nível sem pular.
+        //   - Para cada nível ganho, concede bônus do nível DESTINO.
+        //   - Nunca ultrapassa <see cref="PlayerLevelConfig.MaxLevel"/>.
+        //   - Nunca diminui o nível.
+        int currentLevel     = oldLevel;
+        int effectiveSnapshot = snapshot;
+        int totalBonus        = 0;
 
-        _currentUserData.PlayerLevel = newLevel;
+        while (PlayerLevelConfig.CanLevelUp(currentLevel, answered, effectiveSnapshot))
+        {
+            int nextLevel = currentLevel + 1;
+            totalBonus   += PlayerLevelConfig.GetBonusForLevel(nextLevel);
+            currentLevel  = nextLevel;
+
+            // Refresca snapshot — monotônico não-decrescente
+            int currentTotal = GetTotalQuestionsCount();
+            if (currentTotal > effectiveSnapshot)
+                effectiveSnapshot = currentTotal;
+
+            if (currentLevel >= PlayerLevelConfig.MaxLevel) break;
+        }
+
+        if (currentLevel == oldLevel) return;
+
+        int newLevel = currentLevel;
+        _currentUserData.PlayerLevel              = newLevel;
+        _currentUserData.LevelSnapshotDenominator = effectiveSnapshot;
         var userId = _currentUserData.UserId;
-
-        int totalBonus = 0;
-        for (int level = oldLevel + 1; level <= newLevel; level++)
-            totalBonus += PlayerLevelConfig.GetBonusForLevel(level);
 
         await GrantLevelUpBonus(totalBonus);
 
@@ -276,6 +373,8 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
             try
             {
                 await _firestore.UpdateUserField(userId, "PlayerLevel", newLevel)
+                                .ConfigureAwait(false);
+                await _firestore.UpdateUserField(userId, "LevelSnapshotDenominator", effectiveSnapshot)
                                 .ConfigureAwait(false);
                 AppContext.UserDataLocal?.MarkAsSynced(userId);
             }
@@ -361,12 +460,16 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
     {
         if (_currentUserData == null) return 0f;
 
-        int totalQuestions = GetTotalQuestionsCount();
+        // Usa snapshot — denominador consistente com o nível atual do jogador.
+        int denominator    = GetEffectiveSnapshotDenominator();
+        if (denominator <= 0) return 0f;
+
         int currentLevel   = _currentUserData.PlayerLevel;
         var threshold      = PlayerLevelConfig.GetThresholdForLevel(currentLevel);
 
-        float currentPercentage = (float)_currentUserData.TotalValidQuestionsAnswered / totalQuestions;
+        float currentPercentage = (float)_currentUserData.TotalValidQuestionsAnswered / denominator;
         float levelRange        = threshold.MaxPercentage - threshold.MinPercentage;
+        if (levelRange <= 0f) return 1f;
         float progressInLevel   = (currentPercentage - threshold.MinPercentage) / levelRange;
 
         return Mathf.Clamp01(progressInLevel);
@@ -375,13 +478,15 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
     public int GetQuestionsUntilNextLevel()
     {
         if (_currentUserData == null) return 0;
-        if (_currentUserData.PlayerLevel >= 10) return 0;
+        if (_currentUserData.PlayerLevel >= PlayerLevelConfig.MaxLevel) return 0;
 
-        int totalQuestions = GetTotalQuestionsCount();
+        int denominator    = GetEffectiveSnapshotDenominator();
+        if (denominator <= 0) return 0;
+
         int nextLevel      = _currentUserData.PlayerLevel + 1;
         var nextThreshold  = PlayerLevelConfig.GetThresholdForLevel(nextLevel);
 
-        int questionsNeeded = nextThreshold.GetMinRequiredQuestions(totalQuestions);
+        int questionsNeeded = nextThreshold.GetMinRequiredQuestions(denominator);
         int remaining       = questionsNeeded - _currentUserData.TotalValidQuestionsAnswered;
 
         return Mathf.Max(0, remaining);
@@ -391,11 +496,29 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
     {
         if (_currentUserData == null) return 0;
 
-        int totalQuestions   = GetTotalQuestionsCount();
+        int denominator      = GetEffectiveSnapshotDenominator();
+        if (denominator <= 0) return 0;
+
         int currentLevel     = _currentUserData.PlayerLevel;
         var currentThreshold = PlayerLevelConfig.GetThresholdForLevel(currentLevel);
 
-        return currentThreshold.GetMinRequiredQuestions(totalQuestions);
+        return currentThreshold.GetMinRequiredQuestions(denominator);
+    }
+
+    /// <summary>
+    /// Retorna o denominador efetivo para cálculos de nível/progresso.
+    /// Prioriza o <c>LevelSnapshotDenominator</c> persistido no <see cref="UserData"/>;
+    /// se ausente (cliente antigo), deriva um snapshot que preserva o nível atual.
+    /// </summary>
+    private int GetEffectiveSnapshotDenominator()
+    {
+        int snapshot = _currentUserData?.LevelSnapshotDenominator ?? 0;
+        if (snapshot > 0) return snapshot;
+
+        int answered     = _currentUserData?.TotalValidQuestionsAnswered ?? 0;
+        int storedLevel  = _currentUserData?.PlayerLevel ?? 1;
+        int currentTotal = GetTotalQuestionsCount();
+        return ComputeInitialSnapshotForLevel(storedLevel, answered, currentTotal);
     }
 
     // -------------------------------------------------------
@@ -419,19 +542,28 @@ public class PlayerLevelService : MonoBehaviour, IPlayerLevelService
     }
 
     private int _cachedTotalQuestions = 0;
+    /// <summary>
+    /// Retorna o total atual (canônico) de questões — obtido preferencialmente
+    /// do <see cref="IStatisticsProvider"/> (que lê Config/QuestionStats no Firestore).
+    /// O campo <c>UserData.TotalQuestionsInAllDatabanks</c> é apenas um cache
+    /// da última leitura canônica e deve ser usado somente como fallback offline.
+    /// </summary>
     private int GetTotalQuestionsCount()
     {
         if (_cachedTotalQuestions > 0) return _cachedTotalQuestions;
 
-        // 1. Tenta do UserData (já sincronizado com o Firestore)
-        int total = _currentUserData?.TotalQuestionsInAllDatabanks ?? 0;
-
-        // 2. Tenta do DatabaseStatisticsManager — só se já estiver inicializado
-        if (total <= 0 && _statistics != null && _statistics.IsInitialized)
+        // 1. Fonte canônica — IStatisticsProvider (Config/QuestionStats).
+        int total = 0;
+        if (_statistics != null && _statistics.IsInitialized)
         {
             total = _statistics.GetTotalQuestionsCount();
-            Debug.Log($"[PlayerLevelService] Total obtido do IStatisticsProvider: {total}");
+            if (total > 0)
+                Debug.Log($"[PlayerLevelService] Total obtido do IStatisticsProvider: {total}");
         }
+
+        // 2. Fallback offline — cache em UserData (última leitura sincronizada).
+        if (total <= 0)
+            total = _currentUserData?.TotalQuestionsInAllDatabanks ?? 0;
 
         // Não cacheia zero — tenta novamente na próxima chamada quando as
         // estatísticas estiverem prontas (ex: logo após o registro de novo usuário)
