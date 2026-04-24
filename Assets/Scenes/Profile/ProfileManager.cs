@@ -11,6 +11,7 @@ public class ProfileManager : MonoBehaviour
 {
     [Header("UserData UI")]
     [SerializeField] private TMP_Text nameText;
+    [SerializeField] private TMP_Text scoreText;
     [SerializeField] private TMP_Text emailText;
     [SerializeField] private TMP_Text createdTimeText;
     [SerializeField] private CanvasGroup userDataTable;
@@ -155,6 +156,8 @@ public class ProfileManager : MonoBehaviour
         }
 
         nameText.text = currentUserData.Name;
+        if (scoreText != null)
+            scoreText.text = $"{currentUserData.Score} pontos no total";
         emailText.text = currentUserData.Email;
         createdTimeText.text = $"Conta criada em {currentUserData.GetFormattedCreatedTime()}";
     }

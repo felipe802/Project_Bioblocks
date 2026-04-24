@@ -633,7 +633,7 @@ public class UserHeaderManager : BarsManager
 
         if (scoreText != null)
         {
-            scoreText.text = $"{userData.WeekScore} pontos";
+            scoreText.text = $"{userData.WeekScore} pontos essa semana";
         }
 
         if (avatarManager != null)

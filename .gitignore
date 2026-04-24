@@ -119,3 +119,10 @@ Library/PackageCache/**/*.dylib
 iOS/Libraries/*.a
 iOS/Libraries/libiPhone-lib.a
 Assets/Packages.meta
+
+# ===========================
+# Admin audit reports (contém userIds, nicknames, scores — PII)
+# Gerados localmente por `curl .../auditPlayerLevels`, nunca commitar.
+# ===========================
+audit-dryrun-*.json
+audit-apply-*.json
