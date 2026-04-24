@@ -187,6 +187,24 @@ public class FakeFirestoreRepository : IFirestoreRepository
         => Task.FromResult(new List<UserData>(_allUsers));
 
     // -------------------------------------------------------
+    // Config/QuestionStats — fake injetável
+    // -------------------------------------------------------
+
+    /// <summary>
+    /// Stats retornados por GetQuestionStats. Testes podem setar para
+    /// simular o documento Config/QuestionStats.
+    /// </summary>
+    public QuestionStats FakeQuestionStats { get; set; }
+
+    public int GetQuestionStatsCallCount { get; private set; }
+
+    public Task<QuestionStats> GetQuestionStats()
+    {
+        GetQuestionStatsCallCount++;
+        return Task.FromResult(FakeQuestionStats);
+    }
+
+    // -------------------------------------------------------
     // Listeners — fake dispara callbacks imediatamente
     // -------------------------------------------------------
     public void ListenToUserData(
