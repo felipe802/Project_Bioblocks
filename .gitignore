@@ -76,6 +76,7 @@ Assets/Plugins/tvOS.meta
 # ===========================
 [Ll]ibrary/
 [Tt]emp/
+.utmp/
 [Ll]ogs/
 [Oo]bj/
 [Bb]uild/
