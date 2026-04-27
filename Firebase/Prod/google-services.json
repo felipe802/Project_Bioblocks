@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "151323225816",
+    "project_id": "microlearning-33132",
+    "storage_bucket": "microlearning-33132.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:151323225816:android:d2385e17288ebdb8a231ad",
+        "android_client_info": {
+          "package_name": "com.halbus.labedu"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "151323225816-8snntp5fjsn58phnee90qtmact26tmuq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.halbus.labedu",
+            "certificate_hash": "fa8ba5730e41c2d36dfa8df8d94f130385da4b9f"
+          }
+        },
+        {
+          "client_id": "151323225816-9lvcfaq3s9qppuvu83ubn5lsfr6blasb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBfnKgoTQ676pYcf0RHR6JBe__XZtz8nsc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "151323225816-9lvcfaq3s9qppuvu83ubn5lsfr6blasb.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "151323225816-516fcsqgutqkvbfl31t73vigflkqqcus.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.halbus.labedu"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
