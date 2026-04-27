@@ -8,18 +8,18 @@ using UnityEngine.SceneManagement;
 /// </summary>
 public class PathwayManager : MonoBehaviour
 {
-    [SerializeField] private NavigationManager navigationManager;
-
     // -------------------------------------------------------
     // Dependências — obtidas do AppContext no Start()
     // -------------------------------------------------------
     private IFirestoreRepository _firestore;
-    private IStatisticsProvider _statistics;
+    private IStatisticsProvider  _statistics;
+    private INavigationService   _navigation;
 
     private void Start()
     {
         _firestore  = AppContext.Firestore;
         _statistics = AppContext.Statistics;
+        _navigation = AppContext.Navigation;
 
         if (UserDataStore.CurrentUserData == null)
         {
@@ -159,9 +159,6 @@ public class PathwayManager : MonoBehaviour
 
     public void Navigate(string sceneName)
     {
-        if (navigationManager != null)
-            navigationManager.NavigateTo(sceneName);
-        else
-            Debug.LogError("[PathwayManager] NavigationManager não configurado no Inspector.");
+        _navigation.NavigateTo(sceneName);
     }
 }
