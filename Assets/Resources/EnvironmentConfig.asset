@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 995c389f0142a4f21b04c9f9a67f4837, type: 3}
   m_Name: EnvironmentConfig
   m_EditorClassIdentifier: 
-  firebaseEnvironment: 1
-  questionSource: 1
+  firebaseEnvironment: 0
+  questionSource: 0
