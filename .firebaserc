@@ -1,5 +1,10 @@
 {
   "projects": {
-    "default": "microlearning-33132"
-  }
+    "default": "microlearning-dev-5003c",
+    "prod": "microlearning-33132",
+    "dev": "microlearning-dev-5003c",
+    "firebase use dev": "microlearning-dev-5003c"
+  },
+  "targets": {},
+  "etags": {}
 }
