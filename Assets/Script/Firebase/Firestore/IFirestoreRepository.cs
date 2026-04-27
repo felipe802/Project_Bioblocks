@@ -28,6 +28,21 @@ public interface IFirestoreRepository
     /// </summary>
     Task<QuestionStats> GetQuestionStats();
 
+    // ── UserBonus / CompletedDatabanks ────────────────────────────────────────
+
+    /// <summary>
+    /// Retorna true se o databank ainda não foi marcado como completo para este usuário
+    /// (ou seja, o bônus de conclusão ainda não foi concedido).
+    /// Lê UserBonus/{userId}.CompletedDatabanks.
+    /// </summary>
+    Task<bool> IsDatabankEligibleForBonus(string userId, string databankName);
+
+    /// <summary>
+    /// Adiciona <paramref name="databankName"/> à lista CompletedDatabanks do usuário,
+    /// evitando duplicatas. Escreve em UserBonus/{userId}.
+    /// </summary>
+    Task MarkDatabankAsCompleted(string userId, string databankName);
+
     IDisposable ListenToScore(string userId, Action<int> onScoreChanged, Action<int> onWeekScoreChanged);
     IDisposable ListenToAnsweredQuestions(string userId, Action<Dictionary<string, List<int>>> onChanged);
     void StopListening();

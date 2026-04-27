@@ -187,6 +187,49 @@ public class FakeFirestoreRepository : IFirestoreRepository
         => Task.FromResult(new List<UserData>(_allUsers));
 
     // -------------------------------------------------------
+    // UserBonus / CompletedDatabanks — fake injetável
+    // -------------------------------------------------------
+
+    /// <summary>
+    /// Databanks marcados como completos por userId.
+    /// Pré-popule nos testes para simular um banco já concluído:
+    /// <code>fake.SetDatabankAsCompleted("user1", "AminoacidQuestionDatabase");</code>
+    /// </summary>
+    private readonly Dictionary<string, HashSet<string>> _completedDatabanks = new();
+
+    public int IsDatabankEligibleForBonusCallCount { get; private set; }
+    public int MarkDatabankAsCompletedCallCount    { get; private set; }
+
+    /// <summary>Configura um databank como já concluído antes do teste rodar.</summary>
+    public void SetDatabankAsCompleted(string userId, string databankName)
+    {
+        if (!_completedDatabanks.ContainsKey(userId))
+            _completedDatabanks[userId] = new HashSet<string>();
+        _completedDatabanks[userId].Add(databankName);
+    }
+
+    /// <summary>Retorna true se o databank foi marcado durante o teste.</summary>
+    public bool WasDatabankMarkedAsCompleted(string userId, string databankName)
+        => _completedDatabanks.TryGetValue(userId, out var set) && set.Contains(databankName);
+
+    public Task<bool> IsDatabankEligibleForBonus(string userId, string databankName)
+    {
+        IsDatabankEligibleForBonusCallCount++;
+        bool alreadyCompleted = _completedDatabanks.TryGetValue(userId, out var set)
+                                && set.Contains(databankName);
+        return Task.FromResult(!alreadyCompleted);
+    }
+
+    public Task MarkDatabankAsCompleted(string userId, string databankName)
+    {
+        MarkDatabankAsCompletedCallCount++;
+        if (!_completedDatabanks.ContainsKey(userId))
+            _completedDatabanks[userId] = new HashSet<string>();
+        _completedDatabanks[userId].Add(databankName);
+        return Task.CompletedTask;
+    }
+
+    // -------------------------------------------------------
     // Config/QuestionStats — fake injetável
     // -------------------------------------------------------
 
