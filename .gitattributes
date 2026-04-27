@@ -7,3 +7,11 @@ Assets/Firebase/Plugins/**/*.bundle filter=lfs diff=lfs merge=lfs -text
 Assets/Firebase/Plugins/**/*.so filter=lfs diff=lfs merge=lfs -text
 Assets/Firebase/Plugins/**/*.dll filter=lfs diff=lfs merge=lfs -text
 Assets/Firebase/Plugins/**/*.a filter=lfs diff=lfs merge=lfs -text
+
+# Configurações de ambiente versionadas
+# Cada colaborador precisa registrar o merge driver localmente uma vez:
+#   git config merge.ours.driver true
+#
+# Sem esse comando, o merge driver vira no-op e o arquivo merge normalmente.
+Assets/Resources/EnvironmentConfig.asset merge=ours
+Assets/Resources/EnvironmentConfig.asset.meta merge=ours
