@@ -19,10 +19,6 @@ public class EnvironmentSetup : IPreprocessBuildWithReport, IPostprocessBuildWit
     private const string DevProductName  = "BioBlocks Dev";
     // ==========================================================
 
-    private const string FirebaseSourceRoot = "Firebase";
-    private const string AndroidConfigFile  = "google-services.json";
-    private const string iOSConfigFile      = "GoogleService-Info.plist";
-
     // Estado salvo entre Pre e Post para reverter PlayerSettings
     private static string _prevBundleIdAndroid;
     private static string _prevBundleIdiOS;
@@ -39,10 +35,6 @@ public class EnvironmentSetup : IPreprocessBuildWithReport, IPostprocessBuildWit
                 "EnvironmentConfig não encontrado em Resources/.", "OK");
             return;
         }
-
-        CopyFirebaseConfig(cfg.FirebaseEnvironment);
-        // Não troca bundle id no menu — só no build (pra não sujar ProjectSettings.asset)
-        AssetDatabase.Refresh();
 
         EditorUtility.DisplayDialog("Pronto",
             $"Ambiente aplicado:\n" +
@@ -61,7 +53,6 @@ public class EnvironmentSetup : IPreprocessBuildWithReport, IPostprocessBuildWit
 
         Debug.Log($"[EnvironmentSetup] ▶ Pré-build: {cfg.FirebaseEnvironment} / PreviewMode={cfg.QuestionPreviewMode}");
 
-        CopyFirebaseConfig(cfg.FirebaseEnvironment);
         ApplyBundleIdAndName(cfg.FirebaseEnvironment, savePrevious: true);
     }
 
@@ -77,49 +68,6 @@ public class EnvironmentSetup : IPreprocessBuildWithReport, IPostprocessBuildWit
             PlayerSettings.productName = _prevProductName;
 
         Debug.Log("[EnvironmentSetup] ◀ Pós-build: PlayerSettings restaurados.");
-    }
-
-    // ---------- Cópia dos arquivos Firebase ----------
-    private static void CopyFirebaseConfig(FirebaseEnvironment env)
-    {
-        string envFolder = env.ToString(); // "Prod" ou "Dev"
-        string projectRoot = Path.GetDirectoryName(Application.dataPath);
-        string sourceDir = Path.Combine(projectRoot, FirebaseSourceRoot, envFolder);
-
-        if (!Directory.Exists(sourceDir))
-            throw new BuildFailedException(
-                $"[EnvironmentSetup] Pasta de Firebase não existe: {sourceDir}");
-
-        CopyIfDifferent(
-            Path.Combine(sourceDir, AndroidConfigFile),
-            Path.Combine(Application.dataPath, AndroidConfigFile));
-
-        CopyIfDifferent(
-            Path.Combine(sourceDir, iOSConfigFile),
-            Path.Combine(Application.dataPath, iOSConfigFile));
-    }
-
-    private static void CopyIfDifferent(string source, string dest)
-    {
-        if (!File.Exists(source))
-            throw new BuildFailedException(
-                $"[EnvironmentSetup] Arquivo fonte ausente: {source}");
-
-        if (File.Exists(dest) && HashFile(source) == HashFile(dest))
-        {
-            Debug.Log($"[EnvironmentSetup]   = {Path.GetFileName(dest)} já está sincronizado.");
-            return;
-        }
-
-        File.Copy(source, dest, overwrite: true);
-        Debug.Log($"[EnvironmentSetup]   ✓ Copiado: {Path.GetFileName(dest)}");
-    }
-
-    private static string HashFile(string path)
-    {
-        using var md5 = System.Security.Cryptography.MD5.Create();
-        using var stream = File.OpenRead(path);
-        return BitConverter.ToString(md5.ComputeHash(stream));
     }
 
     // ---------- Bundle ID / Product Name ----------
