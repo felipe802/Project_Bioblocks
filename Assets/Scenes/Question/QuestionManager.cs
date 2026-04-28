@@ -126,8 +126,9 @@ public class QuestionManager : MonoBehaviour
             string currentDatabaseName  = TopicToDatabankName(currentSet);
             loadManager.databankName    = currentDatabaseName;
 
-            // Lê as questões do LiteDB via QuestionSyncService 
-            allDatabaseQuestions = AppContext.QuestionSync?
+            // Lê as questões via IQuestionSource — HardcodedQuestionSource em preview mode,
+            // FirestoreQuestionSource (LiteDB) em Prod/Dev.
+            allDatabaseQuestions = AppContext.QuestionSource?
                                        .GetQuestionsForDatabankName(currentDatabaseName)
                                    ?? new List<Question>();
 

@@ -25,6 +25,7 @@ public class AppContext : MonoBehaviour
     public static IFirestoreQuestionRepository  QuestionFirestore { get; private set; }
     public static IQuestionLocalRepository      QuestionLocal     { get; private set; }
     public static IQuestionSyncService          QuestionSync      { get; private set; }
+    public static IQuestionSource               QuestionSource    { get; private set; }
     public static IAvatarSelectionService       AvatarSelection   { get; private set; }
 
     public static bool IsReady { get; private set; }
@@ -48,6 +49,19 @@ public class AppContext : MonoBehaviour
     private async Task InitializeServices()
     {
         IsReady = false;
+
+        // ── Preview Mode — bypassa TODA inicialização Firebase ────────────────
+        var envCfg = EnvironmentConfig.Load();
+        if (envCfg != null && envCfg.QuestionPreviewMode)
+        {
+            Debug.Log("[AppContext] questionPreviewMode=true — inicialização Firebase ignorada.");
+            QuestionSource    = new HardcodedQuestionSource();
+            AnsweredQuestions = new FakeAnsweredQuestionsManager();
+            IsReady = true;
+            OnReady?.Invoke();
+            Debug.Log("[AppContext] Preview mode pronto.");
+            return;
+        }
 
         try
         {
@@ -144,14 +158,18 @@ public class AppContext : MonoBehaviour
             // ── 6. Navegação ───────────────────────────────────────────────────
             navigationMgr.InjectDependencies(sceneDataMgr);
 
-            // ── 7. Sincronização de questões — deve rodar ANTES das estatísticas
-            // pois DatabaseStatisticsManager lê do LiteDB via QuestionSyncService
-            Debug.Log("[AppContext] Sincronizando questões...");
+            // ── 7. Fonte de questões ───────────────────────────────────────────
+            // Prod e Dev → FirestoreQuestionSource (Firestore + LiteDB).
+            // A única diferença entre Prod e Dev é o projeto Firebase ao qual apontam.
             QuestionSync = questionSyncSvc;
+
             bool questionsReady = await questionSyncSvc.InitializeAsync();
             if (!questionsReady)
                 Debug.LogWarning("[AppContext] Questões indisponíveis (sem internet e sem cache). " +
                                  "O app pode não funcionar corretamente sem conexão na primeira abertura.");
+            QuestionSource = new FirestoreQuestionSource(questionSyncSvc);
+            var firebaseEnv = EnvironmentConfig.Load()?.FirebaseEnvironment;
+            Debug.Log($"[AppContext] {firebaseEnv} mode — QuestionSource: FirestoreQuestionSource.");
 
             // ── 8. Estatísticas — agora que o LiteDB está populado ─────────────
             await statsManager.Initialize();
@@ -202,6 +220,7 @@ public class AppContext : MonoBehaviour
         IFirestoreQuestionRepository    questionFirestore    = null,
         IQuestionLocalRepository        questionLocal        = null,
         IQuestionSyncService            questionSync         = null,
+        IQuestionSource                 questionSource       = null,
         IAvatarSelectionService         avatarSelection      = null)
     {
         if (firestore         != null) Firestore         = firestore;
@@ -218,6 +237,7 @@ public class AppContext : MonoBehaviour
         if (questionFirestore != null) QuestionFirestore = questionFirestore;
         if (questionLocal     != null) QuestionLocal     = questionLocal;
         if (questionSync      != null) QuestionSync      = questionSync;
+        if (questionSource    != null) QuestionSource    = questionSource;
         if (avatarSelection   != null) AvatarSelection   = avatarSelection;
         IsReady = true;
     }

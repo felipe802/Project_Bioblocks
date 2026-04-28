@@ -60,6 +60,18 @@ public class DatabaseStatisticsManager : MonoBehaviour, IStatisticsProvider
     {
         if (isInitialized || isInitializing) return;
 
+        // Em preview mode não há Config/QuestionStats no Firebase — pula.
+        // Dev usa o mesmo caminho que Prod: lê de Config/QuestionStats via Firestore.
+        var envConfig = EnvironmentConfig.Load();
+        if (envConfig?.QuestionPreviewMode == true)
+        {
+            Debug.Log("[DatabaseStatisticsManager] Preview mode — inicialização ignorada.");
+
+            isInitialized  = true;
+            isInitializing = false;
+            return;
+        }
+
         isInitializing = true;
         Debug.Log("[DatabaseStatisticsManager] Inicializando...");
 
@@ -93,11 +105,21 @@ public class DatabaseStatisticsManager : MonoBehaviour, IStatisticsProvider
 
     private async Task LoadCanonicalStats()
     {
-        // 1) Lê a fonte única de verdade
+        // 1) Lê a fonte única de verdade (com timeout para evitar hang por Firestore rules/rede)
         QuestionStats stats = null;
         try
         {
-            stats = await AppContext.Firestore.GetQuestionStats();
+            var statsTask   = AppContext.Firestore.GetQuestionStats();
+            var timeoutTask = Task.Delay(6000);
+
+            if (await Task.WhenAny(statsTask, timeoutTask) == timeoutTask)
+            {
+                Debug.LogWarning("[DatabaseStatisticsManager] GetQuestionStats timeout (6s) — usando fallback local.");
+            }
+            else
+            {
+                stats = await statsTask;
+            }
         }
         catch (Exception e)
         {

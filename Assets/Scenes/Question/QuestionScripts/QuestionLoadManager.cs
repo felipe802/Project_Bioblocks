@@ -61,9 +61,9 @@ public class QuestionLoadManager : MonoBehaviour
             if (!isInitialized)
                 await Initialize();
 
-            // Lê do LiteDB via QuestionSyncService —
-            // não depende mais de GameObjects de banco na cena
-            List<Question> allQuestions = AppContext.QuestionSync?
+            // Lê via IQuestionSource — Firestore/LiteDB em Prod, fake local em Dev.
+            // A implementação é escolhida no bootstrap do AppContext (EnvironmentConfig).
+            List<Question> allQuestions = AppContext.QuestionSource?
                                               .GetQuestionsForDatabankName(databankName)
                                           ?? new List<Question>();
 
