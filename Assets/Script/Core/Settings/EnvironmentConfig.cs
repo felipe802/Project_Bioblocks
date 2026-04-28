@@ -12,28 +12,15 @@ public enum FirebaseEnvironment
 }
 
 /// <summary>
-/// Fonte de questões da QuestionScene.
-/// Firestore → questões reais via QuestionSync (LiteDB cacheado de Firestore).
-/// Fake      → questões locais editáveis em FakeQuestions (Resources).
-/// </summary>
-public enum QuestionSourceMode
-{
-    Firestore,
-    Fake
-}
-
-/// <summary>
 /// Configuração de ambiente do app, lida em runtime e em build time.
 ///
 /// Asset esperado em Assets/Resources/EnvironmentConfig.asset.
-/// Valores padrão por branch:
-///   dev  → Dev + Fake
-///   main → Prod + Firestore
+/// Valores padrão commitados (ambas as branches):
+///   firebaseEnvironment → Dev
+///   questionPreviewMode → false
 ///
-/// IMPORTANTE: este asset está protegido por .gitattributes com
-/// merge=ours, para que cada branch preserve seus próprios valores.
-/// Cada colaborador precisa configurar o merge driver localmente uma
-/// vez (ver README do projeto).
+/// Apenas o admin altera firebaseEnvironment para Prod localmente,
+/// sem commitar, ao gerar builds de produção.
 /// </summary>
 /// 
 [CreateAssetMenu(
@@ -47,12 +34,12 @@ public class EnvironmentConfig : ScriptableObject
     [Tooltip("Qual projeto Firebase usar: Prod (microlearning-33132) ou Dev (microlearning-dev-5003c).")]
     [SerializeField] private FirebaseEnvironment firebaseEnvironment = FirebaseEnvironment.Dev;
 
-    [Header("Questions")]
-    [Tooltip("Fonte de questões: Firestore (real) ou Fake (FakeQuestions local, editável).")]
-    [SerializeField] private QuestionSourceMode questionSource = QuestionSourceMode.Fake;
+    [Header("Preview Mode")]
+    [Tooltip("Ativa o modo de preview para criadores de conteúdo: bypassa TODA inicialização Firebase e carrega questões diretamente dos arquivos C# hardcoded. Não requer internet nem autenticação.")]
+    [SerializeField] private bool questionPreviewMode = false;
 
     public FirebaseEnvironment FirebaseEnvironment => firebaseEnvironment;
-    public QuestionSourceMode QuestionSource => questionSource;
+    public bool QuestionPreviewMode => questionPreviewMode;
 
     private static EnvironmentConfig _cached;
 
