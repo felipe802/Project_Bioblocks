@@ -15,14 +15,12 @@ public enum FirebaseEnvironment
 /// Configuração de ambiente do app, lida em runtime e em build time.
 ///
 /// Asset esperado em Assets/Resources/EnvironmentConfig.asset.
-/// Valores padrão por branch:
-///   dev  → Dev + Fake
-///   main → Prod + Firestore
+/// Valores padrão commitados (ambas as branches):
+///   firebaseEnvironment → Dev
+///   questionPreviewMode → false
 ///
-/// IMPORTANTE: este asset está protegido por .gitattributes com
-/// merge=ours, para que cada branch preserve seus próprios valores.
-/// Cada colaborador precisa configurar o merge driver localmente uma
-/// vez (ver README do projeto).
+/// Apenas o admin altera firebaseEnvironment para Prod localmente,
+/// sem commitar, ao gerar builds de produção.
 /// </summary>
 /// 
 [CreateAssetMenu(
