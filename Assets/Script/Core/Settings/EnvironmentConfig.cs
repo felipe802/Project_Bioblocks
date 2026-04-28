@@ -39,7 +39,6 @@ public class EnvironmentConfig : ScriptableObject
     [SerializeField] private bool questionPreviewMode = false;
 
     public FirebaseEnvironment FirebaseEnvironment => firebaseEnvironment;
-    public bool QuestionPreviewMode => questionPreviewMode;
 
     private static EnvironmentConfig _cached;
 
@@ -62,4 +61,15 @@ public class EnvironmentConfig : ScriptableObject
         }
         return _cached;
     }
+
+    // ---------- Override para testes ----------
+    private static bool? _previewModeOverride;
+
+    public static void OverridePreviewModeForTests(bool value)
+        => _previewModeOverride = value;
+
+    public static void ClearTestOverride()
+        => _previewModeOverride = null;
+
+    public bool QuestionPreviewMode => _previewModeOverride ?? questionPreviewMode;
 }
