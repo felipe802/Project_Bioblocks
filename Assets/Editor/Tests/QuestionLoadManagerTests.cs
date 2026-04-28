@@ -38,7 +38,8 @@ public class QuestionLoadManagerTests
 
         AppContext.OverrideForTests(
             answeredQuestions: _fakeAnswered,
-            questionSync:      _fakeSync
+            questionSync:      _fakeSync,
+            questionSource: new FirestoreQuestionSource(_fakeSync)
         );
 
         var user = new UserData(USER_ID, "Tester", "Tester", "t@test.com");
@@ -59,6 +60,7 @@ public class QuestionLoadManagerTests
         UserDataStore.Clear();
         _fakeSync.Reset();
         _fakeAnswered.Reset();
+        EnvironmentConfig.ClearTestOverride();
         Object.DestroyImmediate(_managerGO);
     }
 
@@ -235,6 +237,60 @@ public class QuestionLoadManagerTests
         Assert.AreEqual(3, QuestionBankStatistics.GetQuestionsForLevel(DB_NAME, 1));
         Assert.AreEqual(2, QuestionBankStatistics.GetQuestionsForLevel(DB_NAME, 2));
         Assert.AreEqual(1, QuestionBankStatistics.GetQuestionsForLevel(DB_NAME, 3));
+    }
+
+    // =======================================================
+    // Preview Mode
+    // =======================================================
+
+    [UnityTest]
+    public IEnumerator LoadQuestionsForSet_PreviewMode_RetornaTodosOsNiveis()
+    {
+        // Arrange
+        EnvironmentConfig.OverridePreviewModeForTests(true);
+        SetupLiteDBWithQuestions(nivel1: 3, nivel2: 3, nivel3: 3);
+
+        // Act
+        var task = _loadManager.LoadQuestionsForSet(TARGET_SET);
+        yield return new WaitUntil(() => task.IsCompleted);
+
+        // Assert
+        Assert.AreEqual(9, task.Result.Count,
+            "Preview Mode deve retornar questões de todos os níveis sem filtrar");
+    }
+
+    [UnityTest]
+    public IEnumerator LoadQuestionsForSet_PreviewMode_NaoFiltraRespondidas()
+    {
+        // Arrange — questões de nível 1 marcadas como respondidas
+        EnvironmentConfig.OverridePreviewModeForTests(true);
+        _fakeAnswered.SetAnsweredQuestions(DB_NAME, new List<string> { "1", "2", "3" });
+        SetupLiteDBWithQuestions(nivel1: 3, nivel2: 3);
+
+        // Act
+        var task = _loadManager.LoadQuestionsForSet(TARGET_SET);
+        yield return new WaitUntil(() => task.IsCompleted);
+
+        // Assert
+        Assert.AreEqual(6, task.Result.Count,
+            "Preview Mode não deve filtrar questões já respondidas");
+    }
+
+    [UnityTest]
+    public IEnumerator LoadQuestionsForSet_PreviewMode_SemUserId_RetornaTodas()
+    {
+        // Arrange — sem usuário logado
+        EnvironmentConfig.OverridePreviewModeForTests(true);
+        UserDataStore.CurrentUserData = new UserData(); // UserId vazio
+        SetupLiteDBWithQuestions(nivel1: 3, nivel2: 3);
+
+        // Act
+        var task = _loadManager.LoadQuestionsForSet(TARGET_SET);
+        yield return new WaitUntil(() => task.IsCompleted);
+
+        // Assert
+        Assert.AreEqual(6, task.Result.Count,
+            "Preview Mode não deve cair no guard de nível 1 quando UserId está vazio");
     }
 }
 

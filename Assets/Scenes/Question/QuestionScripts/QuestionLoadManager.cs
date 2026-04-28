@@ -61,8 +61,6 @@ public class QuestionLoadManager : MonoBehaviour
             if (!isInitialized)
                 await Initialize();
 
-            // Lê via IQuestionSource — Firestore/LiteDB em Prod, fake local em Dev.
-            // A implementação é escolhida no bootstrap do AppContext (EnvironmentConfig).
             List<Question> allQuestions = AppContext.QuestionSource?
                                               .GetQuestionsForDatabankName(databankName)
                                           ?? new List<Question>();
