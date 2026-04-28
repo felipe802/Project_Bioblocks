@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: EnvironmentConfig
   m_EditorClassIdentifier: 
   firebaseEnvironment: 1
-  questionSource: 1
+  questionSource: 0
