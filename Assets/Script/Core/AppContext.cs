@@ -57,6 +57,24 @@ public class AppContext : MonoBehaviour
             Debug.Log("[AppContext] questionPreviewMode=true — inicialização Firebase ignorada.");
             QuestionSource    = new HardcodedQuestionSource();
             AnsweredQuestions = new FakeAnsweredQuestionsManager();
+
+            // Navegação não depende de Firebase — inicializa normalmente para
+            // permitir retorno à PathwayScene a partir da QuestionScene.
+            var navigationMgr = GetComponent<NavigationManager>();
+            var sceneDataMgr  = GetComponent<SceneDataManager>();
+
+            if (navigationMgr == null)
+                Debug.LogError("[AppContext] NavigationManager não encontrado no Preview Mode.");
+            else if (sceneDataMgr == null)
+                Debug.LogError("[AppContext] SceneDataManager não encontrado no Preview Mode.");
+            else
+            {
+                navigationMgr.InjectDependencies(sceneDataMgr);
+                Navigation = navigationMgr;
+                SceneData  = sceneDataMgr;
+                Debug.Log("[AppContext] Preview mode — Navigation e SceneData inicializados.");
+            }
+
             IsReady = true;
             OnReady?.Invoke();
             Debug.Log("[AppContext] Preview mode pronto.");

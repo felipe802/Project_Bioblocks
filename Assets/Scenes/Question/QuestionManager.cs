@@ -361,7 +361,19 @@ public class QuestionManager : MonoBehaviour
         }
         else
         {
-            nextQuestionToShow = null;
+            var envCfg = EnvironmentConfig.Load();
+            if (envCfg != null && envCfg.QuestionPreviewMode)
+            {
+                // Preview Mode: reinicia do início em looping infinito.
+                currentSession.Reset();
+                nextQuestionToShow = currentSession.GetCurrentQuestion();
+                await PreloadQuestionResources(nextQuestionToShow);
+                Debug.Log("[QuestionManager] Preview Mode — sessão reiniciada em looping.");
+            }
+            else
+            {
+                nextQuestionToShow = null;
+            }
         }
     }
 
@@ -468,7 +480,14 @@ public class QuestionManager : MonoBehaviour
             string userId              = UserDataStore.CurrentUserData?.UserId;
             string currentDatabaseName = loadManager.DatabankName;
 
-            if (string.IsNullOrEmpty(userId)) return;
+            if (string.IsNullOrEmpty(userId))
+            {
+                // Preview Mode: sem usuário logado → transiciona normalmente;
+                // o loop é gerenciado em PrepareNextQuestion().
+                await transitionManager.TransitionToNextQuestion();
+                timerManager.StartTimer();
+                return;
+            }
 
             // Lê do UserDataStore — sem rede
             List<string> answeredQuestions = await AppContext.AnsweredQuestions?
