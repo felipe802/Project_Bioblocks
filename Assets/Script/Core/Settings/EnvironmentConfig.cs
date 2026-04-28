@@ -12,6 +12,17 @@ public enum FirebaseEnvironment
 }
 
 /// <summary>
+/// Fonte de questões da QuestionScene.
+/// Firestore → questões reais via QuestionSync (LiteDB cacheado de Firestore).
+/// Fake      → questões locais editáveis em FakeQuestions (Resources).
+/// </summary>
+public enum QuestionSourceMode
+{
+    Firestore,
+    Fake
+}
+
+/// <summary>
 /// Configuração de ambiente do app, lida em runtime e em build time.
 ///
 /// Asset esperado em Assets/Resources/EnvironmentConfig.asset.
@@ -36,12 +47,12 @@ public class EnvironmentConfig : ScriptableObject
     [Tooltip("Qual projeto Firebase usar: Prod (microlearning-33132) ou Dev (microlearning-dev-5003c).")]
     [SerializeField] private FirebaseEnvironment firebaseEnvironment = FirebaseEnvironment.Dev;
 
-    [Header("Preview Mode")]
-    [Tooltip("Ativa o modo de preview para criadores de conteúdo: bypassa TODA inicialização Firebase e carrega questões diretamente dos arquivos C# hardcoded. Não requer internet nem autenticação.")]
-    [SerializeField] private bool questionPreviewMode = false;
+    [Header("Questions")]
+    [Tooltip("Fonte de questões: Firestore (real) ou Fake (FakeQuestions local, editável).")]
+    [SerializeField] private QuestionSourceMode questionSource = QuestionSourceMode.Fake;
 
     public FirebaseEnvironment FirebaseEnvironment => firebaseEnvironment;
-    public bool QuestionPreviewMode => questionPreviewMode;
+    public QuestionSourceMode QuestionSource => questionSource;
 
     private static EnvironmentConfig _cached;
 
