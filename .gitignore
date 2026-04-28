@@ -12,11 +12,8 @@ Assets/StreamingAssets/google-services-desktop
 Assets/StreamingAssets/google-services-desktop.json
 Assets/StreamingAssets/google-services-desktop.json.meta
 
-# Arquivos versionados. O pre-build script copia o par certo para a localização runtime do SDK.
-!Firebase/Prod/google-services.json
-!Firebase/Dev/google-services.json
-!Firebase/Prod/GoogleService-Info.plist
-!Firebase/Dev/GoogleService-Info.plist
+# Os arquivos de configuração Firebase ficam em Firebase/Dev/ e Firebase/Prod/ localmente,
+# mas não são versionados. Colaboradores recebem apenas o par Dev fora do repositório.
 
 # Firebase generated repos / cache
 Assets/GeneratedLocalRepo/
