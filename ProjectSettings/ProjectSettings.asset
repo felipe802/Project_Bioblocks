@@ -164,9 +164,9 @@ PlayerSettings:
   androidSupportedAspectRatio: 1
   androidMaxAspectRatio: 2.4
   applicationIdentifier:
-    Android: com.edutesc.bioblocks_dev
-    Standalone: com.DefaultCompany.2D-URP
-    iPhone: com.halbus.labedu
+    Android: com.edutesc.bioblocks.dev
+    Standalone: com.edutesc.bioblocks.dev
+    iPhone: com.edutesc.bioblocks.dev
   buildNumber:
     Standalone: 0
     VisionOS: 0
