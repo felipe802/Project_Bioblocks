@@ -3,7 +3,7 @@ using UnityEngine;
 /// <summary>
 /// Qual projeto Firebase está ativo em runtime.
 /// Prod  → MicroLearning (microlearning-33132)
-/// Dev   → MicroLearning-Dev (microlearning-dev-5003c)
+/// Dev   → MicroLearning-Dev (microlearning-dev-79c0c)
 /// </summary>
 public enum FirebaseEnvironment
 {
@@ -31,7 +31,7 @@ public enum FirebaseEnvironment
 public class EnvironmentConfig : ScriptableObject
 {
     [Header("Firebase")]
-    [Tooltip("Qual projeto Firebase usar: Prod (microlearning-33132) ou Dev (microlearning-dev-5003c).")]
+    [Tooltip("Qual projeto Firebase usar: Prod (microlearning-33132) ou Dev (microlearning-dev-79c0c).")]
     [SerializeField] private FirebaseEnvironment firebaseEnvironment = FirebaseEnvironment.Dev;
 
     [Header("Preview Mode")]

@@ -296,4 +296,35 @@ public class FakeFirestoreRepository : IFirestoreRepository
     {
         IsListening = true;
     }
+
+    // -------------------------------------------------------
+    // Rankings — fake injetável
+    // -------------------------------------------------------
+
+    /// <summary>
+    /// Rankings simulados retornados por GetRankingsAsync e GetWeekRankingsAsync.
+    /// Pré-popule nos testes para simular rankings do Firestore.
+    /// </summary>
+    public List<Ranking> FakeRankings { get; set; } = new();
+
+    public int GetRankingsAsyncCallCount { get; private set; }
+    public int GetWeekRankingsAsyncCallCount { get; private set; }
+
+    public Task<List<Ranking>> GetRankingsAsync(int limit = 50)
+    {
+        GetRankingsAsyncCallCount++;
+        var result = new List<Ranking>(FakeRankings);
+        if (result.Count > limit)
+            result = result.GetRange(0, limit);
+        return Task.FromResult(result);
+    }
+
+    public Task<List<Ranking>> GetWeekRankingsAsync(int limit = 50)
+    {
+        GetWeekRankingsAsyncCallCount++;
+        var result = new List<Ranking>(FakeRankings);
+        if (result.Count > limit)
+            result = result.GetRange(0, limit);
+        return Task.FromResult(result);
+    }
 }
