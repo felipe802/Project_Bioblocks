@@ -31,7 +31,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "A teoria de Arrhenius define ácidos como substâncias que, em solução aquosa, liberam íons H+ (ou H3O+)." }
+            questionHint = new QuestionHint { text = "Segundo Arrhenius, a definição foca na água: um ácido é aquela substância química que, quando dissolvida em solução aquosa, sofre ionização e libera íons H+ (ou hidroxônio, H3O+)." }
         },
         new Question
         {
@@ -57,7 +57,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Segundo Arrhenius, bases liberam íons hidroxila (OH-) quando dissolvidas em água." }
+            questionHint = new QuestionHint { text = "Para Arrhenius, o caráter básico depende de quem doa hidroxilas. Uma base é qualquer composto que se dissocia em água liberando o ânion OH- (hidroxila)." }
         },
         new Question
         {
@@ -83,7 +83,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Brønsted-Lowry amplia o conceito: ácido é qualquer espécie química capaz de doar um próton (H+)." }
+            questionHint = new QuestionHint { text = "Brønsted e Lowry expandiram a teoria para fora da água. Para eles, um ácido é qualquer molécula ou íon capaz de doar um próton (H+) para outra espécie química durante a reação." }
         },
         new Question
         {
@@ -109,7 +109,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Para Brønsted-Lowry, a base é a espécie que aceita o próton (H+) doado pelo ácido." }
+            questionHint = new QuestionHint { text = "Na visão de Brønsted-Lowry, a base não precisa ter OH-. Ela é definida como qualquer substância química que atua como receptora de um próton (H+) doado por um ácido." }
         },
         new Question
         {
@@ -135,7 +135,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "compreender",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "A água é anfótera, ou seja, pode agir como ácido (doando H+) ou como base (recebendo H+), dependendo do meio." }
+            questionHint = new QuestionHint { text = "Substâncias anfóteras, ou anfotéricas, têm um comportamento duplo. A água, por exemplo, pode doar um H+ agindo como ácido, ou receber um H+ agindo como base, dependendo do pH do meio." }
         },
         new Question
         {
@@ -161,7 +161,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "compreender",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "A base conjugada é o que sobra do ácido após ele doar um próton. HCl doando H+ forma Cl-." }
+            questionHint = new QuestionHint { text = "O conceito de pares conjugados é fundamental. Quando um ácido (como o HCl) perde seu próton (H+), a espécie resultante (Cl-) tem a capacidade de receber o próton de volta, atuando como base conjugada." }
         },
         new Question
         {
@@ -187,7 +187,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "analisar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Observe a reação: a espécie que recebe o H+ forma o ácido conjugado. A amônia (NH3) recebe um H+ e vira íon amônio (NH4+)." }
+            questionHint = new QuestionHint { text = "Observe o caminho inverso: quando uma base reage e captura um próton (H+), a nova estrutura formada fica protonada e ganha a capacidade de doar esse próton, tornando-se o ácido conjugado." }
         },
         new Question
         {
@@ -213,7 +213,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Ácidos fortes sofrem ionização completa (100%) em água." }
+            questionHint = new QuestionHint { text = "Um ácido forte (como o HCl ou H2SO4) é aquele que se desintegra completamente na água. Isso significa que quase 100% de suas moléculas sofrem ionização imediata, liberando muitos íons H+." }
         },
         new Question
         {
@@ -239,7 +239,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Ácidos fracos estabelecem um equilíbrio químico, pois se dissociam apenas parcialmente." }
+            questionHint = new QuestionHint { text = "Diferente dos ácidos fortes, os ácidos fracos não se ionizam por completo. Eles estabelecem um equilíbrio dinâmico, onde a maior parte da molécula continua intacta (não dissociada) na solução." }
         },
         new Question
         {
@@ -265,7 +265,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "compreender",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "O Keq mede a proporção entre os produtos formados e os reagentes que restaram quando a reação atinge o equilíbrio." }
+            questionHint = new QuestionHint { text = "A constante de equilíbrio (Keq) quantifica o estado final de uma reação reversível. Ela nos dá a exata proporção matemática entre as concentrações dos produtos e as dos reagentes quando a reação se estabiliza." }
         },
         new Question
         {
@@ -291,7 +291,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "analisar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Se a constante for muito pequena (K < 1), o equilíbrio favorece os reagentes, indicando dissociação parcial." }
+            questionHint = new QuestionHint { text = "Se a constante Keq é menor que 1, significa que o numerador (produtos) é menor que o denominador (reagentes). Portanto, o equilíbrio tende fortemente à esquerda, não ocorrendo dissociação total." }
         },
         new Question
         {
@@ -317,7 +317,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "analisar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Se a constante for alta (K > 1), a reação tende fortemente a formar produtos." }
+            questionHint = new QuestionHint { text = "Se Keq é bem maior que 1, a reação é muito favorável no sentido direto. Isso indica que quase todos os reagentes foram convertidos e o sistema se estabiliza com alta concentração de produtos." }
         },
         new Question
         {
@@ -343,7 +343,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "analisar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "A constante de acidez (Ka) é específica para medir o grau de ionização (força) de um ácido fraco." }
+            questionHint = new QuestionHint { text = "A constante de acidez (Ka) é a medida oficial da força de um ácido. Trata-se da constante de equilíbrio aplicada especificamente para a reação de dissociação do ácido em água." }
         },
         new Question
         {
@@ -369,7 +369,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "analisar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "A constante de basicidade (Kb) mede o grau de dissociação de uma base." }
+            questionHint = new QuestionHint { text = "Assim como o Ka mede ácidos, o Kb (constante de basicidade) mede bases fracas. Ele reflete a constante de equilíbrio na reação em que a base captura um próton da água gerando OH-." }
         },
         new Question
         {
@@ -395,7 +395,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "compreender",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Um Ka baixo indica que poucas moléculas do ácido se dissociaram, o que é típico de ácidos fracos." }
+            questionHint = new QuestionHint { text = "Um Ka muito baixo indica que o numerador (produtos iônicos dissociados) é minúsculo. Isso comprova experimentalmente que poucas moléculas se ionizaram, característica de um ácido fraco." }
         },
         new Question
         {
@@ -421,7 +421,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Por definição matemática, o pKa é o logaritmo negativo da constante de acidez (pKa = -log Ka)." }
+            questionHint = new QuestionHint { text = "Por uma questão matemática para evitar usar potências de 10 negativas, definimos o pKa como sendo o logaritmo negativo da constante de dissociação ácida: pKa = -log Ka." }
         },
         new Question
         {
@@ -447,7 +447,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "compreender",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Devido ao sinal negativo do logaritmo, quanto menor o pKa, maior o Ka e, portanto, mais forte é o ácido." }
+            questionHint = new QuestionHint { text = "O 'p' indica o uso de logaritmo negativo. Por conta dessa inversão matemática, quanto mais alto for o valor do Ka (ácido mais forte), menor e mais negativo será o valor numérico do pKa." }
         },
         new Question
         {
@@ -473,7 +473,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "compreender",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Um pKa elevado significa um Ka baixo, indicando um ácido fraco." }
+            questionHint = new QuestionHint { text = "Um valor alto de pKa significa que o Ka daquele ácido é muito pequeno (ex: 10^-8). Logo, um pKa alto indica que o ácido não gosta de doar seu próton, sendo classificado como fraco." }
         },
         new Question
         {
@@ -499,7 +499,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "A equação de Henderson-Hasselbalch é: pH = pKa + log([A-]/[HA]). Ela relaciona o pH com o pKa e as concentrações." }
+            questionHint = new QuestionHint { text = "A famosa equação de Henderson-Hasselbalch é usada justamente para cálculos de sistemas tampão. Ela correlaciona o pH do ambiente com o pKa do ácido e a proporção entre a forma dissociada e não dissociada." }
         },
         new Question
         {
@@ -525,7 +525,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "compreender",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Tampões funcionam porque o ácido fraco e sua base conjugada coexistem e reagem com H+ ou OH- adicionados, neutralizando-os." }
+            questionHint = new QuestionHint { text = "As soluções-tampão resistem a variações de pH. Elas funcionam por conter tanto um ácido fraco (que neutraliza OH- intruso) quanto sua base conjugada (que neutraliza H+ intruso) em altas concentrações." }
         },
         new Question
         {
@@ -551,7 +551,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "O poder tamponante máximo ocorre perto do pKa. Geralmente a faixa eficaz é pKa ± 1 unidade de pH." }
+            questionHint = new QuestionHint { text = "Um tampão funciona melhor quando a concentração de ácido é igual à de base, momento em que o pH é igual ao pKa. Na prática, a faixa de proteção tamponante é de +1 ou -1 unidade em volta do pKa." }
         },
         new Question
         {
@@ -577,7 +577,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "No plasma sanguíneo, o principal sistema tampão é o do bicarbonato (H2CO3 / HCO3-)." }
+            questionHint = new QuestionHint { text = "O plasma humano precisa de uma resposta rápida. Esse papel recai sobre o tampão bicarbonato (H2CO3 / HCO3-), pois o ácido carbônico pode ser rapidamente convertido e expelido como gás carbônico pelos pulmões." }
         },
         new Question
         {
@@ -603,7 +603,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "compreender",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Durante o exercício, a produção de ácido lático e CO2 aumenta a concentração de H+, diminuindo o pH (acidose)." }
+            questionHint = new QuestionHint { text = "Em atividades anaeróbicas intensas, as células musculares lançam ácido lático na circulação. A dissociação desse ácido gera uma carga massiva de H+, o que derruba o pH do sangue (acidose)." }
         },
         new Question
         {
@@ -629,7 +629,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "compreender",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "O corpo aumenta a respiração para expulsar mais CO2, o que desloca o equilíbrio e reduz a concentração de H+, elevando o pH." }
+            questionHint = new QuestionHint { text = "O CO2 é o equivalente gasoso do ácido. Quando você respira mais rápido (hiperventilação), o corpo 'sopra' o CO2 embora. Isso desloca o equilíbrio, consome os íons H+ sobrando e faz o pH subir de volta." }
         },
         new Question
         {
@@ -655,7 +655,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "pH significa 'potencial hidrogeniônico' e é uma medida direta da concentração de íons H+ (ou H3O+)." }
+            questionHint = new QuestionHint { text = "O termo pH significa 'potencial Hidrogeniônico'. É a régua universal da química que mede a concentração exata de íons de hidrogênio livres em uma solução aquosa." }
         },
         new Question
         {
@@ -681,7 +681,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Na escala de pH em água a 25°C, valores menores que 7 indicam soluções ácidas." }
+            questionHint = new QuestionHint { text = "Lembrando da escala padrão em água a 25 °C (de 0 a 14), o ponto central neutro é 7. Qualquer valor inferior a isso representa uma abundância de íons H+, caracterizando um ambiente ácido." }
         },
         new Question
         {
@@ -707,7 +707,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Valores maiores que 7 na escala de pH indicam soluções básicas ou alcalinas." }
+            questionHint = new QuestionHint { text = "Na mesma escala de 0 a 14, se o pH for superior a 7, os íons hidroxila (OH-) estão em maior número que os de hidrogênio. Isso define quimicamente uma solução básica ou alcalina." }
         },
         new Question
         {
@@ -733,7 +733,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "pH igual a 7 indica neutralidade, onde a concentração de H+ é igual à de OH-." }
+            questionHint = new QuestionHint { text = "O pH é 7 (neutro) quando o sistema atinge o equilíbrio perfeito, em que as concentrações molares de hidrogênio (H+) e hidroxila (OH-) estão em quantidades rigorosamente iguais na água." }
         },
         new Question
         {
@@ -759,7 +759,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Assim como o pH mede H+, o pOH é a medida do potencial de íons hidroxila (OH-)." }
+            questionHint = new QuestionHint { text = "A mesma lógica logarítmica se aplica ao OH-. O pOH (potencial hidroxiliônico) expressa a acidez do lado das bases, sendo uma medida direta da concentração de íons OH-." }
         },
         new Question
         {
@@ -785,7 +785,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Em água a 25°C, a soma de pH e pOH é sempre igual a 14." }
+            questionHint = new QuestionHint { text = "Na autoionização da água sob temperatura de 25 °C, existe uma relação matemática fechada de Kw: a soma numérica entre o pH e o pOH de qualquer solução será sempre e obrigatoriamente 14." }
         },
         new Question
         {
@@ -811,7 +811,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "O produto iônico da água (Kw) a 25°C é 10^-14." }
+            questionHint = new QuestionHint { text = "A constante Kw representa o produto iônico da água. Na temperatura de 25 °C, a multiplicação das concentrações [H+] x [OH-] gera sempre o valor constante de 10 elevado a -14." }
         },
         new Question
         {
@@ -837,7 +837,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "analisar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Em solução neutra, [H+] = [OH-]. Como Kw = 10^-14, a concentração de H+ é a raiz quadrada disso (10^-7 M)." }
+            questionHint = new QuestionHint { text = "Se a solução for pura e neutra, [H+] e [OH-] devem ser idênticos. Como o produto deles dá 10^-14, a única possibilidade matemática é que cada um seja igual a 10^-7 molar." }
         },
         new Question
         {
@@ -863,7 +863,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "analisar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Em solução neutra, a concentração de OH- também é 10^-7 M." }
+            questionHint = new QuestionHint { text = "O mesmo raciocínio do H+ se aplica ao ânion hidroxila: na neutralidade pura a 25 °C, não há predomínio, e a concentração de OH- será de 10^-7 mol por litro." }
         },
         new Question
         {
@@ -889,7 +889,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "A fórmula matemática do pH é o logaritmo negativo da concentração de H+: pH = -log[H+]." }
+            questionHint = new QuestionHint { text = "A definição estrita e oficial do pH introduzida por Sørensen é a base do logaritmo decimal: pH = -log10[H+], onde os colchetes indicam a concentração molar do hidrogênio." }
         },
         new Question
         {
@@ -915,7 +915,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "A fórmula matemática do pOH é o logaritmo negativo da concentração de OH-: pOH = -log[OH-]." }
+            questionHint = new QuestionHint { text = "Igualmente à definição de Sørensen para o ácido, o pOH é calculado aplicando-se o logaritmo negativo na base 10 sobre a concentração dos íons hidroxila: pOH = -log10[OH-]." }
         },
         new Question
         {
@@ -941,7 +941,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Em soluções aquosas padrão, a escala prática vai de 0 a 14, sendo 0 o extremo de acidez." }
+            questionHint = new QuestionHint { text = "Se usarmos concentrações molares de referência (como 1 mol/L para ácidos fortes), a escala vai bater no limite teórico inferior de 0 para a acidez máxima rotineira." }
         },
         new Question
         {
@@ -967,7 +967,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Na escala de pH comum (0 a 14), 14 representa o extremo de basicidade." }
+            questionHint = new QuestionHint { text = "Na outra ponta dessa escala de referência usual baseada em 1 mol/L (ex: hidróxido de sódio concentrado), o pH máximo da basicidade rotineira atingirá o topo marcando 14." }
         },
         new Question
         {
@@ -993,7 +993,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "O pH neutro a 25°C é exatamente 7." }
+            questionHint = new QuestionHint { text = "O número 7 é o marco exato no meio da escala logarítmica e atesta a neutralidade para soluções aquosas comuns submetidas a 25 °C de temperatura ambiente." }
         },
         new Question
         {
@@ -1019,7 +1019,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Soluções com pH abaixo de 7 são ácidas." }
+            questionHint = new QuestionHint { text = "Para facilitar o dia a dia laboratorial: viu um valor medido no peagômetro que cravou abaixo de 7? Não tenha dúvida de que há excesso de prótons e a solução é ácida." }
         },
         new Question
         {
@@ -1045,7 +1045,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Soluções com pH acima de 7 são básicas." }
+            questionHint = new QuestionHint { text = "Da mesma forma, qualquer leitura eletrônica que entregue um número superior a 7 atesta um excesso de hidroxilas (OH-), revelando que o meio está sob domínio básico." }
         },
         new Question
         {
@@ -1071,7 +1071,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "compreender",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "A neutralização é a reação entre um ácido e uma base, que produzem sal e água." }
+            questionHint = new QuestionHint { text = "As reações de neutralização são aquelas que anulam a agressividade das partes envolvidas: os H+ do ácido encontram os OH- da base, gerando moléculas de água e um sal dissolvido." }
         },
         new Question
         {
@@ -1097,7 +1097,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "compreender",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Na titulação, o ponto de equivalência ocorre quando a quantidade de ácido e base se equivalem totalmente." }
+            questionHint = new QuestionHint { text = "Em uma titulação, a técnica exige gotejar cuidadosamente um titulante. Quando chegamos ao exato ponto de equivalência, significa que todos os mols da base anularam exatamente os mols do ácido original." }
         },
         new Question
         {
@@ -1123,7 +1123,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Indicadores são ácidos ou bases orgânicas fracas que possuem cores diferentes dependendo do pH (se estão protonados ou não)." }
+            questionHint = new QuestionHint { text = "Os indicadores (como fenolftaleína) não são enfeites. Eles são ácidos ou bases orgânicas gigantes e fracas, cujas estruturas moleculares dobram e mudam de cor radicalmente ao ganharem ou perderem um H+." }
         },
         new Question
         {
@@ -1149,7 +1149,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "compreender",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "A solução-tampão resiste a adições de pequenas quantidades de ácidos e bases, mantendo o pH estável." }
+            questionHint = new QuestionHint { text = "Um sistema tampão atua como uma 'esponja' química. Se você adicionar ácido, ele absorve. Se adicionar base, ele doa H+. Isso resulta em uma forte resistência contra mudanças bruscas de pH." }
         },
         new Question
         {
@@ -1175,7 +1175,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Tampões são normalmente feitos de um ácido fraco e seu sal (base conjugada) ou uma base fraca e seu ácido conjugado." }
+            questionHint = new QuestionHint { text = "Você não pode montar um tampão misturando ácido forte, pois ele reage sem retorno. A química do tampão exige moléculas reversíveis, ou seja, um ácido ou base fraca combinado com seu sal conjugado." }
         },
         new Question
         {
@@ -1201,7 +1201,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "compreender",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "A capacidade máxima ocorre quando [HA] = [A-], o que, pela equação de Henderson-Hasselbalch, resulta em pH = pKa." }
+            questionHint = new QuestionHint { text = "Analise a equação: pH = pKa + log([A-]/[HA]). Se as concentrações do ácido e da base forem iguais, o termo log se torna log(1), que vale zero. O resultado é o pico da eficiência: pH igual ao pKa." }
         },
         new Question
         {
@@ -1227,7 +1227,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Além do bicarbonato, o sistema tampão fosfato é o principal tampão intracelular." }
+            questionHint = new QuestionHint { text = "Enquanto o bicarbonato toma conta do sangue extracelular, o interior de nossas células usa o sistema tampão fosfato (HPO4 / H2PO4). Seu pKa próximo a 6.8 o torna ideal para a proteção do citosol." }
         },
         new Question
         {
@@ -1253,7 +1253,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "compreender",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "A hiperventilação excessiva elimina muito CO2, o que reduz H+ no sangue, causando aumento do pH (alcalose respiratória)." }
+            questionHint = new QuestionHint { text = "A ventilação excessiva dos pulmões funciona como uma bomba sugadora de CO2. Removendo esse componente, o ácido carbônico se converte de volta, o H+ sanguíneo desaparece, e o pH sobe na alcalose." }
         },
         new Question
         {
@@ -1279,7 +1279,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "compreender",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Se o corpo acumula CO2, ele reage formando ácido carbônico, aumentando H+ e reduzindo o pH (acidose respiratória)." }
+            questionHint = new QuestionHint { text = "Se ocorre uma hipoventilação pulmonar (asma grave, por exemplo), o CO2 se acumula e força a água a criar ácido carbônico no sangue. O banho de novos íons H+ abaixa o pH gerando acidose." }
         },
         new Question
         {
@@ -1305,7 +1305,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "compreender",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "A acidose metabólica é causada pelo acúmulo de ácidos não voláteis (ex: ácido lático) ou perda de bicarbonato." }
+            questionHint = new QuestionHint { text = "Acidose metabólica é sistêmica e não tem culpa primária no pulmão. Ela ocorre quando perdemos as reservas de bicarbonato nos rins, ou quando produzimos muito lixo ácido no metabolismo." }
         },
         new Question
         {
@@ -1331,7 +1331,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "compreender",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "A alcalose metabólica ocorre por acúmulo excessivo de bicarbonato ou perda de ácidos do corpo." }
+            questionHint = new QuestionHint { text = "Já a alcalose metabólica pode ocorrer após crises de vômito severas, onde o estômago ejeta todo o seu conteúdo ácido, deixando o resto do organismo subitamente rico em excessos de bases." }
         },
         new Question
         {
@@ -1357,7 +1357,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Em geral, pKa e Ka são medidos em condições controladas, normalmente a 25°C." }
+            questionHint = new QuestionHint { text = "Termodinâmica importa: as constantes de dissociação (pKa, Ka, Kw) foram padronizadas na literatura. Qualquer variação de temperatura muda esses números. A maioria das tabelas crava o padrão em 25 °C." }
         },
         new Question
         {
@@ -1383,7 +1383,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "aplicar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Use pH = -log(10^-4) para encontrar a resposta." }
+            questionHint = new QuestionHint { text = "Aqui é pura matemática. Se a concentração [H+] for igual a 10^(-4) mol/L, usando a fórmula pH = -log[H+], o próprio expoente nos dará o número 4 diretamente como pH." }
         },
         new Question
         {
@@ -1409,7 +1409,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "aplicar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "A concentração [H+] é 10^(-pH). Portanto, 10^-9 M." }
+            questionHint = new QuestionHint { text = "Fórmula reversa: como pH é o logaritmo negativo da concentração mola, para um pH batendo a marca de 9, a verdadeira concentração em mols de hidrogênio livres será 10 elevado a -9 M." }
         },
         new Question
         {
@@ -1435,7 +1435,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "aplicar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Se o pH = 5, [H+] = 10^-5 M. Se passou para pH = 6, [H+] = 10^-6 M. A concentração diminuiu 10 vezes." }
+            questionHint = new QuestionHint { text = "A escala de pH não é linear, ela é logarítmica (potências de 10). Portanto, pular uma unidade (ex: de 5 para 6) significa que os íons reduziram exatamente em uma escala de 10 vezes." }
         },
         new Question
         {
@@ -1461,7 +1461,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "aplicar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Lembre-se: [OH-] = 10^(-pOH) e pOH = 14 - pH." }
+            questionHint = new QuestionHint { text = "Lembre-se da regra de ouro do equilíbrio: pH + pOH = 14. Se você obteve pOH = 8, então a conta 14 - 8 te mostrará imediatamente que o pH real daquela mistura será 6." }
         },
         new Question
         {
@@ -1487,7 +1487,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "aplicar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Um ácido forte dissocia-se 100%. Então [H+] = 0,1 M. pH = -log(0,1) = 1." }
+            questionHint = new QuestionHint { text = "Um ácido forte derrama 100% dos seus mols como íons de H+. Se a solução era de 0,1 Molar, o sistema recebe 10^-1 de hidrogênio livres. O cálculo do log negativo te dá pH = 1." }
         },
         new Question
         {
@@ -1513,7 +1513,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "aplicar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Uma base forte como NaOH libera 0,01 M de OH-. pOH = -log(0,01) = 2. Logo, pH = 14 - 2 = 12." }
+            questionHint = new QuestionHint { text = "NaOH joga bases fortíssimas. 0,01 Molar gera 10^-2 mols de OH-. Isso reflete um pOH igual a 2. Para fechar o ciclo de 14, subtraímos esse valor e confirmamos um pH altamente básico de 12." }
         },
         new Question
         {
@@ -1539,7 +1539,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "A dissociação da água é um processo endotérmico. Em temperaturas mais altas, o Kw aumenta, logo o pH neutro diminui ligeiramente." }
+            questionHint = new QuestionHint { text = "O comportamento neutro se altera! Em temperaturas muito mais quentes, as moléculas da água tremem e sofrem maior autoionização (aumenta o Kw), fazendo o ponto da neutralidade cair para algo como 6.1." }
         },
         new Question
         {
@@ -1565,7 +1565,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "compreender",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "A capacidade tamponante depende das concentrações absolutas de [HA] e [A-]. Concentrações maiores significam mais moléculas para neutralizar o H+/OH- adicionado." }
+            questionHint = new QuestionHint { text = "Ter proporções iguais (pH = pKa) gera eficácia, mas não diz o limite. A verdadeira capacidade de resistir (quanto ácido posso jogar?) dependerá das concentrações absolutas em mols dos componentes." }
         },
         new Question
         {
@@ -1591,7 +1591,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "O CO2 difunde-se para o sangue e a enzima anidrase carbônica facilita sua hidratação formando ácido carbônico." }
+            questionHint = new QuestionHint { text = "Para fazer do bicarbonato um tampão genial, o sangue possui os glóbulos vermelhos lotados com uma das enzimas mais rápidas que a natureza inventou: a anidrase carbônica." }
         },
         new Question
         {
@@ -1617,7 +1617,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Nos rins, ocorre reabsorção ou excreção de bicarbonato e H+ para regular lentamente o pH a longo prazo." }
+            questionHint = new QuestionHint { text = "Os rins são a resposta lenta e teimosa do corpo. Eles compensam anomalias metabólicas e respiratórias longas secretando H+ diretamente na urina e conservando valioso bicarbonato de volta ao sangue." }
         },
         new Question
         {
@@ -1643,7 +1643,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Os pulmões fazem a regulação de curto prazo controlando a excreção do CO2." }
+            questionHint = new QuestionHint { text = "Os pulmões, ao invés de excretarem íons líquidos, resolvem a acidez soprando-a para o ambiente na forma de gás carbônico. É o ajuste de curto prazo mais potente que temos." }
         },
         new Question
         {
@@ -1669,7 +1669,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "compreender",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "A urina normalmente é ácida (pH 6), pois os rins precisam excretar o excesso de H+ do metabolismo diário." }
+            questionHint = new QuestionHint { text = "Enquanto o corpo luta para estabilizar o plasma alcalino em ~7.4, toda a porcaria ácida não volátil tem que ir para algum lugar. Por isso, as reações renais forçam a urina a ser tipicamente mais ácida (pH ~6)." }
         },
         new Question
         {
@@ -1695,7 +1695,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "Ácidos polipróticos como o ácido fosfórico (H3PO4) podem doar mais de um próton e possuem múltiplos valores de pKa." }
+            questionHint = new QuestionHint { text = "Um ácido poliprótico possui múltiplos hidrogênios desprendíveis em sua fórmula (como o fosfórico H3PO4). Eles se ionizam em estágios e cada molécula ejetada de H+ apresenta um pKa exclusivo." }
         },
         new Question
         {
@@ -1721,7 +1721,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "O pKa sucessivo de um ácido poliprótico é sempre maior, ou seja, fica cada vez mais difícil retirar o próximo H+." }
+            questionHint = new QuestionHint { text = "Quanto mais você tira prótons de um ácido poliprótico, mais a carga negativa da molécula segura os prótons remanescentes. Ou seja, ionizações seguintes requerem muito mais força, logo seu pKa aumenta muito." }
         },
         new Question
         {
@@ -1747,7 +1747,7 @@ public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
             bloomLevel = "lembrar",
             conceptTags = null,
             prerequisites = null,
-            questionHint = new QuestionHint { text = "O Kw é a constante de equilíbrio para a autoionização da água e vale 1 x 10^-14 a 25 °C." }
+            questionHint = new QuestionHint { text = "O Produto Iônico, apelidado de Kw (onde o w significa water), é a constante universal da autoionização da água sob 25 °C. Ele dita as regras e sempre cravou a marca estática de 1 x 10^-14." }
         }
     };
 
