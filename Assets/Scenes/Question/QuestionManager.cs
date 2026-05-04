@@ -126,9 +126,9 @@ public class QuestionManager : MonoBehaviour
             string currentDatabaseName  = TopicToDatabankName(currentSet);
             loadManager.databankName    = currentDatabaseName;
 
-            // Lê as questões do LiteDB via QuestionSyncService —
-            // não depende mais de GameObjects de banco na cena
-            allDatabaseQuestions = AppContext.QuestionSync?
+            // Lê as questões via IQuestionSource — HardcodedQuestionSource em preview mode,
+            // FirestoreQuestionSource (LiteDB) em Prod/Dev.
+            allDatabaseQuestions = AppContext.QuestionSource?
                                        .GetQuestionsForDatabankName(currentDatabaseName)
                                    ?? new List<Question>();
 
@@ -282,7 +282,7 @@ public class QuestionManager : MonoBehaviour
             int questionLevel = answeredQuestion.questionLevel > 0
                 ? answeredQuestion.questionLevel : 1;
 
-            // FetchUserAnsweredQuestionsInTargetDatabase agora lê do UserDataStore
+            // FetchUserAnsweredQuestionsInTargetDatabase lê do UserDataStore
             // — sem rede, sem delay necessário
             List<string> answeredQuestions = await AppContext.AnsweredQuestions?
                 .FetchUserAnsweredQuestionsInTargetDatabase(databankName);
@@ -361,7 +361,19 @@ public class QuestionManager : MonoBehaviour
         }
         else
         {
-            nextQuestionToShow = null;
+            var envCfg = EnvironmentConfig.Load();
+            if (envCfg != null && envCfg.QuestionPreviewMode)
+            {
+                // Preview Mode: reinicia do início em looping infinito.
+                currentSession.Reset();
+                nextQuestionToShow = currentSession.GetCurrentQuestion();
+                await PreloadQuestionResources(nextQuestionToShow);
+                Debug.Log("[QuestionManager] Preview Mode — sessão reiniciada em looping.");
+            }
+            else
+            {
+                nextQuestionToShow = null;
+            }
         }
     }
 
@@ -468,7 +480,14 @@ public class QuestionManager : MonoBehaviour
             string userId              = UserDataStore.CurrentUserData?.UserId;
             string currentDatabaseName = loadManager.DatabankName;
 
-            if (string.IsNullOrEmpty(userId)) return;
+            if (string.IsNullOrEmpty(userId))
+            {
+                // Preview Mode: sem usuário logado → transiciona normalmente;
+                // o loop é gerenciado em PrepareNextQuestion().
+                await transitionManager.TransitionToNextQuestion();
+                timerManager.StartTimer();
+                return;
+            }
 
             // Lê do UserDataStore — sem rede
             List<string> answeredQuestions = await AppContext.AnsweredQuestions?
@@ -584,79 +603,22 @@ public class QuestionManager : MonoBehaviour
                 return;
             }
 
-            bool isEligible = await CheckIfDatabankEligibleForBonus(userId, databankName);
+            bool isEligible = await AppContext.Firestore.IsDatabankEligibleForBonus(userId, databankName);
 
             if (isEligible)
             {
-                await MarkDatabankAsCompleted(userId, databankName);
+                await AppContext.Firestore.MarkDatabankAsCompleted(userId, databankName);
                 var userBonusManager = new UserBonusManager();
                 await userBonusManager.IncrementBonusCount(userId, "listCompletionBonus", 1, true);
             }
             else
             {
-                Debug.LogWarning($"Databank {databankName} já foi completado anteriormente");
+                Debug.LogWarning($"[QuestionManager] Databank '{databankName}' já foi completado anteriormente.");
             }
         }
         catch (Exception e)
         {
-            Debug.LogError($"Erro ao processar conclusão do database: {e.Message}");
-        }
-    }
-
-    private async Task<bool> CheckIfDatabankEligibleForBonus(string userId, string databankName)
-    {
-        try
-        {
-            var docRef   = Firebase.Firestore.FirebaseFirestore.DefaultInstance
-                               .Collection("UserBonus").Document(userId);
-            var snapshot = await docRef.GetSnapshotAsync().ConfigureAwait(false);
-
-            if (!snapshot.Exists) return true;
-
-            var data = snapshot.ToDictionary();
-            if (!data.ContainsKey("CompletedDatabanks")) return true;
-
-            var completedDatabanks = data["CompletedDatabanks"] as List<object>;
-            return completedDatabanks == null || !completedDatabanks.Contains(databankName);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"Erro ao verificar elegibilidade do databank: {e.Message}");
-            return false;
-        }
-    }
-
-    private async Task MarkDatabankAsCompleted(string userId, string databankName)
-    {
-        try
-        {
-            var docRef   = Firebase.Firestore.FirebaseFirestore.DefaultInstance
-                               .Collection("UserBonus").Document(userId);
-            var snapshot = await docRef.GetSnapshotAsync().ConfigureAwait(false);
-
-            var completedDatabanks = new List<string>();
-
-            if (snapshot.Exists)
-            {
-                var data = snapshot.ToDictionary();
-                if (data.ContainsKey("CompletedDatabanks") &&
-                    data["CompletedDatabanks"] is List<object> existingList)
-                {
-                    completedDatabanks = existingList.Select(i => i.ToString()).ToList();
-                }
-            }
-
-            if (completedDatabanks.Contains(databankName)) return;
-
-            completedDatabanks.Add(databankName);
-            await docRef.UpdateAsync(new Dictionary<string, object>
-            {
-                { "CompletedDatabanks", completedDatabanks }
-            }).ConfigureAwait(false);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"Erro ao marcar databank como completo: {e.Message}");
+            Debug.LogError($"[QuestionManager] Erro ao processar conclusão do database: {e.Message}");
         }
     }
 }

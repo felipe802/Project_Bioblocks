@@ -1,12 +1,9 @@
-using UnityEngine;
 using System.Collections.Generic;
 using QuestionSystem;
 
-public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
+public class AcidBaseBufferQuestionDatabase : IQuestionDatabase
 {
-
-    [Header("Development Settings")]
-    [SerializeField] private bool databaseInDevelopment = false;
+    private bool databaseInDevelopment = false;
 
     private List<Question> questions = new List<Question>
     {
@@ -26,7 +23,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_001",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A teoria de Arrhenius define ácidos como substâncias que, em solução aquosa, liberam íons H+ (ou H3O+)." }
         },
         new Question
         {
@@ -44,7 +49,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_002",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Segundo Arrhenius, bases liberam íons hidroxila (OH-) quando dissolvidas em água." }
         },
         new Question
         {
@@ -62,7 +75,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_003",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Brønsted-Lowry amplia o conceito: ácido é qualquer espécie química capaz de doar um próton (H+)." }
         },
         new Question
         {
@@ -80,7 +101,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_004",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Para Brønsted-Lowry, a base é a espécie que aceita o próton (H+) doado pelo ácido." }
         },
         new Question
         {
@@ -98,7 +127,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_005",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A água é anfótera, ou seja, pode agir como ácido (doando H+) ou como base (recebendo H+), dependendo do meio." }
         },
         new Question
         {
@@ -116,7 +153,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_006",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A base conjugada é o que sobra do ácido após ele doar um próton. HCl doando H+ forma Cl-." }
         },
         new Question
         {
@@ -134,7 +179,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AcidBaseBufferDB/AcidBaseBufferDB_ImageQuestionContainer7",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_007",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Observe a reação: a espécie que recebe o H+ forma o ácido conjugado. A amônia (NH3) recebe um H+ e vira íon amônio (NH4+)." }
         },
         new Question
         {
@@ -152,7 +205,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 3,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_008",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Ácidos fortes sofrem ionização completa (100%) em água." }
         },
         new Question
         {
@@ -170,7 +231,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 3,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_009",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Ácidos fracos estabelecem um equilíbrio químico, pois se dissociam apenas parcialmente." }
         },
         new Question
         {
@@ -188,7 +257,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_010",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "O Keq mede a proporção entre os produtos formados e os reagentes que restaram quando a reação atinge o equilíbrio." }
         },
         new Question
         {
@@ -206,7 +283,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AcidBaseBufferDB/AcidBaseDB_ImageQuestionContainer11",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_011",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Se a constante for muito pequena (K < 1), o equilíbrio favorece os reagentes, indicando dissociação parcial." }
         },
         new Question
         {
@@ -224,7 +309,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AcidBaseBufferDB/AcidBaseDB_ImageQuestionContainer12",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_012",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Se a constante for alta (K > 1), a reação tende fortemente a formar produtos." }
         },
         new Question
         {
@@ -242,7 +335,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AcidBaseBufferDB/AcidBaseDB_ImageQuestionContainer13",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_013",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A constante de acidez (Ka) é específica para medir o grau de ionização (força) de um ácido fraco." }
         },
         new Question
         {
@@ -260,7 +361,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AcidBaseBufferDB/AcidBaseDB_ImageQuestionContainer14",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_014",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A constante de basicidade (Kb) mede o grau de dissociação de uma base." }
         },
         new Question
         {
@@ -278,7 +387,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_015",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Um Ka baixo indica que poucas moléculas do ácido se dissociaram, o que é típico de ácidos fracos." }
         },
         new Question
         {
@@ -296,7 +413,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_016",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Por definição matemática, o pKa é o logaritmo negativo da constante de acidez (pKa = -log Ka)." }
         },
         new Question
         {
@@ -314,7 +439,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_017",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Devido ao sinal negativo do logaritmo, quanto menor o pKa, maior o Ka e, portanto, mais forte é o ácido." }
         },
         new Question
         {
@@ -332,7 +465,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_018",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Um pKa elevado significa um Ka baixo, indicando um ácido fraco." }
         },
         new Question
         {
@@ -350,7 +491,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_019",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A equação de Henderson-Hasselbalch é: pH = pKa + log([A-]/[HA]). Ela relaciona o pH com o pKa e as concentrações." }
         },
         new Question
         {
@@ -368,7 +517,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_020",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Tampões funcionam porque o ácido fraco e sua base conjugada coexistem e reagem com H+ ou OH- adicionados, neutralizando-os." }
         },
         new Question
         {
@@ -386,7 +543,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_021",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "O poder tamponante máximo ocorre perto do pKa. Geralmente a faixa eficaz é pKa ± 1 unidade de pH." }
         },
         new Question
         {
@@ -404,7 +569,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_022",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "No plasma sanguíneo, o principal sistema tampão é o do bicarbonato (H2CO3 / HCO3-)." }
         },
         new Question
         {
@@ -422,7 +595,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_023",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Durante o exercício, a produção de ácido lático e CO2 aumenta a concentração de H+, diminuindo o pH (acidose)." }
         },
         new Question
         {
@@ -440,7 +621,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_024",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "O corpo aumenta a respiração para expulsar mais CO2, o que desloca o equilíbrio e reduz a concentração de H+, elevando o pH." }
         },
         new Question
         {
@@ -458,7 +647,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_025",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "pH significa 'potencial hidrogeniônico' e é uma medida direta da concentração de íons H+ (ou H3O+)." }
         },
         new Question
         {
@@ -476,7 +673,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_026",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Na escala de pH em água a 25°C, valores menores que 7 indicam soluções ácidas." }
         },
         new Question
         {
@@ -494,7 +699,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_027",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Valores maiores que 7 na escala de pH indicam soluções básicas ou alcalinas." }
         },
         new Question
         {
@@ -512,7 +725,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_028",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "pH igual a 7 indica neutralidade, onde a concentração de H+ é igual à de OH-." }
         },
         new Question
         {
@@ -530,7 +751,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_029",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Assim como o pH mede H+, o pOH é a medida do potencial de íons hidroxila (OH-)." }
         },
         new Question
         {
@@ -548,7 +777,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_030",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Em água a 25°C, a soma de pH e pOH é sempre igual a 14." }
         },
         new Question
         {
@@ -566,7 +803,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_031",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "O produto iônico da água (Kw) a 25°C é 10^-14." }
         },
         new Question
         {
@@ -584,7 +829,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AcidBaseBufferDB/AcidBaseBufferDB_ImageQuestionContainer32",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_032",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Em solução neutra, [H+] = [OH-]. Como Kw = 10^-14, a concentração de H+ é a raiz quadrada disso (10^-7 M)." }
         },
         new Question
         {
@@ -602,7 +855,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AcidBaseBufferDB/AcidBaseBufferDB_ImageQuestionContainer33",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_033",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Em solução neutra, a concentração de OH- também é 10^-7 M." }
         },
         new Question
         {
@@ -620,7 +881,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_034",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A fórmula matemática do pH é o logaritmo negativo da concentração de H+: pH = -log[H+]." }
         },
         new Question
         {
@@ -638,7 +907,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_035",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A fórmula matemática do pOH é o logaritmo negativo da concentração de OH-: pOH = -log[OH-]." }
         },
         new Question
         {
@@ -656,7 +933,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_036",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Em soluções aquosas padrão, a escala prática vai de 0 a 14, sendo 0 o extremo de acidez." }
         },
         new Question
         {
@@ -674,7 +959,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_037",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Na escala de pH comum (0 a 14), 14 representa o extremo de basicidade." }
         },
         new Question
         {
@@ -692,7 +985,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_038",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "O pH neutro a 25°C é exatamente 7." }
         },
         new Question
         {
@@ -710,7 +1011,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_039",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Soluções com pH abaixo de 7 são ácidas." }
         },
         new Question
         {
@@ -728,7 +1037,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_040",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Soluções com pH acima de 7 são básicas." }
         },
         new Question
         {
@@ -746,7 +1063,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 3,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_041",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A neutralização é a reação entre um ácido e uma base, que produzem sal e água." }
         },
         new Question
         {
@@ -764,7 +1089,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 3,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_042",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Na titulação, o ponto de equivalência ocorre quando a quantidade de ácido e base se equivalem totalmente." }
         },
         new Question
         {
@@ -782,7 +1115,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 3,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_043",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Indicadores são ácidos ou bases orgânicas fracas que possuem cores diferentes dependendo do pH (se estão protonados ou não)." }
         },
         new Question
         {
@@ -800,7 +1141,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_044",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A solução-tampão resiste a adições de pequenas quantidades de ácidos e bases, mantendo o pH estável." }
         },
         new Question
         {
@@ -818,7 +1167,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_045",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Tampões são normalmente feitos de um ácido fraco e seu sal (base conjugada) ou uma base fraca e seu ácido conjugado." }
         },
         new Question
         {
@@ -836,7 +1193,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 3,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_046",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A capacidade máxima ocorre quando [HA] = [A-], o que, pela equação de Henderson-Hasselbalch, resulta em pH = pKa." }
         },
         new Question
         {
@@ -854,7 +1219,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 3,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_047",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Além do bicarbonato, o sistema tampão fosfato é o principal tampão intracelular." }
         },
         new Question
         {
@@ -872,7 +1245,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 2,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_048",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A hiperventilação excessiva elimina muito CO2, o que reduz H+ no sangue, causando aumento do pH (alcalose respiratória)." }
         },
         new Question
         {
@@ -890,7 +1271,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 3,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_049",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Se o corpo acumula CO2, ele reage formando ácido carbônico, aumentando H+ e reduzindo o pH (acidose respiratória)." }
         },
         new Question
         {
@@ -908,7 +1297,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 3,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_050",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A acidose metabólica é causada pelo acúmulo de ácidos não voláteis (ex: ácido lático) ou perda de bicarbonato." }
         },
         new Question
         {
@@ -926,7 +1323,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_051",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A alcalose metabólica ocorre por acúmulo excessivo de bicarbonato ou perda de ácidos do corpo." }
         },
         new Question
         {
@@ -944,7 +1349,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_052",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Em geral, pKa e Ka são medidos em condições controladas, normalmente a 25°C." }
         },
         new Question
         {
@@ -962,7 +1375,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_053",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "aplicar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Use pH = -log(10^-4) para encontrar a resposta." }
         },
         new Question
         {
@@ -980,7 +1401,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_054",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "aplicar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A concentração [H+] é 10^(-pH). Portanto, 10^-9 M." }
         },
         new Question
         {
@@ -998,7 +1427,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_055",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "aplicar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Se o pH = 5, [H+] = 10^-5 M. Se passou para pH = 6, [H+] = 10^-6 M. A concentração diminuiu 10 vezes." }
         },
         new Question
         {
@@ -1016,7 +1453,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_056",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "aplicar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Lembre-se: [OH-] = 10^(-pOH) e pOH = 14 - pH." }
         },
         new Question
         {
@@ -1034,7 +1479,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_057",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "aplicar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Um ácido forte dissocia-se 100%. Então [H+] = 0,1 M. pH = -log(0,1) = 1." }
         },
         new Question
         {
@@ -1052,7 +1505,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_058",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "aplicar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Uma base forte como NaOH libera 0,01 M de OH-. pOH = -log(0,01) = 2. Logo, pH = 14 - 2 = 12." }
         },
         new Question
         {
@@ -1070,7 +1531,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_059",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A dissociação da água é um processo endotérmico. Em temperaturas mais altas, o Kw aumenta, logo o pH neutro diminui ligeiramente." }
         },
         new Question
         {
@@ -1088,7 +1557,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_060",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A capacidade tamponante depende das concentrações absolutas de [HA] e [A-]. Concentrações maiores significam mais moléculas para neutralizar o H+/OH- adicionado." }
         },
         new Question
         {
@@ -1106,7 +1583,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_061",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "O CO2 difunde-se para o sangue e a enzima anidrase carbônica facilita sua hidratação formando ácido carbônico." }
         },
         new Question
         {
@@ -1124,7 +1609,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AcidBaseBufferDB/AcidBaseBufferDB_ImageQuestionContainer62",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_062",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Nos rins, ocorre reabsorção ou excreção de bicarbonato e H+ para regular lentamente o pH a longo prazo." }
         },
         new Question
         {
@@ -1142,7 +1635,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_063",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Os pulmões fazem a regulação de curto prazo controlando a excreção do CO2." }
         },
         new Question
         {
@@ -1160,7 +1661,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = true,
             questionImagePath = "QuestionImages/AcidBaseBufferDB/AcidBaseBufferDB_ImageQuestionContainer64",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_064",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A urina normalmente é ácida (pH 6), pois os rins precisam excretar o excesso de H+ do metabolismo diário." }
         },
         new Question
         {
@@ -1178,7 +1687,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_065",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Ácidos polipróticos como o ácido fosfórico (H3PO4) podem doar mais de um próton e possuem múltiplos valores de pKa." }
         },
         new Question
         {
@@ -1196,7 +1713,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_066",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "O pKa sucessivo de um ácido poliprótico é sempre maior, ou seja, fica cada vez mais difícil retirar o próximo H+." }
         },
         new Question
         {
@@ -1214,7 +1739,15 @@ public class AcidBaseBufferQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "acidsBase_067",
+            topic = "acidsBase",
+            subtopic = null,
+            displayName = "Ácidos, Bases e Tampões",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "O Kw é a constante de equilíbrio para a autoionização da água e vale 1 x 10^-14 a 25 °C." }
         }
     };
 

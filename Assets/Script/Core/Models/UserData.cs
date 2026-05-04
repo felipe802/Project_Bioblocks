@@ -17,6 +17,16 @@ public class UserData
     public int    PlayerLevel          { get; set; } = 1;
     public int    TotalValidQuestionsAnswered  { get; set; } = 0;
     public int    TotalQuestionsInAllDatabanks { get; set; } = 0;
+
+    /// <summary>
+    /// Denominador "congelado" no momento do último level-up deste jogador.
+    /// Usado para calcular nível e progresso de forma imune a mudanças no
+    /// total global de questões (Config/QuestionStats). Só é atualizado
+    /// pelo PlayerLevelService quando o jogador sobe de nível.
+    ///
+    /// 0 = ainda não inicializado (migração lazy no primeiro login).
+    /// </summary>
+    public int    LevelSnapshotDenominator { get; set; } = 0;
     public Dictionary<string, List<int>> AnsweredQuestions  { get; set; }
     public Dictionary<string, bool>      ResetDatabankFlags { get; set; }
     public DateTime SavedAt { get; set; }
@@ -58,6 +68,7 @@ public class UserData
         PlayerLevel        = 1;
         TotalValidQuestionsAnswered  = 0;
         TotalQuestionsInAllDatabanks = 0;
+        LevelSnapshotDenominator     = 0;
         AnsweredQuestions  = new Dictionary<string, List<int>>();
         ResetDatabankFlags = new Dictionary<string, bool>();
     }

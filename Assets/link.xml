@@ -8,6 +8,5 @@
     <type fullname="RankingDB"       preserve="all"/>
     <type fullname="UserDataDB"      preserve="all"/>
     <type fullname="CachedImageDB"   preserve="all"/>
-    <type fullname="PendingUploadDB" preserve="all"/>
   </assembly>
 </linker>

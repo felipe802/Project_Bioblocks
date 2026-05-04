@@ -17,6 +17,7 @@ public class ProfileImageLoader : MonoBehaviour
     private IImageCacheService _imageCache;
     private bool isInitialized = false;
     private string pendingImageUrl = null;
+    private bool isTextureFromResources = false;
 
     private void Awake()
     {
@@ -189,6 +190,34 @@ public class ProfileImageLoader : MonoBehaviour
 
     private IEnumerator LoadImageFromUrl(string url)
     {
+        // Avatares preset — carrega direto de Resources (zero I/O de disco).
+        // Path resolvido via AvatarCatalog: o url persistido é "preset:<id>" (id lógico),
+        // e o catálogo traduz para o ResourcePath físico ("Avatars/<Classe>/avatar_<classe>_<NN>").
+        if (url.StartsWith("preset:"))
+        {
+            string resourceName = url.Substring(7); // "preset:".Length
+            var def = AvatarCatalog.GetById(resourceName);
+            if (def == null)
+            {
+                Debug.LogWarning($"[ProfileImageLoader] Preset id desconhecido no catálogo: {resourceName}");
+                LoadStandardProfileImage();
+                yield break;
+            }
+
+            Texture2D presetTexture = Resources.Load<Texture2D>(def.ResourcePath);
+            if (presetTexture != null)
+            {
+                SetTexture(presetTexture, fromResources: true);
+                Debug.Log($"[ProfileImageLoader] Preset carregado de Resources: {def.ResourcePath}");
+            }
+            else
+            {
+                Debug.LogWarning($"[ProfileImageLoader] Preset não encontrado em disco: {def.ResourcePath}");
+                LoadStandardProfileImage();
+            }
+            yield break;
+        }
+
         // Verifica se é um path local (para modo offline)
         if (!url.StartsWith("http://") && !url.StartsWith("https://"))
         {
@@ -283,7 +312,7 @@ public class ProfileImageLoader : MonoBehaviour
         SetTexture(texture);
     }
 
-    public void SetTexture(Texture2D texture)
+    public void SetTexture(Texture2D texture, bool fromResources = false)
     {
         if (imageContent == null)
         {
@@ -291,13 +320,16 @@ public class ProfileImageLoader : MonoBehaviour
             return;
         }
 
+        // Só destrói texturas runtime (nunca assets carregados de Resources)
         if (imageContent.texture != null &&
             imageContent.texture != standardProfileImage?.texture &&
-            imageContent.texture != texture)
+            imageContent.texture != texture &&
+            !isTextureFromResources)
         {
             Destroy(imageContent.texture);
         }
 
+        isTextureFromResources = fromResources;
         imageContent.texture = texture;
         imageContent.color = Color.white;
         AdjustImageAspectRatio(texture);
@@ -337,7 +369,8 @@ public class ProfileImageLoader : MonoBehaviour
     {
         if (imageContent != null &&
             imageContent.texture != null &&
-            imageContent.texture != standardProfileImage?.texture)
+            imageContent.texture != standardProfileImage?.texture &&
+            !isTextureFromResources)
         {
             Destroy(imageContent.texture);
         }

@@ -92,6 +92,55 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
     }
 
     // -------------------------------------------------------
+    // Config/QuestionStats — fonte única de verdade do total de questões
+    // -------------------------------------------------------
+
+    public async Task<QuestionStats> GetQuestionStats()
+    {
+        try
+        {
+            if (!isInitialized) throw new Exception("Firestore não inicializado");
+
+            DocumentSnapshot snapshot = await db.Collection("Config")
+                .Document("QuestionStats")
+                .GetSnapshotAsync();
+
+            if (!snapshot.Exists)
+            {
+                Debug.LogWarning("[FirestoreRepository] Config/QuestionStats não encontrado.");
+                return null;
+            }
+
+            var data  = snapshot.ToDictionary();
+            var stats = new QuestionStats
+            {
+                TotalQuestions = data.ContainsKey("TotalQuestions")
+                    ? Convert.ToInt32(data["TotalQuestions"]) : 0,
+                Version = data.ContainsKey("Version")
+                    ? Convert.ToInt64(data["Version"]) : 0,
+                UpdatedAt = data.ContainsKey("UpdatedAt") && data["UpdatedAt"] is Timestamp ts
+                    ? ts.ToDateTime() : DateTime.MinValue
+            };
+
+            if (data.ContainsKey("PerBank") &&
+                data["PerBank"] is Dictionary<string, object> perBankMap)
+            {
+                foreach (var kvp in perBankMap)
+                    stats.PerBank[kvp.Key] = Convert.ToInt32(kvp.Value);
+            }
+
+            Debug.Log($"[FirestoreRepository] Config/QuestionStats carregado — " +
+                      $"Total={stats.TotalQuestions}, Version={stats.Version}");
+            return stats;
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[FirestoreRepository] Erro ao ler Config/QuestionStats: {e.Message}");
+            return null;
+        }
+    }
+
+    // -------------------------------------------------------
     // Criação
     // -------------------------------------------------------
 
@@ -448,37 +497,20 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
                 if (data.ContainsKey("ProfileImageUrl") && currentUserData != null)
                 {
                     string incomingUrl = data["ProfileImageUrl"] as string ?? "";
-                    
+
                     // Ignora se a URL incoming é vazia ou igual à atual
                     if (string.IsNullOrEmpty(incomingUrl)) return;
                     if (currentUserData.ProfileImageUrl == incomingUrl) return;
-                    
-                    // Ignora se há upload pendente — o path local deve ser preservado
-                    var pendingUpload = AppContext.LocalDatabase?.PendingUploads
-                                                .FindById(currentUserData.UserId);
-                    if (pendingUpload != null)
-                    {
-                        Debug.Log("[FirestoreRepository] ProfileImageUrl ignorado — upload pendente.");
-                        return;
-                    }
 
-                    // Ignora se a URL incoming é um path local (não começa com http)
-                    if (!incomingUrl.StartsWith("http"))
-                    {
-                        Debug.Log("[FirestoreRepository] ProfileImageUrl ignorado — path local.");
-                        return;
-                    }
-
+                    // Fluxo 100% preset: qualquer string não-vazia é válida
+                    // ("preset:<id>" ou URL http legada). O ProfileImageLoader
+                    // decide como resolver.
                     var capturedUrl = incomingUrl;
                     MainThreadDispatcher.Enqueue(() =>
                     {
                         var local = UserDataStore.CurrentUserData;
                         if (local == null) return;
-                        
-                        // Verifica novamente se não há upload pendente no main thread
-                        var pending = AppContext.LocalDatabase?.PendingUploads.FindById(local.UserId);
-                        if (pending != null) return;
-                        
+
                         local.ProfileImageUrl = capturedUrl;
                         UserDataStore.CurrentUserData = local;
                         UserAvatarSyncHelper.NotifyAvatarChanged(capturedUrl);
@@ -706,6 +738,78 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
     }
 
     // -------------------------------------------------------
+    // UserBonus / CompletedDatabanks
+    // -------------------------------------------------------
+
+    public async Task<bool> IsDatabankEligibleForBonus(string userId, string databankName)
+    {
+        try
+        {
+            if (!isInitialized) throw new Exception("Firestore não inicializado");
+
+            DocumentSnapshot snapshot = await db.Collection("UserBonus")
+                .Document(userId)
+                .GetSnapshotAsync()
+                .ConfigureAwait(false);
+
+            if (!snapshot.Exists) return true;
+
+            var data = snapshot.ToDictionary();
+            if (!data.ContainsKey("CompletedDatabanks")) return true;
+
+            var completedDatabanks = data["CompletedDatabanks"] as List<object>;
+            return completedDatabanks == null || !completedDatabanks.Contains(databankName);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[FirestoreRepository] Erro ao verificar elegibilidade do databank: {e.Message}");
+            return false;
+        }
+    }
+
+    public async Task MarkDatabankAsCompleted(string userId, string databankName)
+    {
+        try
+        {
+            if (!isInitialized) throw new Exception("Firestore não inicializado");
+
+            DocumentReference docRef = db.Collection("UserBonus").Document(userId);
+            DocumentSnapshot snapshot = await docRef.GetSnapshotAsync().ConfigureAwait(false);
+
+            var completedDatabanks = new List<string>();
+
+            if (snapshot.Exists)
+            {
+                var data = snapshot.ToDictionary();
+                if (data.ContainsKey("CompletedDatabanks") &&
+                    data["CompletedDatabanks"] is List<object> existingList)
+                {
+                    completedDatabanks = existingList.Select(i => i.ToString()).ToList();
+                }
+            }
+
+            if (completedDatabanks.Contains(databankName))
+            {
+                Debug.LogWarning($"[FirestoreRepository] Databank '{databankName}' já está em CompletedDatabanks.");
+                return;
+            }
+
+            completedDatabanks.Add(databankName);
+            await docRef.UpdateAsync(new Dictionary<string, object>
+            {
+                { "CompletedDatabanks", completedDatabanks }
+            }).ConfigureAwait(false);
+
+            Debug.Log($"[FirestoreRepository] Databank '{databankName}' marcado como completo para userId={userId}.");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[FirestoreRepository] Erro ao marcar databank como completo: {e.Message}");
+            throw;
+        }
+    }
+
+    // -------------------------------------------------------
     // Ciclo de vida
     // -------------------------------------------------------
 
@@ -741,6 +845,8 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
             ? Convert.ToInt32(data["TotalValidQuestionsAnswered"]) : 0;
         userData.TotalQuestionsInAllDatabanks = data.ContainsKey("TotalQuestionsInAllDatabanks")
             ? Convert.ToInt32(data["TotalQuestionsInAllDatabanks"]) : 0;
+        userData.LevelSnapshotDenominator = data.ContainsKey("LevelSnapshotDenominator")
+            ? Convert.ToInt32(data["LevelSnapshotDenominator"]) : 0;
         userData.IsUserRegistered = data.ContainsKey("IsUserRegistered")
             ? Convert.ToBoolean(data["IsUserRegistered"]) : false;
         userData.SavedAt = data.ContainsKey("SavedAt") && data["SavedAt"] is Timestamp savedAt 
@@ -790,6 +896,7 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
             { "PlayerLevel",                  userData.PlayerLevel },
             { "TotalValidQuestionsAnswered",  userData.TotalValidQuestionsAnswered },
             { "TotalQuestionsInAllDatabanks", userData.TotalQuestionsInAllDatabanks },
+            { "LevelSnapshotDenominator",     userData.LevelSnapshotDenominator },
             { "AnsweredQuestions",            userData.AnsweredQuestions
                                                 ?? new Dictionary<string, List<int>>() },
             { "ResetDatabankFlags",           userData.ResetDatabankFlags

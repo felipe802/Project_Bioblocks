@@ -12,6 +12,9 @@ Assets/StreamingAssets/google-services-desktop
 Assets/StreamingAssets/google-services-desktop.json
 Assets/StreamingAssets/google-services-desktop.json.meta
 
+# Os arquivos de configuração Firebase ficam em Firebase/Dev/ e Firebase/Prod/ localmente,
+# mas não são versionados. Colaboradores recebem apenas o par Dev fora do repositório.
+
 # Firebase generated repos / cache
 Assets/GeneratedLocalRepo/
 Assets/ExternalDependencyManager/Editor/AndroidResolverDependencies.xml
@@ -76,6 +79,7 @@ Assets/Plugins/tvOS.meta
 # ===========================
 [Ll]ibrary/
 [Tt]emp/
+.utmp/
 [Ll]ogs/
 [Oo]bj/
 [Bb]uild/
@@ -107,6 +111,7 @@ sysinfo.txt
 crashlytics-build.properties
 ~UnityDirMonSyncFile~*
 mono_crash.*.json
+mono_crash.mem.*
 
 # ===========================
 # Specific Firebase binaries / plugins that can be regenerated
@@ -118,3 +123,10 @@ Library/PackageCache/**/*.dylib
 iOS/Libraries/*.a
 iOS/Libraries/libiPhone-lib.a
 Assets/Packages.meta
+
+# ===========================
+# Admin audit reports (contém userIds, nicknames, scores — PII)
+# Gerados localmente por `curl .../auditPlayerLevels`, nunca commitar.
+# ===========================
+audit-dryrun-*.json
+audit-apply-*.json

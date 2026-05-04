@@ -1,12 +1,9 @@
-using UnityEngine;
 using System.Collections.Generic;
 using QuestionSystem;
 
-public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
+public class CarbohydratesQuestionDatabase : IQuestionDatabase
 {
-
-    [Header("Development Settings")]
-    [SerializeField] private bool databaseInDevelopment = false;
+    private bool databaseInDevelopment = false;
     
     private List<Question> questions = new List<Question>
     {
@@ -26,8 +23,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "Os monossacarídeos seguem geralmente a fórmula (CH2O)n, que mostra uma proporção típica entre carbono, hidrogênio e oxigênio.\nÉ como uma “receita básica” que se repete, variando só o tamanho da molécula.\nCuidado: algumas alternativas parecem parecidas, mas alteram essa proporção clássica.\nNem toda fórmula com C, H e O está correta — a proporção importa!",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_001",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Os monossacarídeos seguem geralmente a fórmula (CH2O)n, que mostra uma proporção típica entre carbono, hidrogênio e oxigênio.
+É como uma “receita básica” que se repete, variando só o tamanho da molécula.
+Cuidado: algumas alternativas parecem parecidas, mas alteram essa proporção clássica.
+Nem toda fórmula com C, H e O está correta — a proporção importa!" }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -40,8 +46,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "A diferença está no grupo funcional: aldoses têm aldeído, cetoses têm cetona.\nPense nisso como mudar a “posição da função” na molécula.\nIsso altera propriedades químicas importantes, mesmo com mesma fórmula.\nPegadinha: não tem relação com tamanho nem solubilidade.",
-            bloomLevel = "compreender"
+            globalId = "carbohydrates_002",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A diferença está no grupo funcional: aldoses têm aldeído, cetoses têm cetona.
+Pense nisso como mudar a “posição da função” na molécula.
+Isso altera propriedades químicas importantes, mesmo com mesma fórmula.
+Pegadinha: não tem relação com tamanho nem solubilidade." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -59,8 +74,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "Cetoses possuem grupo cetona, geralmente no carbono interno.\nNa nomenclatura, “ceto-” já indica isso.\nObserve a posição do grupo carbonila na estrutura.\nPegadinha: “aldo-” indica aldeído — não confundir!",
-            bloomLevel = "aplicar"
+            globalId = "carbohydrates_003",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "aplicar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Cetoses possuem grupo cetona, geralmente no carbono interno.
+Na nomenclatura, “ceto-” já indica isso.
+Observe a posição do grupo carbonila na estrutura.
+Pegadinha: “aldo-” indica aldeído — não confundir!" }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -78,8 +102,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "“Aldo” indica presença de aldeído e “tetrose” indica 4 carbonos.\nEntão você procura uma cadeia com 4 C e grupo aldeído.\nÉ como ler o nome químico como uma descrição.\nPegadinha: triose (3C) e pentose (5C) estão ali pra confundir.",
-            bloomLevel = "aplicar"
+            globalId = "carbohydrates_004",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "aplicar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "“Aldo” indica presença de aldeído e “tetrose” indica 4 carbonos.
+Então você procura uma cadeia com 4 C e grupo aldeído.
+É como ler o nome químico como uma descrição.
+Pegadinha: triose (3C) e pentose (5C) estão ali pra confundir." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -97,8 +130,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "QuestionImages/CarbohydrateDB/carbohydrateDB_ImageQuestionContainer5",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "A forma L ou D depende da orientação do carbono quiral mais distante do grupo carbonila.\nÉ como um “espelho” da molécula.\nCompare com o padrão da glicose conhecida.\nPegadinha: D ≠ direita na tela — é uma convenção estrutural.",
-            bloomLevel = "analisar"
+            globalId = "carbohydrates_005",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A forma L ou D depende da orientação do carbono quiral mais distante do grupo carbonila.
+É como um “espelho” da molécula.
+Compare com o padrão da glicose conhecida.
+Pegadinha: D ≠ direita na tela — é uma convenção estrutural." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -115,8 +157,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "Epímeros diferem em apenas UM carbono quiral.\nÉ como duas moléculas quase iguais, mudando só um detalhe.\nIsso pode mudar propriedades importantes.\nPegadinha: não são espelhos completos (isso seria enantiômero).",
-            bloomLevel = "compreender"
+            globalId = "carbohydrates_006",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Epímeros diferem em apenas UM carbono quiral.
+É como duas moléculas quase iguais, mudando só um detalhe.
+Isso pode mudar propriedades importantes.
+Pegadinha: não são espelhos completos (isso seria enantiômero)." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -134,8 +185,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "QuestionImages/CarbohydrateDB/carbohydrateDB_ImageQuestionContainer7",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "A tagatose é uma cetose, então procure o grupo cetona.\nAlém disso, observe a configuração D.\nCompare com glicose/frutose para eliminar alternativas.\nPegadinha: L/D e tipo (aldo/ceto) aparecem misturados.",
-            bloomLevel = "analisar"
+            globalId = "carbohydrates_007",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A tagatose é uma cetose, então procure o grupo cetona.
+Além disso, observe a configuração D.
+Compare com glicose/frutose para eliminar alternativas.
+Pegadinha: L/D e tipo (aldo/ceto) aparecem misturados." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -153,8 +213,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "Anômeros diferem apenas no carbono anomérico após ciclagem.\nIsso gera formas alfa e beta.\nÉ como virar só uma “pecinha” da molécula.\nPegadinha: não confundir com epímeros (outros carbonos quirais).",
-            bloomLevel = "compreender"
+            globalId = "carbohydrates_008",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Anômeros diferem apenas no carbono anomérico após ciclagem.
+Isso gera formas alfa e beta.
+É como virar só uma “pecinha” da molécula.
+Pegadinha: não confundir com epímeros (outros carbonos quirais)." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -172,8 +241,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "QuestionImages/CarbohydrateDB/carbohydrateDB_ImageQuestionContainer9",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "Procure a forma cíclica da glicose (piranose).\nDepois veja se o OH do carbono anomérico está em posição alfa.\nAlfa geralmente aponta para baixo na projeção.\nPegadinha: galactose é parecida, mas muda em um carbono.",
-            bloomLevel = "analisar"
+            globalId = "carbohydrates_009",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Procure a forma cíclica da glicose (piranose).
+Depois veja se o OH do carbono anomérico está em posição alfa.
+Alfa geralmente aponta para baixo na projeção.
+Pegadinha: galactose é parecida, mas muda em um carbono." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -186,10 +264,18 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "A sacarose é o açúcar comum da cana e do açúcar de mesa.\nEla é formada por glicose + frutose.\nÉ o que usamos no dia a dia no café.\nPegadinha: lactose é do leite e maltose vem do amido.",
-            bloomLevel = "lembrar"
-        }, 
-        // 10
+            globalId = "carbohydrates_010",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A sacarose é o açúcar comum da cana e do açúcar de mesa.
+Ela é formada por glicose + frutose.
+É o que usamos no dia a dia no café.
+Pegadinha: lactose é do leite e maltose vem do amido." }
+        },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
             questionText = "Qual dissacarídeo é o açúcar do leite?",
@@ -201,8 +287,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "A lactose é o açúcar característico do leite.\nEla é formada por glicose + galactose.\nPor isso, intolerância à lactose envolve dificuldade em quebrar essa molécula.\nPegadinha: sacarose é açúcar de mesa, não do leite.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_011",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A lactose é o açúcar característico do leite.
+Ela é formada por glicose + galactose.
+Por isso, intolerância à lactose envolve dificuldade em quebrar essa molécula.
+Pegadinha: sacarose é açúcar de mesa, não do leite." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -215,8 +310,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "Monossacarídeos se unem por ligações glicosídicas.\nÉ como um “elo” entre açúcares formando cadeias maiores.\nEssa ligação envolve o carbono anomérico.\nPegadinha: peptídica é de proteínas, fosfodiéster é de DNA/RNA.",
-            bloomLevel = "compreender"
+            globalId = "carbohydrates_012",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Monossacarídeos se unem por ligações glicosídicas.
+É como um “elo” entre açúcares formando cadeias maiores.
+Essa ligação envolve o carbono anomérico.
+Pegadinha: peptídica é de proteínas, fosfodiéster é de DNA/RNA." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -234,8 +338,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "QuestionImages/CarbohydrateDB/carbohydrateDB_ImageQuestionContainer13",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "Dissacarídeos são formados por dois monossacarídeos ligados.\nVisualmente, você deve identificar duas unidades conectadas.\nÉ como juntar dois blocos de Lego.\nPegadinha: polissacarídeos têm muitas unidades, não só duas.",
-            bloomLevel = "aplicar"
+            globalId = "carbohydrates_013",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "aplicar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Dissacarídeos são formados por dois monossacarídeos ligados.
+Visualmente, você deve identificar duas unidades conectadas.
+É como juntar dois blocos de Lego.
+Pegadinha: polissacarídeos têm muitas unidades, não só duas." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -253,8 +366,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "QuestionImages/CarbohydrateDB/carbohydrateDB_ImageQuestionContainer14",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "Observe os carbonos envolvidos na ligação e a orientação do OH.\n“1→4” indica quais carbonos estão ligados.\n“beta” depende da posição espacial do grupo.\nPegadinha: alfa vs beta muda totalmente a estrutura final!",
-            bloomLevel = "analisar"
+            globalId = "carbohydrates_014",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Observe os carbonos envolvidos na ligação e a orientação do OH.
+“1→4” indica quais carbonos estão ligados.
+“beta” depende da posição espacial do grupo.
+Pegadinha: alfa vs beta muda totalmente a estrutura final!" }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -267,8 +389,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "Plantas armazenam energia principalmente na forma de amido.\nÉ como o “estoque de energia” vegetal.\nEncontrado em alimentos como batata e arroz.\nPegadinha: celulose é estrutural, não reserva.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_015",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Plantas armazenam energia principalmente na forma de amido.
+É como o “estoque de energia” vegetal.
+Encontrado em alimentos como batata e arroz.
+Pegadinha: celulose é estrutural, não reserva." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -281,8 +412,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "Animais armazenam glicose na forma de glicogênio.\nEle fica principalmente no fígado e músculos.\nÉ como uma “bateria de energia rápida”.\nPegadinha: amido é reserva vegetal, não animal.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_016",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Animais armazenam glicose na forma de glicogênio.
+Ele fica principalmente no fígado e músculos.
+É como uma “bateria de energia rápida”.
+Pegadinha: amido é reserva vegetal, não animal." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -295,8 +435,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "A amilose é linear, enquanto a amilopectina é ramificada.\nIsso afeta como a molécula ocupa espaço.\nImagine uma corda vs uma árvore com galhos.\nPegadinha: ambas têm ligações alfa, então não é esse o diferencial principal.",
-            bloomLevel = "compreender"
+            globalId = "carbohydrates_017",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A amilose é linear, enquanto a amilopectina é ramificada.
+Isso afeta como a molécula ocupa espaço.
+Imagine uma corda vs uma árvore com galhos.
+Pegadinha: ambas têm ligações alfa, então não é esse o diferencial principal." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -309,8 +458,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "A celulose possui ligações beta(1→4).\nIsso gera uma estrutura rígida e resistente.\nÉ como fibras bem alinhadas formando parede celular.\nPegadinha: alfa(1→4) é do amido, não da celulose.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_018",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A celulose possui ligações beta(1→4).
+Isso gera uma estrutura rígida e resistente.
+É como fibras bem alinhadas formando parede celular.
+Pegadinha: alfa(1→4) é do amido, não da celulose." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -323,8 +481,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "O amido possui principalmente ligações alfa(1→4).\nIsso permite formar estruturas mais flexíveis.\nFacilita a digestão por enzimas humanas.\nPegadinha: beta(1→4) é resistente (celulose).",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_019",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "O amido possui principalmente ligações alfa(1→4).
+Isso permite formar estruturas mais flexíveis.
+Facilita a digestão por enzimas humanas.
+Pegadinha: beta(1→4) é resistente (celulose)." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -337,10 +504,18 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 1,
             questionInDevelopment = false,
-            textHint = "A amilase quebra o amido em açúcares menores.\nEla está presente na saliva e no pâncreas.\nPor isso a digestão de carboidratos começa na boca.\nPegadinha: lactase atua na lactose, não no amido.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_020",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A amilase quebra o amido em açúcares menores.
+Ela está presente na saliva e no pâncreas.
+Por isso a digestão de carboidratos começa na boca.
+Pegadinha: lactase atua na lactose, não no amido." }
         },
-        // 20
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
             questionText = "Qual enzima hidrolisa a celulose?",
@@ -352,8 +527,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 1,
             questionInDevelopment = false,
-            textHint = "A celulose é quebrada pela enzima celulase.\nHumanos não produzem essa enzima, por isso não digerimos celulose.\nAlguns microrganismos fazem isso (ex: em ruminantes).\nPegadinha: amilase não quebra celulose.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_021",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A celulose é quebrada pela enzima celulase.
+Humanos não produzem essa enzima, por isso não digerimos celulose.
+Alguns microrganismos fazem isso (ex: em ruminantes).
+Pegadinha: amilase não quebra celulose." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -371,8 +555,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 1,
             questionInDevelopment = false,
-            textHint = "Glicoproteínas são proteínas com cadeias de carboidratos ligadas.\nElas aparecem muito na membrana celular.\nFuncionam como reconhecimento e sinalização.\nPegadinha: não confundir com glicolipídeos (lipídios + carboidratos).",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_022",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Glicoproteínas são proteínas com cadeias de carboidratos ligadas.
+Elas aparecem muito na membrana celular.
+Funcionam como reconhecimento e sinalização.
+Pegadinha: não confundir com glicolipídeos (lipídios + carboidratos)." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -390,8 +583,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "Glicosaminoglicanos são heteropolissacarídeos da matriz extracelular.\nEles ajudam a dar suporte e retenção de água aos tecidos.\nSão como uma “esponja estrutural”.\nPegadinha: não são simples dissacarídeos nem ficam no citoplasma.",
-            bloomLevel = "compreender"
+            globalId = "carbohydrates_023",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Glicosaminoglicanos são heteropolissacarídeos da matriz extracelular.
+Eles ajudam a dar suporte e retenção de água aos tecidos.
+São como uma “esponja estrutural”.
+Pegadinha: não são simples dissacarídeos nem ficam no citoplasma." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -409,8 +611,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "Proteoglicanos são proteínas ligadas a glicosaminoglicanos.\nEles formam estruturas grandes na matriz extracelular.\nAjudam na hidratação e resistência dos tecidos.\nPegadinha: glicoproteínas têm menos carboidrato que proteoglicanos.",
-            bloomLevel = "compreender"
+            globalId = "carbohydrates_024",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Proteoglicanos são proteínas ligadas a glicosaminoglicanos.
+Eles formam estruturas grandes na matriz extracelular.
+Ajudam na hidratação e resistência dos tecidos.
+Pegadinha: glicoproteínas têm menos carboidrato que proteoglicanos." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -423,8 +634,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "Eles são encontrados principalmente na matriz extracelular.\nEssa região dá suporte aos tecidos fora das células.\nFuncionam como preenchimento e estrutura.\nPegadinha: não ficam dentro da célula como principal localização.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_025",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Eles são encontrados principalmente na matriz extracelular.
+Essa região dá suporte aos tecidos fora das células.
+Funcionam como preenchimento e estrutura.
+Pegadinha: não ficam dentro da célula como principal localização." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -442,8 +662,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "Glicosaminoglicanos contêm açúcares modificados com grupos amina.\nA galactosamina é um exemplo clássico.\nProcure por estruturas com nitrogênio ligado.\nPegadinha: glicose simples não tem esse grupo amina.",
-            bloomLevel = "aplicar"
+            globalId = "carbohydrates_026",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "aplicar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Glicosaminoglicanos contêm açúcares modificados com grupos amina.
+A galactosamina é um exemplo clássico.
+Procure por estruturas com nitrogênio ligado.
+Pegadinha: glicose simples não tem esse grupo amina." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -461,8 +690,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "O ácido hialurônico é formado por unidades repetidas específicas.\nEle não possui sulfatação, diferente de outros GAGs.\nÉ muito abundante em tecidos conjuntivos.\nPegadinha: dermatan e condroitin são parecidos, mas diferentes na composição.",
-            bloomLevel = "analisar"
+            globalId = "carbohydrates_027",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "O ácido hialurônico é formado por unidades repetidas específicas.
+Ele não possui sulfatação, diferente de outros GAGs.
+É muito abundante em tecidos conjuntivos.
+Pegadinha: dermatan e condroitin são parecidos, mas diferentes na composição." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -475,8 +713,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "O ácido hialurônico atua em lubrificação, suporte e viscosidade.\nEle retém água e forma um gel nos tecidos.\nMuito importante em articulações e pele.\nPegadinha: não tem só uma função — são várias ao mesmo tempo.",
-            bloomLevel = "compreender"
+            globalId = "carbohydrates_028",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "O ácido hialurônico atua em lubrificação, suporte e viscosidade.
+Ele retém água e forma um gel nos tecidos.
+Muito importante em articulações e pele.
+Pegadinha: não tem só uma função — são várias ao mesmo tempo." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -494,24 +741,41 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "A heparina é formada por unidades altamente sulfatadas.\nIsso explica sua carga negativa elevada.\nEssa característica é essencial para sua função biológica.\nPegadinha: não confundir com outros GAGs menos carregados.",
-            bloomLevel = "analisar"
+            globalId = "carbohydrates_029",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A heparina é formada por unidades altamente sulfatadas.
+Isso explica sua carga negativa elevada.
+Essa característica é essencial para sua função biológica.
+Pegadinha: não confundir com outros GAGs menos carregados." }
         },
         new Question {
-        questionDatabankName = "CarbohydratesQuestionDatabase",
-        questionText = "Qual é uma das principais função da heparina?",
-        answers = new string[] {"Anticoagulante", "Lubrificante", "Suporte estrutural", "Hormônio"},
-        correctIndex = 0,
-        questionNumber = 30,
-        isImageAnswer = false,
-        isImageQuestion = false,
-        questionImagePath = "",
-        questionLevel = 1,
-        questionInDevelopment = false,
-        textHint = "A heparina atua como anticoagulante.\nEla impede a formação de coágulos no sangue.\nÉ muito usada em contextos médicos.\nPegadinha: apesar de ser um GAG, sua função principal não é estrutural.",
-        bloomLevel = "lembrar"
-    },
-        // 30
+            questionDatabankName = "CarbohydratesQuestionDatabase",
+            questionText = "Qual é uma das principais função da heparina?",
+            answers = new string[] {"Anticoagulante", "Lubrificante", "Suporte estrutural", "Hormônio"},
+            correctIndex = 0,
+            questionNumber = 30,
+            isImageAnswer = false,
+            isImageQuestion = false,
+            questionImagePath = "",
+            questionLevel = 1,
+            questionInDevelopment = false,
+            globalId = "carbohydrates_030",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A heparina é formada por unidades altamente sulfatadas.
+Isso explica sua carga negativa elevada.
+Essa característica é essencial para sua função biológica.
+Pegadinha: não confundir com outros GAGs menos carregados." }
+        },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
             questionText = "",
@@ -528,8 +792,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "QuestionImages/CarbohydrateDB/carbohydrateDB_ImageQuestionContainer31",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "Observe quais carbonos estão ligados e a orientação do grupo OH.\nO padrão “1→3” indica os carbonos envolvidos.\nO termo beta depende da posição espacial da ligação.\nPegadinha: alfa vs beta muda completamente a geometria da molécula.",
-            bloomLevel = "analisar"
+            globalId = "carbohydrates_031",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Observe quais carbonos estão ligados e a orientação do grupo OH.
+O padrão “1→3” indica os carbonos envolvidos.
+O termo beta depende da posição espacial da ligação.
+Pegadinha: alfa vs beta muda completamente a geometria da molécula." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -542,8 +815,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "O condroitin ajuda a dar resistência e elasticidade às cartilagens.\nEle faz parte da matriz extracelular.\nFunciona como um “amortecedor” biológico.\nPegadinha: não atua como hormônio nem neurotransmissor.",
-            bloomLevel = "compreender"
+            globalId = "carbohydrates_032",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "O condroitin ajuda a dar resistência e elasticidade às cartilagens.
+Ele faz parte da matriz extracelular.
+Funciona como um “amortecedor” biológico.
+Pegadinha: não atua como hormônio nem neurotransmissor." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -561,8 +843,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "QuestionImages/CarbohydrateDB/carbohydrateDB_ImageQuestionContainer33",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "Identifique os carbonos que fazem a ligação e a orientação beta.\nO padrão 1→4 é muito comum em estruturas como celulose.\nObserve a geometria da ligação.\nPegadinha: alfa(1→4) aparece muito no amido — não confundir.",
-            bloomLevel = "analisar"
+            globalId = "carbohydrates_033",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Identifique os carbonos que fazem a ligação e a orientação beta.
+O padrão 1→4 é muito comum em estruturas como celulose.
+Observe a geometria da ligação.
+Pegadinha: alfa(1→4) aparece muito no amido — não confundir." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -580,8 +871,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "QuestionImages/CarbohydrateDB/carbohydrateDB_ImageQuestionContainer34",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "A frutose é uma cetose, então procure o grupo cetona.\nEla geralmente forma estruturas cíclicas diferentes da glicose.\nCompare a posição do grupo carbonila.\nPegadinha: glicose e galactose são aldoses, não cetoses.",
-            bloomLevel = "analisar"
+            globalId = "carbohydrates_034",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A frutose é uma cetose, então procure o grupo cetona.
+Ela geralmente forma estruturas cíclicas diferentes da glicose.
+Compare a posição do grupo carbonila.
+Pegadinha: glicose e galactose são aldoses, não cetoses." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -599,8 +899,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "QuestionImages/CarbohydrateDB/carbohydrateDB_ImageQuestionContainer35",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "A glicose é uma aldose com 6 carbonos (hexose).\nProcure o grupo aldeído na forma aberta ou padrão típico na cíclica.\nCompare com frutose (cetose).\nPegadinha: tagatose e frutose confundem por serem cetoses.",
-            bloomLevel = "analisar"
+            globalId = "carbohydrates_035",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A glicose é uma aldose com 6 carbonos (hexose).
+Procure o grupo aldeído na forma aberta ou padrão típico na cíclica.
+Compare com frutose (cetose).
+Pegadinha: tagatose e frutose confundem por serem cetoses." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -618,8 +927,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "QuestionImages/CarbohydrateDB/carbohydrateDB_ImageQuestionContainer36",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "Procure a glicose em forma beta (OH do carbono anomérico para cima).\nA diferença alfa/beta está só nesse carbono.\nCompare a orientação do grupo OH.\nPegadinha: galactose muda em outro carbono, não no anomérico.",
-            bloomLevel = "analisar"
+            globalId = "carbohydrates_036",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Procure a glicose em forma beta (OH do carbono anomérico para cima).
+A diferença alfa/beta está só nesse carbono.
+Compare a orientação do grupo OH.
+Pegadinha: galactose muda em outro carbono, não no anomérico." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -637,8 +955,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "Beta-D-glicopiranose é a forma cíclica da glicose com OH anomérico para cima.\n“D” indica a configuração da molécula.\n“Piranose” indica um anel de 6 membros.\nPegadinha: alfa muda só a orientação do OH.",
-            bloomLevel = "aplicar"
+            globalId = "carbohydrates_037",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "aplicar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Beta-D-glicopiranose é a forma cíclica da glicose com OH anomérico para cima.
+“D” indica a configuração da molécula.
+“Piranose” indica um anel de 6 membros.
+Pegadinha: alfa muda só a orientação do OH." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -656,8 +983,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "QuestionImages/CarbohydrateDB/carbohydrateDB_ImageQuestionContainer38",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "Identifique a glicose e depois observe se está na forma alfa.\nAlfa significa OH do carbono anomérico voltado para baixo.\nCompare com a forma beta.\nPegadinha: galactose parece muito com glicose.",
-            bloomLevel = "analisar"
+            globalId = "carbohydrates_038",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Identifique a glicose e depois observe se está na forma alfa.
+Alfa significa OH do carbono anomérico voltado para baixo.
+Compare com a forma beta.
+Pegadinha: galactose parece muito com glicose." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -675,8 +1011,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 3,
             questionInDevelopment = false,
-            textHint = "Homopolissacarídeos têm um único tipo de monossacarídeo repetido.\nHeteropolissacarídeos têm diferentes tipos combinados.\nÉ como repetir uma mesma peça vs misturar várias.\nPegadinha: não depende de forma (linear/ramificada).",
-            bloomLevel = "compreender"
+            globalId = "carbohydrates_039",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Homopolissacarídeos têm um único tipo de monossacarídeo repetido.
+Heteropolissacarídeos têm diferentes tipos combinados.
+É como repetir uma mesma peça vs misturar várias.
+Pegadinha: não depende de forma (linear/ramificada)." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -693,10 +1038,18 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 3,
             questionInDevelopment = false,
-            textHint = "Amido, glicogênio e celulose são feitos só de glicose.\nPor isso são homopolissacarídeos.\nEles variam na forma e função, mas não no tipo de monômero.\nPegadinha: dissacarídeos e monossacarídeos não entram nessa classificação.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_040",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Amido, glicogênio e celulose são feitos só de glicose.
+Por isso são homopolissacarídeos.
+Eles variam na forma e função, mas não no tipo de monômero.
+Pegadinha: dissacarídeos e monossacarídeos não entram nessa classificação." }
         },
-        // 40
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
             questionText = "Dê exemplos de heteropolissacarídeos.",
@@ -713,8 +1066,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 1,
             questionInDevelopment = false,
-            textHint = "Heteropolissacarídeos são formados por diferentes monossacarídeos.\nExemplos incluem glicosaminoglicanos e peptidoglicanos.\nEles têm funções estruturais importantes.\nPegadinha: amido e glicogênio são homogêneos (só glicose).",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_041",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Heteropolissacarídeos são formados por diferentes monossacarídeos.
+Exemplos incluem glicosaminoglicanos e peptidoglicanos.
+Eles têm funções estruturais importantes.
+Pegadinha: amido e glicogênio são homogêneos (só glicose)." }
         },
         new Question
         {
@@ -733,8 +1095,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 3,
             questionInDevelopment = false,
-            textHint = "A diferença chave está na ligação: alfa na amilose e beta na celulose.\nIsso muda completamente a forma da molécula.\nAmilose é mais flexível; celulose é rígida.\nPegadinha: ambas são feitas de glicose.",
-            bloomLevel = "compreender"
+            globalId = "carbohydrates_042",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A diferença chave está na ligação: alfa na amilose e beta na celulose.
+Isso muda completamente a forma da molécula.
+Amilose é mais flexível; celulose é rígida.
+Pegadinha: ambas são feitas de glicose." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -752,8 +1123,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "AnswerImages/SugarDB/sugar_question_43",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "Aqui você deve reconhecer o grupo funcional característico do aminoácido.\nA asparagina possui grupo amida na cadeia lateral.\nObserve presença de nitrogênio adicional.\nPegadinha: leucina e prolina são apolares e bem diferentes estruturalmente.",
-            bloomLevel = "analisar"
+            globalId = "carbohydrates_043",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Aqui você deve reconhecer o grupo funcional característico do aminoácido.
+A asparagina possui grupo amida na cadeia lateral.
+Observe presença de nitrogênio adicional.
+Pegadinha: leucina e prolina são apolares e bem diferentes estruturalmente." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -771,8 +1151,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "AnswerImages/SugarDB/sugar_question_44",
             questionLevel = 2,
             questionInDevelopment = false,
-            textHint = "A serina possui um grupo hidroxila (-OH) na cadeia lateral.\nIsso a torna polar.\nProcure uma estrutura com OH extra.\nPegadinha: triptofano é muito maior e aromático.",
-            bloomLevel = "analisar"
+            globalId = "carbohydrates_044",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "analisar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A serina possui um grupo hidroxila (-OH) na cadeia lateral.
+Isso a torna polar.
+Procure uma estrutura com OH extra.
+Pegadinha: triptofano é muito maior e aromático." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -790,8 +1179,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 1,
             questionInDevelopment = false,
-            textHint = "Carboidratos são formados principalmente por carbono, hidrogênio e oxigênio.\nEsses três elementos aparecem na fórmula geral.\nÉ uma das definições básicas da classe.\nPegadinha: nitrogênio aparece em proteínas, não é padrão aqui.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_045",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Carboidratos são formados principalmente por carbono, hidrogênio e oxigênio.
+Esses três elementos aparecem na fórmula geral.
+É uma das definições básicas da classe.
+Pegadinha: nitrogênio aparece em proteínas, não é padrão aqui." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -809,8 +1207,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 1,
             questionInDevelopment = false,
-            textHint = "A forma mais comum é CnH2nOn.\nIsso reflete a proporção típica entre os elementos.\nEquivale à ideia de (CH2O)n.\nPegadinha: pequenas mudanças na fórmula tornam a alternativa incorreta.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_046",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A forma mais comum é CnH2nOn.
+Isso reflete a proporção típica entre os elementos.
+Equivale à ideia de (CH2O)n.
+Pegadinha: pequenas mudanças na fórmula tornam a alternativa incorreta." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -828,8 +1235,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 1,
             questionInDevelopment = false,
-            textHint = "A ligação glicosídica conecta açúcares formando cadeias.\nEla envolve o carbono anomérico.\nÉ essencial para formar di e polissacarídeos.\nPegadinha: peptídica é ligação de proteínas.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_047",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A ligação glicosídica conecta açúcares formando cadeias.
+Ela envolve o carbono anomérico.
+É essencial para formar di e polissacarídeos.
+Pegadinha: peptídica é ligação de proteínas." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -847,8 +1263,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 1,
             questionInDevelopment = false,
-            textHint = "O glicogênio é a forma de armazenamento de glicose em animais.\nEle é altamente ramificado.\nPermite liberação rápida de energia.\nPegadinha: amido é reserva vegetal.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_048",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "O glicogênio é a forma de armazenamento de glicose em animais.
+Ele é altamente ramificado.
+Permite liberação rápida de energia.
+Pegadinha: amido é reserva vegetal." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -866,8 +1291,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 1,
             questionInDevelopment = false,
-            textHint = "A quitina forma estruturas rígidas em fungos e artrópodes.\nEla dá proteção e sustentação.\nÉ semelhante à celulose, mas com nitrogênio.\nPegadinha: não está em plantas (lá é celulose).",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_049",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A quitina forma estruturas rígidas em fungos e artrópodes.
+Ela dá proteção e sustentação.
+É semelhante à celulose, mas com nitrogênio.
+Pegadinha: não está em plantas (lá é celulose)." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -885,10 +1319,18 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 1,
             questionInDevelopment = false,
-            textHint = "A sacarose é formada por glicose + frutose.\nÉ o açúcar de mesa comum.\nEssa combinação é clássica em bioquímica.\nPegadinha: glicose + galactose forma lactose.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_050",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A sacarose é formada por glicose + frutose.
+É o açúcar de mesa comum.
+Essa combinação é clássica em bioquímica.
+Pegadinha: glicose + galactose forma lactose." }
         },
-        // 50
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
             questionText = "A glicose, a frutose e a galactose são exemplos de:",
@@ -905,8 +1347,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 1,
             questionInDevelopment = false,
-            textHint = "Glicose, frutose e galactose são unidades básicas de carboidratos.\nPor isso são monossacarídeos.\nEles não precisam ser quebrados para gerar energia.\nPegadinha: dissacarídeos são formados por dois monossacarídeos.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_051",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Glicose, frutose e galactose são unidades básicas de carboidratos.
+Por isso são monossacarídeos.
+Eles não precisam ser quebrados para gerar energia.
+Pegadinha: dissacarídeos são formados por dois monossacarídeos." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -924,8 +1375,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 1,
             questionInDevelopment = false,
-            textHint = "A diferença está no tipo de ligação: beta na celulose, alfa no amido.\nIsso muda completamente a estrutura.\nCelulose forma fibras rígidas, amido é mais acessível.\nPegadinha: ambos são feitos de glicose.",
-            bloomLevel = "compreender"
+            globalId = "carbohydrates_052",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A diferença está no tipo de ligação: beta na celulose, alfa no amido.
+Isso muda completamente a estrutura.
+Celulose forma fibras rígidas, amido é mais acessível.
+Pegadinha: ambos são feitos de glicose." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -943,8 +1403,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 1,
             questionInDevelopment = false,
-            textHint = "Carboidratos atuam como energia, reserva e estrutura.\nMas não catalisam reações diretamente.\nEssa função é típica de enzimas (proteínas).\nPegadinha: alguns carboidratos participam de reconhecimento, mas não catalisam.",
-            bloomLevel = "compreender"
+            globalId = "carbohydrates_053",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Carboidratos atuam como energia, reserva e estrutura.
+Mas não catalisam reações diretamente.
+Essa função é típica de enzimas (proteínas).
+Pegadinha: alguns carboidratos participam de reconhecimento, mas não catalisam." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -962,8 +1431,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 1,
             questionInDevelopment = false,
-            textHint = "Carboidratos também são chamados de glicídios.\nEsse é um termo equivalente em bioquímica.\nPode aparecer em provas e textos.\nPegadinha: lipídios e aminoácidos são outras classes.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_054",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Carboidratos também são chamados de glicídios.
+Esse é um termo equivalente em bioquímica.
+Pode aparecer em provas e textos.
+Pegadinha: lipídios e aminoácidos são outras classes." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -981,8 +1459,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 1,
             questionInDevelopment = false,
-            textHint = "A fórmula mais usada é CnH2nOn.\nEla representa a proporção típica entre os elementos.\nEquivale à ideia de (CH2O)n.\nPegadinha: outras fórmulas parecem corretas, mas não seguem essa proporção.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_055",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A fórmula mais usada é CnH2nOn.
+Ela representa a proporção típica entre os elementos.
+Equivale à ideia de (CH2O)n.
+Pegadinha: outras fórmulas parecem corretas, mas não seguem essa proporção." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -1000,8 +1487,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 1,
             questionInDevelopment = false,
-            textHint = "A glicose é um monossacarídeo simples.\nEla é a principal fonte de energia celular.\nNão precisa ser quebrada para ser usada.\nPegadinha: sacarose e maltose são dissacarídeos.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_056",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A glicose é um monossacarídeo simples.
+Ela é a principal fonte de energia celular.
+Não precisa ser quebrada para ser usada.
+Pegadinha: sacarose e maltose são dissacarídeos." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -1019,8 +1515,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 1,
             questionInDevelopment = false,
-            textHint = "A sacarose combina glicose e frutose.\nÉ o açúcar que usamos no dia a dia.\nEssa combinação é clássica.\nPegadinha: glicose + galactose forma lactose.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_057",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A sacarose combina glicose e frutose.
+É o açúcar que usamos no dia a dia.
+Essa combinação é clássica.
+Pegadinha: glicose + galactose forma lactose." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -1038,8 +1543,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 1,
             questionInDevelopment = false,
-            textHint = "O amido é a reserva energética das plantas.\nEle armazena glicose para uso futuro.\nEncontrado em sementes e tubérculos.\nPegadinha: animais usam glicogênio, não amido.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_058",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "O amido é a reserva energética das plantas.
+Ele armazena glicose para uso futuro.
+Encontrado em sementes e tubérculos.
+Pegadinha: animais usam glicogênio, não amido." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -1057,8 +1571,17 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 1,
             questionInDevelopment = false,
-            textHint = "O glicogênio é usado por animais e também por fungos.\nEle é altamente ramificado.\nPermite liberação rápida de energia.\nPegadinha: plantas usam amido.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_059",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "O glicogênio é usado por animais e também por fungos.
+Ele é altamente ramificado.
+Permite liberação rápida de energia.
+Pegadinha: plantas usam amido." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -1076,10 +1599,18 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             questionImagePath = "",
             questionLevel = 1,
             questionInDevelopment = false,
-            textHint = "A celulose dá rigidez e resistência às plantas.\nEla compõe a parede celular.\nFunciona como uma estrutura de sustentação.\nPegadinha: não é usada como reserva de energia.",
-            bloomLevel = "lembrar"
+            globalId = "carbohydrates_060",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A celulose dá rigidez e resistência às plantas.
+Ela compõe a parede celular.
+Funciona como uma estrutura de sustentação.
+Pegadinha: não é usada como reserva de energia." }
         },
-        // 60
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
             questionText = "A lactose, presente no leite, é formada por:",
@@ -1095,7 +1626,15 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "carbohydrates_061",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A lactose é o principal açúcar do leite, sendo um dissacarídeo formado por glicose e galactose." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -1112,7 +1651,15 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "carbohydrates_062",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A celulose forma as fibras da parede celular das plantas, sendo o principal polissacarídeo estrutural vegetal." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -1129,7 +1676,15 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "carbohydrates_063",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "O nome 'carboidrato' ou 'hidrato de carbono' deriva da proporção típica de um átomo de carbono para cada molécula de água: Cn(H2O)n." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -1146,7 +1701,15 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "carbohydrates_064",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A glicose é um açúcar simples que não pode ser hidrolisado em compostos menores, logo, é um monossacarídeo." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -1163,7 +1726,15 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "carbohydrates_065",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A sacarose é o açúcar de mesa comum, composto pelos monossacarídeos glicose e frutose." }
         },
          new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -1180,7 +1751,15 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "carbohydrates_066",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "Os animais armazenam sua energia sob a forma de glicogênio, principalmente no fígado e nos músculos." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -1197,7 +1776,15 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "carbohydrates_067",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A celulose confere rigidez à parede celular dos vegetais." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -1214,7 +1801,15 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "carbohydrates_068",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "lembrar",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A lactose é o açúcar característico encontrado no leite dos mamíferos." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -1231,7 +1826,15 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "carbohydrates_069",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A classificação básica envolve o tamanho da cadeia de carbonos (triose, pentose, hexose) e o grupo funcional (aldose ou cetose)." }
         },
         new Question {
             questionDatabankName = "CarbohydratesQuestionDatabase",
@@ -1248,7 +1851,15 @@ public class CarbohydratesQuestionDatabase : MonoBehaviour, IQuestionDatabase
             isImageQuestion = false,
             questionImagePath = "",
             questionLevel = 1,
-            questionInDevelopment = false
+            questionInDevelopment = false,
+            globalId = "carbohydrates_070",
+            topic = "carbohydrates",
+            subtopic = null,
+            displayName = "Carboidratos",
+            bloomLevel = "compreender",
+            conceptTags = null,
+            prerequisites = null,
+            questionHint = new QuestionHint { text = "A principal função dos carboidratos no metabolismo é atuar como fonte primária e reserva de energia." }
         }
     };
 
