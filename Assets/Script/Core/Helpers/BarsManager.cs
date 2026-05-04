@@ -15,6 +15,15 @@ public abstract class BarsManager : MonoBehaviour
 
     protected virtual void Awake()
     {
+        // Preview Mode — barras de navegação desabilitadas (sem usuário, sem sessão real).
+        var envCfg = EnvironmentConfig.Load();
+        if (envCfg != null && envCfg.QuestionPreviewMode)
+        {
+            Debug.Log($"[{GetType().Name}] Preview Mode — desabilitando {gameObject.name}.");
+            gameObject.SetActive(false);
+            return;
+        }
+
         if (AppContext.IsReady)
         {
             InitializeBar();

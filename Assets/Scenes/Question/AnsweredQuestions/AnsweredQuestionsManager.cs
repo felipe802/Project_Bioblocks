@@ -31,6 +31,16 @@ public class AnsweredQuestionsManager : MonoBehaviour, IAnsweredQuestionsManager
 
     private async void Start()
     {
+        // Em preview mode o AppContext já registra um FakeAnsweredQuestionsManager.
+        // Este componente não deve inicializar para evitar chamadas ao Firebase.
+        var envConfig = EnvironmentConfig.Load();
+        if (envConfig?.QuestionPreviewMode == true)
+        {
+            Debug.Log("[AnsweredQuestionsManager] Preview mode — inicialização ignorada " +
+                      "(usando FakeAnsweredQuestionsManager).");
+            return;
+        }
+
         if (!AppContext.IsReady)
         {
             Debug.Log("[AnsweredQuestionsManager] Aguardando AppContext...");

@@ -18,6 +18,7 @@ public class UserDataDB
     public int PlayerLevel { get; set; }
     public int TotalValidQuestionsAnswered { get; set; }
     public int TotalQuestionsInAllDatabanks { get; set; }
+    public int LevelSnapshotDenominator { get; set; }
     public Dictionary<string, List<int>> AnsweredQuestions { get; set; }
     public Dictionary<string, bool> ResetDatabankFlags { get; set; }
     public DateTime LastSyncedAt { get; set; }
@@ -48,6 +49,7 @@ public class UserDataDB
             PlayerLevel                 = domain.PlayerLevel,
             TotalValidQuestionsAnswered = domain.TotalValidQuestionsAnswered,
             TotalQuestionsInAllDatabanks= domain.TotalQuestionsInAllDatabanks,
+            LevelSnapshotDenominator    = domain.LevelSnapshotDenominator,
             AnsweredQuestions           = domain.AnsweredQuestions  ?? new Dictionary<string, List<int>>(),
             ResetDatabankFlags          = domain.ResetDatabankFlags ?? new Dictionary<string, bool>(),
             LastSyncedAt                = DateTime.MinValue,
@@ -73,6 +75,7 @@ public class UserDataDB
             PlayerLevel                 = PlayerLevel,
             TotalValidQuestionsAnswered = TotalValidQuestionsAnswered,
             TotalQuestionsInAllDatabanks= TotalQuestionsInAllDatabanks,
+            LevelSnapshotDenominator    = LevelSnapshotDenominator,
             AnsweredQuestions           = AnsweredQuestions  ?? new Dictionary<string, List<int>>(),
             ResetDatabankFlags          = ResetDatabankFlags ?? new Dictionary<string, bool>(),
             SavedAt                     = DateTime.SpecifyKind(SavedAt, DateTimeKind.Utc)
