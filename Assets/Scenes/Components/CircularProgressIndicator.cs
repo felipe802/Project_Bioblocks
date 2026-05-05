@@ -40,26 +40,22 @@ public class CircularProgressIndicator : MonoBehaviour
             }
         }
 
-        // Tentar encontrar as imagens automaticamente se não foram atribuídas
         if (autoSetupImages)
         {
             AutoSetupImages();
         }
 
-        // Configurar a imagem de preenchimento
         SetupFillImage();
     }
 
     private void AutoSetupImages()
     {
-        // Buscar todas as imagens filhas
         Image[] images = GetComponentsInChildren<Image>(true);
 
         foreach (Image img in images)
         {
             string objName = img.gameObject.name.ToLower();
 
-            // Identificar pelo nome do GameObject
             if (objName.Contains("mask") && backgroundRing == null)
             {
                 backgroundRing = img;
@@ -70,7 +66,7 @@ public class CircularProgressIndicator : MonoBehaviour
                 fillImage = img;
                 Debug.Log($"Auto-detectado fill image: {img.name}");
             }
-            // Fallback: identificar pelo sprite se o nome do GameObject não ajudar
+
             else if (img.sprite != null && backgroundRing == null && fillImage == null)
             {
                 string spriteName = img.sprite.name.ToLower();
@@ -96,7 +92,6 @@ public class CircularProgressIndicator : MonoBehaviour
             return;
         }
 
-        // Configurar como preenchimento radial
         fillImage.type = Image.Type.Filled;
         fillImage.fillMethod = Image.FillMethod.Radial360;
         fillImage.fillOrigin = (int)Image.Origin360.Top;
@@ -104,17 +99,12 @@ public class CircularProgressIndicator : MonoBehaviour
         fillImage.fillAmount = 0f;
         fillImage.enabled = true;
 
-        // Configurar o background ring
         if (backgroundRing != null)
         {
             backgroundRing.type = Image.Type.Simple;
             backgroundRing.enabled = true;
-
-            // Garantir que o fillImage renderiza por cima
             fillImage.transform.SetAsLastSibling();
         }
-
-        // Limpar componentes Mask desnecessários (só no Editor, não em Play Mode)
 #if UNITY_EDITOR
         if (!Application.isPlaying)
         {
@@ -124,9 +114,7 @@ public class CircularProgressIndicator : MonoBehaviour
     }
 
 #if UNITY_EDITOR
-    /// <summary>
-    /// Remove componentes Mask desnecessários apenas no Editor
-    /// </summary>
+
     private void CleanupMaskComponents()
     {
         // Remove Mask do fillImage se existir
@@ -153,8 +141,6 @@ public class CircularProgressIndicator : MonoBehaviour
     private void Start()
     {
         AnsweredQuestionsManager.OnAnsweredQuestionsUpdated += HandleAnsweredQuestionsUpdated;
-
-        // Inicializar com 0%
         UpdateVisuals(0f);
     }
 
@@ -165,7 +151,6 @@ public class CircularProgressIndicator : MonoBehaviour
 
     private void Update()
     {
-        // Animação suave do preenchimento
         if (Mathf.Abs(currentFillAmount - targetFillAmount) > 0.001f)
         {
             currentFillAmount = Mathf.SmoothDamp(
@@ -186,26 +171,19 @@ public class CircularProgressIndicator : MonoBehaviour
     private void HandleAnsweredQuestionsUpdated(Dictionary<string, int> answeredCounts)
     {
         if (string.IsNullOrEmpty(databaseName) || !answeredCounts.ContainsKey(databaseName))
-        {
             return;
-        }
 
         int count = answeredCounts[databaseName];
         int totalQuestions = QuestionBankStatistics.GetTotalQuestions(databaseName);
 
-        if (totalQuestions <= 0) totalQuestions = 50;
-
-        int percentage = totalQuestions > 0 ? (count * 100) / totalQuestions : 0;
-        percentage = Mathf.Min(percentage, 100);
+        int percentage = totalQuestions > 0 ? Mathf.Min((count * 100) / totalQuestions, 100) : 0;
 
         if (percentageText != null)
-        {
             percentageText.text = $"{percentage}%";
-        }
 
         targetFillAmount = percentage / 100f;
 
-        Debug.Log($"CircularProgress {databaseName}: {percentage}% ({count}/{totalQuestions}) - FillAmount: {targetFillAmount}");
+        Debug.Log($"CircularProgress {databaseName}: {percentage}% ({count}/{totalQuestions})");
     }
 
     public void SetProgress(int percentage)
@@ -225,13 +203,9 @@ public class CircularProgressIndicator : MonoBehaviour
     private void UpdateVisuals(float fillAmount)
     {
         if (fillImage == null) return;
-
-        // Atualiza o preenchimento radial
-        // A cor permanece a original do sprite (preserva gradiente e efeito 3D)
         fillImage.fillAmount = fillAmount;
     }
 
-    // Método para debug e configuração no editor
     private void OnValidate()
     {
         if (fillImage != null && !Application.isPlaying)

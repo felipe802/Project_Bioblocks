@@ -20,7 +20,6 @@ public class PlayerLevelServiceTests
     // -------------------------------------------------------
     // Fixtures
     // -------------------------------------------------------
-
     private GameObject          _serviceGO;
     private PlayerLevelService  _playerLevel;
     private GameObject          _dispatcherGO;
@@ -337,19 +336,104 @@ public class PlayerLevelServiceTests
         Assert.IsFalse(eventoDisparado,
             "Não deve disparar OnLevelChanged quando já está no nível correto");
     }
-}
 
-// -------------------------------------------------------
-// Fake mínimo para IStatisticsProvider
-// Retorna um total fixo de questões configurável no setup.
-// -------------------------------------------------------
-public class FakeStatisticsProvider : IStatisticsProvider
-{
-    private readonly int _totalQuestions;
+    // =======================================================
+    // REGRESSION TESTS — snapshot-based denominator
+    //
+    // Reproduzem o bug reportado onde o jogador pulou do nível 6
+    // direto ao 10. Garantem que a nova lógica com
+    // LevelSnapshotDenominator não permite esse comportamento.
+    // =======================================================
 
-    public FakeStatisticsProvider(int totalQuestions)
-        => _totalQuestions = totalQuestions;
+    private UserData MakeUserWithSnapshot(int level, int totalAnswered, int snapshot, int totalInAllBanks = TOTAL_QUESTIONS)
+    {
+        var user = MakeUser(level, totalAnswered, totalInAllBanks);
+        user.LevelSnapshotDenominator = snapshot;
+        return user;
+    }
 
-    public bool IsInitialized       => true;
-    public int GetTotalQuestionsCount() => _totalQuestions;
+    [UnityTest]
+    public IEnumerator CheckAndHandleLevelUp_DenominadorEncolheNoProvider_NaoPulaNiveis()
+    {
+        // Cenário do bug: usuário está no nível 6 com 55 respondidas (55%),
+        // snapshot congelado em 100. O provider começa a reportar 50
+        // (total encolheu num outro dispositivo antes do fix).
+        //
+        // Bug original: pct = 55/50 = 110% → CalculateLevel = 10 → pulo 6→10.
+        // Novo comportamento: usa snapshot=100 → pct=55% → continua no nível 6.
+        SetPrivateField("_currentUserData", MakeUserWithSnapshot(level: 6, totalAnswered: 55, snapshot: 100));
+        SetCachedTotalQuestions(0);             // força releitura
+        SetPrivateField("_statistics", new FakeStatisticsProvider(50));
+
+        var task = _playerLevel.CheckAndHandleLevelUp();
+        yield return new WaitUntil(() => task.IsCompleted);
+
+        Assert.AreEqual(6, _playerLevel.GetCurrentLevel(),
+            "Snapshot deve proteger o jogador de pular níveis quando o total encolhe.");
+    }
+
+    [UnityTest]
+    public IEnumerator CheckAndHandleLevelUp_SnapshotRefrescaAoSubir()
+    {
+        // Nível 1 → 2: snapshot inicial 100, answered passa de 9 para 10,
+        // cruza o threshold (10% = 10 respostas). Snapshot deve permanecer
+        // igual ou crescer — nunca diminuir.
+        SetPrivateField("_currentUserData", MakeUserWithSnapshot(level: 1, totalAnswered: 10, snapshot: 100));
+        SetCachedTotalQuestions(TOTAL_QUESTIONS);
+
+        var task = _playerLevel.CheckAndHandleLevelUp();
+        yield return new WaitUntil(() => task.IsCompleted);
+
+        var userData = (UserData)typeof(PlayerLevelService)
+            .GetField("_currentUserData", BindingFlags.NonPublic | BindingFlags.Instance)
+            .GetValue(_playerLevel);
+
+        Assert.AreEqual(2, userData.PlayerLevel);
+        Assert.GreaterOrEqual(userData.LevelSnapshotDenominator, 100,
+            "LevelSnapshotDenominator deve ser monotonicamente não-decrescente.");
+    }
+
+    [UnityTest]
+    public IEnumerator CheckAndHandleLevelUp_BugRegressivo_6ParaExatamente7()
+    {
+        // Reproduz o cenário exato relatado pelo usuário: estava no nível 6
+        // com 60 respondidas no snapshot original de 100 → deveria ir só a 7.
+        // Antes do fix, com o provider reportando 50, o cálculo mostrava
+        // percentage=120% e o jogador pulava para o nível 10, ganhando os
+        // bônus de 7, 8, 9 e 10 de uma só vez.
+        //
+        // Novo comportamento: snapshot=100 é preservado, pct=60% → level-up
+        // EXATAMENTE para 7. Snapshot refrescado respeita max(provider, old).
+        SetPrivateField("_currentUserData", MakeUserWithSnapshot(level: 6, totalAnswered: 60, snapshot: 100));
+        SetCachedTotalQuestions(0);
+        SetPrivateField("_statistics", new FakeStatisticsProvider(50));
+
+        var task = _playerLevel.CheckAndHandleLevelUp();
+        yield return new WaitUntil(() => task.IsCompleted);
+
+        Assert.AreEqual(7, _playerLevel.GetCurrentLevel(),
+            "Jogador deve subir EXATAMENTE para 7, nunca pular para 8, 9 ou 10.");
+
+        var userData = (UserData)typeof(PlayerLevelService)
+            .GetField("_currentUserData", BindingFlags.NonPublic | BindingFlags.Instance)
+            .GetValue(_playerLevel);
+        Assert.AreEqual(100, userData.LevelSnapshotDenominator,
+            "Snapshot não pode diminuir quando o provider reporta um valor menor.");
+    }
+
+    [UnityTest]
+    public IEnumerator CheckAndHandleLevelUp_NuncaDesce()
+    {
+        // Usuário no nível 10, com snapshot muito grande — CalculateLevel
+        // com snapshot retornaria um nível menor, mas o serviço NÃO deve
+        // diminuir o nível do jogador.
+        SetPrivateField("_currentUserData", MakeUserWithSnapshot(level: 10, totalAnswered: 10, snapshot: 1000));
+        SetCachedTotalQuestions(1000);
+
+        var task = _playerLevel.CheckAndHandleLevelUp();
+        yield return new WaitUntil(() => task.IsCompleted);
+
+        Assert.AreEqual(10, _playerLevel.GetCurrentLevel(),
+            "Nível do jogador nunca pode diminuir.");
+    }
 }

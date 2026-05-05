@@ -2,9 +2,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ────────────────────────────────────────────────────────────
+    // Users — documento principal do jogador.
+    // Cada usuário só pode ler/escrever o seu próprio.
+    // Delete habilitado para suportar DeleteAccount (ProfileManager).
+    // ────────────────────────────────────────────────────────────
     match /Users/{userId} {
       allow get: if request.auth != null && request.auth.uid == userId;
-      // allow list: removido — cliente não lista mais Users
+      // allow list: removido — cliente não lista Users.
 
       allow create: if request.auth != null
         && request.auth.uid == userId
@@ -17,26 +22,76 @@ service cloud.firestore {
         && request.resource.data.WeekScore >= 0
         && request.resource.data.UserId == resource.data.UserId
         && request.resource.data.Email  == resource.data.Email;
+
+      allow delete: if request.auth != null && request.auth.uid == userId;
     }
 
+    // ────────────────────────────────────────────────────────────
+    // Rankings — espelho somente-leitura mantido pela Cloud Function
+    // syncRankingOnUserWrite (Admin SDK bypassa estas rules).
+    // Create/update pelo cliente é bloqueado (anti-fraude).
+    // Delete é liberado só para o próprio dono (DeleteAccount).
+    // ────────────────────────────────────────────────────────────
     match /Rankings/{userId} {
-      allow read:  if request.auth != null;
-      allow write: if false;
+      allow read: if request.auth != null;
+      allow create, update: if false;
+      allow delete: if request.auth != null && request.auth.uid == userId;
     }
 
+    // ────────────────────────────────────────────────────────────
+    // QuestionSceneBonus — estado de bônus por usuário.
+    // ────────────────────────────────────────────────────────────
     match /QuestionSceneBonus/{userId} {
       allow read, write: if request.auth != null
         && request.auth.uid == userId;
     }
 
+    // ────────────────────────────────────────────────────────────
+    // UserBonus — inventário de bônus do próprio usuário
+    // (UserBonusManager, QuestionManager.CheckIfDatabankEligibleForBonus).
+    // Somente o próprio dono lê/escreve.
+    // ────────────────────────────────────────────────────────────
+    match /UserBonus/{userId} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == userId;
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // Nicknames — índice global de nicknames → userId.
+    // Leitura pública (usada para checar se nickname já existe).
+    // Escrita restrita ao dono: só quem está logado como
+    // <userId> pode criar/deletar o documento cujo campo userId
+    // é <userId>.
+    // ────────────────────────────────────────────────────────────
     match /Nicknames/{nickname} {
-      allow read:  if true;
+      allow read: if true;
       allow create: if request.auth != null
         && request.resource.data.userId == request.auth.uid;
-    allow delete: if request.auth != null
+      allow delete: if request.auth != null
         && resource.data.userId == request.auth.uid;
     }
 
+    // ────────────────────────────────────────────────────────────
+    // Questions — banco de questões.
+    // Leitura pelo cliente autenticado (sync via FirestoreQuestionRepository).
+    // Escrita apenas via Admin SDK (backoffice / scripts).
+    // ────────────────────────────────────────────────────────────
+    match /Questions/{questionId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // ────────────────────────────────────────────────────────────
+    // Config/QuestionStats — fonte única de verdade do total de questões.
+    // Mantido EXCLUSIVAMENTE pela Cloud Function syncQuestionStats
+    // (Admin SDK bypassa estas rules). Clientes apenas leem.
+    // ────────────────────────────────────────────────────────────
+    match /Config/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // Catch-all — bloqueia qualquer coleção não listada acima.
     match /{document=**} {
       allow read, write: if false;
     }

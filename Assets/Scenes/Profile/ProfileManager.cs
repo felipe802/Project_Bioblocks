@@ -11,6 +11,7 @@ public class ProfileManager : MonoBehaviour
 {
     [Header("UserData UI")]
     [SerializeField] private TMP_Text nameText;
+    [SerializeField] private TMP_Text scoreText;
     [SerializeField] private TMP_Text emailText;
     [SerializeField] private TMP_Text createdTimeText;
     [SerializeField] private CanvasGroup userDataTable;
@@ -19,6 +20,7 @@ public class ProfileManager : MonoBehaviour
     [SerializeField] private Button deleteAccountButton;
     [SerializeField] private TextMeshProUGUI deleteAccountButtonText;
     [SerializeField] private DeleteAccountPanel deleteAccountPanel;
+    [SerializeField] private TextMeshProUGUI deleteAccountFeedbackText;
 
     [Header("Configurações de Overlay")]
     [SerializeField] private GameObject deleteAccountDarkOverlay;
@@ -29,31 +31,29 @@ public class ProfileManager : MonoBehaviour
 
     [Header("Navegação e UI Global")]
     private INavigationService _navigation;
-    [SerializeField] private LoadingSpinnerComponent loadingSpinner;
+    private LoadingSpinnerComponent loadingSpinner;
+    private HalfViewComponent _halfView;
 
     // -------------------------------------------------------
     // Dependências — obtidas do AppContext no Start()
     // -------------------------------------------------------
     private IFirestoreRepository _firestore;
-    private IStorageRepository _storage;
     private IAuthRepository _auth;
     private IStatisticsProvider _statistics;
 
     private UserData currentUserData;
     private bool firestoreDeleted = false;
-    private bool storageDeleted = false;
 
     // -------------------------------------------------------
     // Ciclo de vida
     // -------------------------------------------------------
-
     private void Start()
     {
-        _firestore  = AppContext.Firestore;
-        _storage    = AppContext.Storage;
-        _auth       = AppContext.Auth;
-        _statistics = AppContext.Statistics;
-        _navigation = AppContext.Navigation;
+        _firestore    = AppContext.Firestore;
+        _auth         = AppContext.Auth;
+        _statistics   = AppContext.Statistics;
+        _navigation   = AppContext.Navigation;
+        loadingSpinner = LoadingSpinnerComponent.Instance;
 
         if (deleteAccountPanel == null)
             Debug.LogError("DeleteAccountPanel não está atribuído no ProfileManager!");
@@ -61,22 +61,8 @@ public class ProfileManager : MonoBehaviour
         if (deleteAccountDarkOverlay != null)
             deleteAccountDarkOverlay.SetActive(false);
 
-        HalfViewComponent halfView = HalfViewRegistry.GetHalfViewForScene(SceneManager.GetActiveScene().name);
-        if (halfView != null)
-        {
-            halfView.Configure(
-                "Opções da Conta",
-                "Escolha uma das opções abaixo:",
-                "Sair da Conta",
-                () => LogoutButton(),
-                "Deletar Conta",
-                () =>
-                {
-                    halfView.HideMenu();
-                    StartCoroutine(DelayedStartDeleteAccount());
-                }
-            );
-        }
+        _halfView = HalfViewRegistry.GetHalfViewForScene(SceneManager.GetActiveScene().name);
+        ConfigureHalfView();
 
         InitializeAccountManager();
     }
@@ -91,8 +77,6 @@ public class ProfileManager : MonoBehaviour
     {
         UserDataStore.OnUserDataChanged -= OnUserDataChanged;
         AnsweredQuestionsManager.OnAnsweredQuestionsUpdated -= HandleAnsweredQuestionsUpdated;
-        DatabaseStatisticsManager.OnStatisticsReady -= OnDatabaseStatisticsReady;
-
         if (this != null && gameObject != null && gameObject.scene.isLoaded)
         {
             GameObject darkOverlay = GameObject.Find("DarkOverlay");
@@ -107,7 +91,6 @@ public class ProfileManager : MonoBehaviour
     // -------------------------------------------------------
     // Inicialização
     // -------------------------------------------------------
-
     private void InitializeAccountManager()
     {
         currentUserData = UserDataStore.CurrentUserData;
@@ -139,7 +122,6 @@ public class ProfileManager : MonoBehaviour
         }
         else
         {
-            DatabaseStatisticsManager.OnStatisticsReady += OnDatabaseStatisticsReady;
             StartCoroutine(InitializeDatabaseStatistics());
         }
     }
@@ -151,20 +133,14 @@ public class ProfileManager : MonoBehaviour
         if (task == null) yield break;
         while (!task.IsCompleted) yield return null;
         if (task.IsFaulted)
-            Debug.LogError($"Erro ao inicializar estatísticas: {task.Exception}");
-    }
-
-    private void OnDatabaseStatisticsReady()
-    {
-        Debug.Log("ProfileManager: Estatísticas prontas");
-        DisplayAnsweredQuestionsCount();
-        DatabaseStatisticsManager.OnStatisticsReady -= OnDatabaseStatisticsReady;
+            Debug.LogError($"[ProfileManager] Erro ao inicializar estatísticas: {task.Exception}");
+        else
+            DisplayAnsweredQuestionsCount();
     }
 
     // -------------------------------------------------------
     // UI
     // -------------------------------------------------------
-
     private void OnUserDataChanged(UserData userData)
     {
         currentUserData = userData;
@@ -180,6 +156,8 @@ public class ProfileManager : MonoBehaviour
         }
 
         nameText.text = currentUserData.Name;
+        if (scoreText != null)
+            scoreText.text = $"{currentUserData.Score} pontos no total";
         emailText.text = currentUserData.Email;
         createdTimeText.text = $"Conta criada em {currentUserData.GetFormattedCreatedTime()}";
     }
@@ -243,7 +221,6 @@ public class ProfileManager : MonoBehaviour
     // -------------------------------------------------------
     // Navegação
     // -------------------------------------------------------
-    
     public void Navigate(string sceneName)
     {
         
@@ -278,7 +255,7 @@ public class ProfileManager : MonoBehaviour
             {
                 Debug.Log("[ProfileManager] Sincronizando dados pendentes antes do logout...");
 
-                // 1. Score, questões respondidas, dados gerais — via SyncService
+                // Score, questões respondidas, dados gerais — via SyncService
                 try
                 {
                     await AppContext.UserDataSync.TrySyncPendingData(currentUserId);
@@ -287,17 +264,6 @@ public class ProfileManager : MonoBehaviour
                 catch (Exception e)
                 {
                     Debug.LogWarning($"[ProfileManager] Falha ao sincronizar dados: {e.Message}");
-                }
-
-                // 2. Upload de imagem pendente — via PendingUploadSyncService
-                try
-                {
-                    if (AppContext.PendingUploadSync != null)
-                        await AppContext.PendingUploadSync.TrySyncPendingUploads();
-                }
-                catch (Exception e)
-                {
-                    Debug.LogWarning($"[ProfileManager] Falha ao sincronizar uploads: {e.Message}");
                 }
             }
 
@@ -323,6 +289,22 @@ public class ProfileManager : MonoBehaviour
     // -------------------------------------------------------
     // Delete Account
     // -------------------------------------------------------
+    private void ConfigureHalfView()
+    {
+        if (_halfView == null) return;
+        _halfView.Configure(
+            "Opções da Conta",
+            "Escolha uma das opções abaixo:",
+            "Sair da Conta",
+            () => LogoutButton(),
+            "Deletar Conta",
+            () =>
+            {
+                _halfView.HideMenu();
+                StartCoroutine(DelayedStartDeleteAccount());
+            }
+        );
+    }
 
     private IEnumerator DelayedStartDeleteAccount()
     {
@@ -342,17 +324,7 @@ public class ProfileManager : MonoBehaviour
 
         if (deleteAccountDarkOverlay != null)
         {
-            if (!deleteAccountDarkOverlay.activeSelf)
-                deleteAccountDarkOverlay.SetActive(true);
-
-            Canvas overlayCanvas = deleteAccountDarkOverlay.GetComponent<Canvas>();
-            if (overlayCanvas == null)
-            {
-                overlayCanvas = deleteAccountDarkOverlay.AddComponent<Canvas>();
-                deleteAccountDarkOverlay.AddComponent<GraphicRaycaster>();
-            }
-            overlayCanvas.overrideSorting = true;
-            overlayCanvas.sortingOrder = 109;
+            deleteAccountDarkOverlay.SetActive(true);
 
             Image overlayImage = deleteAccountDarkOverlay.GetComponent<Image>();
             if (overlayImage != null)
@@ -383,11 +355,17 @@ public class ProfileManager : MonoBehaviour
         if (deleteAccountDarkOverlay != null)
             deleteAccountDarkOverlay.SetActive(false);
 
+        // Restaura os callbacks do HalfView, que são sobrescritos pelo
+        // SetupButtonListeners() interno quando preventButtonReconfiguration
+        // volta a false após HideMenu().
+        ConfigureHalfView();
+
         GameObject halfViewOverlay = GameObject.Find("HalfViewDarkOverlay");
         if (halfViewOverlay != null)
             halfViewOverlay.SetActive(false);
 
         ReenableSceneInteractions();
+        SetDeleteFeedback("");
         userDataTable.alpha = 1;
         userDataTable.interactable = true;
         userDataTable.blocksRaycasts = true;
@@ -396,120 +374,193 @@ public class ProfileManager : MonoBehaviour
 
     public void DeleteAccountButton()
     {
+        if (deleteAccountPanel != null && !deleteAccountPanel.IsReadyForInput)
+        {
+            Debug.Log("[DeleteAccountButton] Ignorado — painel ainda não pronto para input (touch bleed-through).");
+            return;
+        }
         StartCoroutine(DeleteAccountAsync().AsCoroutine());
-    }           
+    }
 
     public async Task DeleteAccountAsync(bool isRetry = false)
     {
         Debug.Log($"Starting DeleteAccountAsync... (isRetry: {isRetry})");
 
-        if (currentUserData.UserId == null)
+        if (currentUserData?.UserId == null)
         {
             Debug.LogError("The user is not connected.");
             return;
         }
 
-        string userId = currentUserData.UserId;
+        string userId    = currentUserData.UserId;
+        string nickName  = currentUserData.NickName;
 
         try
         {
             if (deleteAccountButton != null) deleteAccountButton.interactable = false;
-            if (deleteAccountButtonText != null) deleteAccountButtonText.text = "Verificando...";
+            SetDeleteFeedback("Verificando...");
 
-            if (!isRetry)
+            // ----------------------------------------------------------------
+            // Fase 1 — Deleção de dados no Firestore
+            //
+            // IMPORTANTE: deve ocorrer ANTES do DeleteUser porque o
+            // FirestoreRepository real exige usuário autenticado no Firebase.
+            //
+            // Cada operação usa seu próprio flag ou é idempotente — assim,
+            // se a sessão estava expirada e as deleções falharam por permissão,
+            // elas são repetidas após a reautenticação (isRetry=true) usando os
+            // mesmos flags para evitar duplicatas quando já tiveram sucesso.
+            // ----------------------------------------------------------------
+
+            // 1a. Deletar documento principal do usuário (coleção Users)
+            if (!firestoreDeleted)
             {
-                // 1. Deletar documento do Firestore
-                if (!firestoreDeleted)
+                try
                 {
-                    try
-                    {
-                        await _firestore.DeleteDocument("Users", userId).ConfigureAwait(false);
-                        await Task.Yield();
-                        Debug.Log("Documento do Firestore deletado com sucesso");
-                        firestoreDeleted = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogError($"Erro ao deletar Firestore: {ex.Message}");
-                    }
+                    await _firestore.DeleteDocument("Users", userId);
+                    Debug.Log("[DeleteAccount] Users: deletado com sucesso");
+                    firestoreDeleted = true;
                 }
-
-                // 2. Deletar imagem do Storage
-                if (!storageDeleted && !string.IsNullOrEmpty(currentUserData.ProfileImageUrl))
+                catch (Exception ex)
                 {
-                    try
-                    {
-                        await _storage.DeleteProfileImageAsync(currentUserData.ProfileImageUrl);
-                        Debug.Log("Imagem do Storage deletada com sucesso");
-                        storageDeleted = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogWarning($"Erro ao deletar Storage: {ex.Message}");
-                    }
+                    Debug.LogError($"[DeleteAccount] Erro ao deletar Users: {ex.Message}");
                 }
             }
 
-            // 3. Deletar usuário do Authentication
+            // 1b. Deletar entrada na tabela de classificação (coleção Rankings)
             try
             {
-                await _auth.DeleteUser(userId).ConfigureAwait(false);
-                await Task.Yield();
-                Debug.Log("Usuário deletado do Authentication com sucesso");
+                await _firestore.DeleteDocument("Rankings", userId);
+                Debug.Log("[DeleteAccount] Rankings: deletado com sucesso");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[DeleteAccount] Rankings (pode não existir): {ex.Message}");
+            }
 
-                if (deleteAccountButtonText != null) deleteAccountButtonText.text = "Até a próxima!";
-                deleteAccountPanel.HidePanel();
+            // 1c. Deletar nickname na coleção Nicknames
+            if (!string.IsNullOrEmpty(nickName))
+            {
+                try
+                {
+                    await _firestore.DeleteDocument("Nicknames", nickName);
+                    Debug.Log("[DeleteAccount] Nicknames: deletado com sucesso");
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[DeleteAccount] Nicknames: {ex.Message}");
+                }
+            }
 
-                CleanupOverlays();
-                ReenableSceneInteractions();
+            // 1d. Deletar o usuário de demais coleções onde ele possa existir
+            //     (operações idempotentes — safe em retry)
+            string[] additionalCollections =
+            {
+                "QuestionSceneBonus",
+                "UserBonus",
+                "UserFeedback",
+                "UserLevelProgress",
+                "UserRetries"
+            };
 
-                UserDataStore.CurrentUserData = null;
-            
+            foreach (string collection in additionalCollections)
+            {
+                try
+                {
+                    await _firestore.DeleteDocument(collection, userId);
+                    Debug.Log($"[DeleteAccount] {collection}: deletado com sucesso");
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[DeleteAccount] {collection} (pode não existir): {ex.Message}");
+                }
+            }
 
-                AnsweredQuestionsListStore.ClearAll();
-                Debug.Log("=== LIMPEZA COMPLETA FINALIZADA ===");
-
-                await Task.Delay(300);
-                loadingSpinner?.ShowSpinnerUntilSceneLoaded("LoginView");
-                Navigate("LoginView");
+            // ----------------------------------------------------------------
+            // Fase 2 — Deletar o usuário do Firebase Authentication
+            //
+            // NÃO usar ConfigureAwait(false) aqui: quando
+            // ReauthenticationRequiredException é lançada, a continuação
+            // precisa estar na main thread para manipular UI (botões, panels).
+            // ----------------------------------------------------------------
+            bool reauthRequired = false;
+            try
+            {
+                await _auth.DeleteUser(userId);
+                Debug.Log("[DeleteAccount] Authentication: usuário deletado com sucesso");
             }
             catch (ReauthenticationRequiredException)
             {
-                Debug.Log("Reautenticação necessária para deletar usuário");
+                reauthRequired = true;
+            }
+
+            if (reauthRequired)
+            {
+                Debug.Log("[DeleteAccount] Reautenticação necessária");
 
                 if (deleteAccountButton != null)
-                {
                     deleteAccountButton.interactable = true;
-                    deleteAccountButtonText.text = "Deletar Conta";
-                }
+                SetDeleteFeedback("");
 
-                deleteAccountPanel.HidePanel();
+                try { deleteAccountPanel.HidePanel(); } catch { /* seguro */ }
 
                 if (reAuthUI != null)
                 {
-                    Canvas reAuthCanvas = reAuthUI.GetComponent<Canvas>() ?? reAuthUI.gameObject.AddComponent<Canvas>();
+                    Canvas reAuthCanvas = reAuthUI.GetComponent<Canvas>()
+                                      ?? reAuthUI.gameObject.AddComponent<Canvas>();
                     reAuthCanvas.overrideSorting = true;
-                    reAuthCanvas.sortingOrder = 200;
+                    reAuthCanvas.sortingOrder    = 200;
 
                     if (reAuthUI.GetComponent<GraphicRaycaster>() == null)
                         reAuthUI.gameObject.AddComponent<GraphicRaycaster>();
+
+                    reAuthUI.ShowReAuthPanel(currentUserData.Email, async () =>
+                    {
+                        Debug.Log("[DeleteAccount] Reautenticação bem-sucedida — repetindo fluxo completo...");
+                        await DeleteAccountAsync(isRetry: true);
+                    });
+                }
+                else
+                {
+                    Debug.LogError("[DeleteAccount] ReAuthUI não atribuído — não é possível solicitar reautenticação.");
                 }
 
-                reAuthUI.ShowReAuthPanel(currentUserData.Email, async () =>
-                {
-                    Debug.Log("Reautenticação bem-sucedida, tentando deletar apenas Authentication...");
-                    await DeleteAccountAsync(true);
-                });
+                return; // navegação ocorrerá na chamada com isRetry=true
             }
+
+            // ----------------------------------------------------------------
+            // Fase 3 — Limpeza de UI e estado local, depois navegar para Login
+            // Cada passo de cleanup é isolado para que uma falha de UI não
+            // impeça a navegação para LoginView.
+            // ----------------------------------------------------------------
+            SetDeleteFeedback("Até a próxima!");
+
+            try { deleteAccountPanel.HidePanel(); }
+            catch (Exception ex) { Debug.LogWarning($"[DeleteAccount] HidePanel: {ex.Message}"); }
+
+            try { CleanupOverlays(); }
+            catch (Exception ex) { Debug.LogWarning($"[DeleteAccount] CleanupOverlays: {ex.Message}"); }
+
+            try { ReenableSceneInteractions(); }
+            catch (Exception ex) { Debug.LogWarning($"[DeleteAccount] ReenableSceneInteractions: {ex.Message}"); }
+
+            // Limpa dados locais
+            UserDataStore.OnUserDataChanged -= OnUserDataChanged;
+            UserDataStore.CurrentUserData    = null;
+            AppContext.AnsweredQuestions?.ResetManager();
+            AnsweredQuestionsListStore.ClearAll();
+
+            Debug.Log("[DeleteAccount] === LIMPEZA COMPLETA FINALIZADA ===");
+
+            loadingSpinner?.HideSpinner();
+            Navigate("LoginView");
         }
         catch (Exception ex)
         {
-            Debug.LogError($"Erro ao deletar conta: {ex.Message}");
+            Debug.LogError($"[DeleteAccount] Erro inesperado: {ex.Message}");
             if (deleteAccountButton != null)
-            {
                 deleteAccountButton.interactable = true;
-                deleteAccountButtonText.text = "Novamente";
-            }
+            SetDeleteFeedback("Erro ao deletar. Tente novamente.");
             loadingSpinner?.HideSpinner();
         }
     }
@@ -517,6 +568,16 @@ public class ProfileManager : MonoBehaviour
     // -------------------------------------------------------
     // Helpers privados
     // -------------------------------------------------------
+
+    /// <summary>
+    /// Exibe mensagem de status abaixo dos botões do painel de deleção.
+    /// Passa string vazia para limpar o texto.
+    /// </summary>
+    private void SetDeleteFeedback(string message)
+    {
+        if (deleteAccountFeedbackText != null)
+            deleteAccountFeedbackText.text = message;
+    }
 
     private void CleanupOverlays()
     {

@@ -61,9 +61,7 @@ public class QuestionLoadManager : MonoBehaviour
             if (!isInitialized)
                 await Initialize();
 
-            // Lê do LiteDB via QuestionSyncService —
-            // não depende mais de GameObjects de banco na cena
-            List<Question> allQuestions = AppContext.QuestionSync?
+            List<Question> allQuestions = AppContext.QuestionSource?
                                               .GetQuestionsForDatabankName(databankName)
                                           ?? new List<Question>();
 
@@ -84,6 +82,16 @@ public class QuestionLoadManager : MonoBehaviour
 
             foreach (var kvp in questionsByLevel.OrderBy(x => x.Key))
                 Debug.Log($"    Nível {kvp.Key}: {kvp.Value} questões");
+
+            // Preview Mode — retorna todas as questões de todos os níveis,
+            // sem filtrar por respondidas ou nível atual.
+            var envCfg = EnvironmentConfig.Load();
+            if (envCfg != null && envCfg.QuestionPreviewMode)
+            {
+                Debug.Log($"[QuestionLoadManager] Preview Mode — {allQuestions.Count} questões de todos os níveis carregadas.");
+                questions = allQuestions;
+                return questions;
+            }
 
             string userId = UserDataStore.CurrentUserData?.UserId;
 

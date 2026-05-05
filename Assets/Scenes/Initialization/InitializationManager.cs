@@ -73,6 +73,23 @@ public class InitializationManager : MonoBehaviour
         float startTime = Time.time;
         Debug.Log("[InitManager] StartInitialization começou");
 
+        // ── Preview Mode — bypassa auth e dados de usuário ────────────────────
+        var envCfg = EnvironmentConfig.Load();
+        if (envCfg != null && envCfg.QuestionPreviewMode)
+        {
+            Debug.Log("[InitManager] questionPreviewMode=true — pulando auth e dados de usuário.");
+            UpdateStatus("Modo preview ativo...");
+            await WaitForAppContext();
+
+            float elapsed = Time.time - startTime;
+            if (elapsed < minimumLoadingTime)
+                await Task.Delay(Mathf.RoundToInt((minimumLoadingTime - elapsed) * 1000));
+
+            globalSpinner?.ShowSpinnerUntilSceneLoaded("PathwayScene");
+            SceneManager.LoadScene("PathwayScene");
+            return;
+        }
+
         try
         {
             if (!AppContext.IsReady)
@@ -112,7 +129,7 @@ public class InitializationManager : MonoBehaviour
                 if (userDataLoaded)
                 {
                     UpdateStatus("Carregando bancos de questões...");
-                    await DatabaseStatisticsManager.Instance.Initialize();
+                    await (AppContext.Statistics as DatabaseStatisticsManager)?.Initialize();
                     UpdateProgress(0.85f);
 
                     UpdateStatus("Configurando sistema de níveis...");

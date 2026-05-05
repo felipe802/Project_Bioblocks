@@ -20,6 +20,29 @@ public interface IFirestoreRepository
     Task DeleteDocument(string collection, string documentId);
     Task<bool> AreNicknameTaken(string nickName);
     Task<List<UserData>> GetAllUsersData();
+
+    /// <summary>
+    /// Lê Config/QuestionStats — fonte única de verdade do total de questões.
+    /// Mantido pelo Cloud Function <c>syncQuestionStats</c>. Cliente NUNCA escreve.
+    /// Retorna null se o documento não existir ou se houver falha de rede.
+    /// </summary>
+    Task<QuestionStats> GetQuestionStats();
+
+    // ── UserBonus / CompletedDatabanks ────────────────────────────────────────
+
+    /// <summary>
+    /// Retorna true se o databank ainda não foi marcado como completo para este usuário
+    /// (ou seja, o bônus de conclusão ainda não foi concedido).
+    /// Lê UserBonus/{userId}.CompletedDatabanks.
+    /// </summary>
+    Task<bool> IsDatabankEligibleForBonus(string userId, string databankName);
+
+    /// <summary>
+    /// Adiciona <paramref name="databankName"/> à lista CompletedDatabanks do usuário,
+    /// evitando duplicatas. Escreve em UserBonus/{userId}.
+    /// </summary>
+    Task MarkDatabankAsCompleted(string userId, string databankName);
+
     IDisposable ListenToScore(string userId, Action<int> onScoreChanged, Action<int> onWeekScoreChanged);
     IDisposable ListenToAnsweredQuestions(string userId, Action<Dictionary<string, List<int>>> onChanged);
     void StopListening();
