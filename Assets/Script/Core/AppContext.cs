@@ -223,6 +223,32 @@ public class AppContext : MonoBehaviour
         }
     }
 
+    private static void ValidateFirebaseEnvironment(FirebaseEnvironment env)
+    {
+        string expectedProjectId = env == FirebaseEnvironment.Prod 
+            ? "microlearning-33132" 
+            : "microlearning-dev-79c0c";
+
+    #if UNITY_EDITOR
+        string configPath = System.IO.Path.Combine(Application.dataPath, "google-services.json");
+        if (System.IO.File.Exists(configPath))
+        {
+            string content = System.IO.File.ReadAllText(configPath);
+            if (!content.Contains(expectedProjectId))
+            {
+                throw new Exception(
+                    $"Firebase {env} esperado ({expectedProjectId}) não encontrado em google-services.json.");
+            }
+        }
+        else
+        {
+            throw new Exception("google-services.json não encontrado em Assets/");
+        }
+    #endif
+
+        Debug.Log($"[AppContext] Firebase {env} ({expectedProjectId}) validado.");
+    }
+
     public static void OverrideForTests(
         IFirestoreRepository            firestore            = null,
         IAuthRepository                 auth                 = null,

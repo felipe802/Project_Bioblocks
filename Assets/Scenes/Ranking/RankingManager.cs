@@ -66,7 +66,7 @@ public class RankingManager : MonoBehaviour
 
         _rankingRepository = debugMode
             ? (IRankingRepository) new FakeRankingRepository()
-            : new RankingRepository();
+            : new RankingRepository(AppContext.Firestore);
 
         // Popula a tabela imediatamente com o cache — sem await, sem flash
         var syncService = AppContext.RankingSync;

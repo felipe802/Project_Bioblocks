@@ -123,7 +123,7 @@ public class RegisterManager : MonoBehaviour
         {
             string errorMessage = GetFirebaseAuthErrorMessage(e);
             Debug.LogWarning($"[RegisterManager] {errorMessage}");
-            feedbackManager.ShowFeedback(errorMessage, true);
+            MainThreadDispatcher.Enqueue(() => feedbackManager.ShowFeedback(errorMessage, true));
             loadingSpinner?.HideSpinner();
             SetAllButtonsInteractable(true);
             isProcessing = false;
@@ -131,7 +131,7 @@ public class RegisterManager : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogWarning($"[RegisterManager] {e.Message}");
-            feedbackManager.ShowFeedback(e.Message, true);
+            MainThreadDispatcher.Enqueue(() => feedbackManager.ShowFeedback(e.Message, true));
             loadingSpinner?.HideSpinner();
             SetAllButtonsInteractable(true);
             isProcessing = false;
@@ -215,9 +215,9 @@ public class RegisterManager : MonoBehaviour
     private void ValidateNickname(string value)
     {
         if (value.Length < 3)
-            feedbackManager.ShowFeedback("Nickname deve possuir mais de 3 caracteres.", true);
+            MainThreadDispatcher.Enqueue(() => feedbackManager.ShowFeedback("Nickname deve possuir mais de 3 caracteres.", true));
         else
-            feedbackManager.HideFeedback();
+            MainThreadDispatcher.Enqueue(() => feedbackManager.HideFeedback());
     }
 
     // -------------------------------------------------------

@@ -130,3 +130,5 @@ Assets/Packages.meta
 # ===========================
 audit-dryrun-*.json
 audit-apply-*.json
+Assets/Editor/FirebaseSecrets.json
+Assets/Editor/FirebaseSecrets.json.meta

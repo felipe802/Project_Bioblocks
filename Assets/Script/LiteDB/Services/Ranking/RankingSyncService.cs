@@ -35,7 +35,7 @@ public class RankingSyncService : MonoBehaviour
 
         _db           = AppContext.LocalDatabase;
         _connectivity = AppContext.Connectivity;
-        _remoteRepo   = new RankingRepository();
+        _remoteRepo   = new RankingRepository(AppContext.Firestore);
 
         if (_db == null || !_db.IsInitialized)
         {

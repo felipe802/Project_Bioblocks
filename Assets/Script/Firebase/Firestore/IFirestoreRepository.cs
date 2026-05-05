@@ -59,6 +59,10 @@ public interface IFirestoreRepository
         Action<int> onWeekScoreChanged = null,
         Action<Dictionary<string, List<int>>> onAnsweredQuestionsChanged = null
     );
+
+    // ── Rankings ────────────────────────────────────────────────────────────
+    Task<List<Ranking>> GetRankingsAsync(int limit = 50);
+    Task<List<Ranking>> GetWeekRankingsAsync(int limit = 50);
 }
     
     

@@ -905,4 +905,70 @@ public class FirestoreRepository : MonoBehaviour, IFirestoreRepository
                 DateTime.SpecifyKind(userData.CreatedTime, DateTimeKind.Utc)) }
         };
     }
+
+    // -------------------------------------------------------
+    // Rankings
+    // -------------------------------------------------------
+
+    public async Task<List<Ranking>> GetRankingsAsync(int limit = 50)
+    {
+        try
+        {
+            if (!isInitialized) throw new Exception("Firestore não inicializado");
+
+            QuerySnapshot snap = await db
+                .Collection("Rankings")
+                .OrderByDescending("score")
+                .Limit(limit)
+                .GetSnapshotAsync();
+
+            return ToRankingList(snap);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[FirestoreRepository] GetRankingsAsync falhou: {e.Message}");
+            throw;
+        }
+    }
+
+    public async Task<List<Ranking>> GetWeekRankingsAsync(int limit = 50)
+    {
+        try
+        {
+            if (!isInitialized) throw new Exception("Firestore não inicializado");
+
+            QuerySnapshot snap = await db
+                .Collection("Rankings")
+                .OrderByDescending("weekScore")
+                .Limit(limit)
+                .GetSnapshotAsync();
+
+            return ToRankingList(snap);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[FirestoreRepository] GetWeekRankingsAsync falhou: {e.Message}");
+            throw;
+        }
+    }
+
+    private List<Ranking> ToRankingList(QuerySnapshot snap)
+    {
+        var result = new List<Ranking>(snap.Count);
+
+        foreach (DocumentSnapshot doc in snap.Documents)
+        {
+            try
+            {
+                Ranking ranking = doc.ConvertTo<Ranking>();
+                result.Add(ranking);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[FirestoreRepository] Doc {doc.Id} inválido, ignorando: {e.Message}");
+            }
+        }
+
+        return result;
+    }
 }
